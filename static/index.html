@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AgroPulse — Conecta tu comunidad agrícola</title>
+    <link rel="stylesheet" href="/css/styles.css?v=2">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <meta name="theme-color" content="#2C3E1F">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+<!-- ===== LANDING ===== -->
+<div id="screen-landing" class="screen active landing">
+    <div class="logo-mark"><i data-lucide="sprout"></i></div>
+    <h1>Agro<span class="highlight">Pulse</span></h1>
+    <p class="tagline">Conecta tu comunidad agrícola. Comparte recursos, fortalece la tierra.</p>
+    <div class="region-tag"><i data-lucide="map-pin"></i> Boyacá — Duitama · Sogamoso</div>
+    <div class="landing-ctas">
+        <button class="btn btn-primary btn-full" onclick="App.showScreen('screen-register')">
+            <i data-lucide="user-plus"></i> Crear cuenta gratuita
+        </button>
+        <button class="btn btn-secondary btn-full" onclick="App.showScreen('screen-login')">
+            <i data-lucide="log-in"></i> Ya tengo cuenta
+        </button>
+    </div>
+    <div class="landing-stats">
+        <div class="stat-item"><div class="stat-value">4.8M</div><div class="stat-label">Empleos rurales</div></div>
+        <div class="stat-item"><div class="stat-value">4</div><div class="stat-label">Tipos de intercambio</div></div>
+        <div class="stat-item"><div class="stat-value">2</div><div class="stat-label">Municipios piloto</div></div>
+    </div>
+</div>
+
+<!-- ===== REGISTER ===== -->
+<div id="screen-register" class="screen auth-screen">
+    <div class="auth-logo">
+        <div class="auth-logo-icon"><i data-lucide="sprout"></i></div>
+        <span class="auth-logo-text">AgroPulse</span>
+    </div>
+    <h2 class="auth-title">Crea tu cuenta</h2>
+    <p class="auth-subtitle">Únete a la comunidad agrícola de Boyacá</p>
+    <div class="auth-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Nombre *</label>
+                <input type="text" id="reg-nombre" class="form-input" placeholder="Tu nombre">
+                <span class="form-hint">Como aparecerás para otros agricultores</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Apellido *</label>
+                <input type="text" id="reg-apellido" class="form-input" placeholder="Tu apellido">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Correo electrónico *</label>
+            <input type="email" id="reg-email" class="form-input" placeholder="tu@correo.com">
+            <span class="form-hint">Lo usarás para iniciar sesión. No se comparte públicamente</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" id="reg-telefono" class="form-input" placeholder="300 123 4567">
+            <span class="form-hint">Opcional. Facilita la comunicación con otros productores</span>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Municipio *</label>
+                <select id="reg-municipio" class="form-select">
+                    <option value="">Seleccionar...</option>
+                    <option>Duitama</option><option>Sogamoso</option>
+                </select>
+                <span class="form-hint">Donde vives o trabajas</span>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo de productor *</label>
+                <select id="reg-tipo" class="form-select">
+                    <option value="">Seleccionar...</option>
+                    <option>Pequeño agricultor</option>
+                    <option>Mediano productor</option>
+                    <option>Cooperativa agrícola</option>
+                    <option>Proveedor de insumos</option>
+                    <option>Técnico agrícola</option>
+                    <option>Joven rural</option>
+                </select>
+                <span class="form-hint">Tu actividad agrícola principal</span>
+            </div>
+        </div>
+        <input type="hidden" id="reg-lat"><input type="hidden" id="reg-lng">
+        <button type="button" id="geo-reg" class="geo-btn"><i data-lucide="crosshair"></i> Detectar mi ubicación</button>
+        <span id="geo-reg-status" class="form-hint" style="display:block;margin-top:6px"></span>
+        <div id="geo-reg-map" class="geo-map-preview"></div>
+        <div class="form-group" style="margin-top:12px">
+            <label class="form-label">Contraseña *</label>
+            <input type="password" id="reg-pass" class="form-input" placeholder="Mínimo 6 caracteres">
+            <span class="form-hint">Usa letras y números para mayor seguridad</span>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-register" onclick="App.doRegister()" style="margin-top:8px">
+            <i data-lucide="user-plus"></i> Crear mi cuenta
+        </button>
+    </div>
+    <p class="auth-switch">¿Ya tienes cuenta? <a onclick="App.showScreen('screen-login')">Inicia sesión</a></p>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div id="screen-login" class="screen auth-screen">
+    <div class="auth-logo">
+        <div class="auth-logo-icon"><i data-lucide="sprout"></i></div>
+        <span class="auth-logo-text">AgroPulse</span>
+    </div>
+    <h2 class="auth-title">Iniciar sesión</h2>
+    <p class="auth-subtitle">Accede a tu comunidad agrícola</p>
+    <div class="auth-form">
+        <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" id="login-email" class="form-input" placeholder="tu@correo.com">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Contraseña</label>
+            <input type="password" id="login-pass" class="form-input" placeholder="Tu contraseña">
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-login" onclick="App.doLogin()" style="margin-top:8px">
+            <i data-lucide="log-in"></i> Entrar
+        </button>
+    </div>
+    <p class="auth-switch">¿No tienes cuenta? <a onclick="App.showScreen('screen-register')">Regístrate gratis</a></p>
+
+</div>
+
+<!-- ===== APP ===== -->
+<div id="screen-app" class="screen">
+    <!-- Nav -->
+    <nav class="app-nav">
+        <div class="nav-left">
+            <div class="nav-logo-icon"><i data-lucide="sprout"></i></div>
+            <span class="nav-logo-text">AgroPulse</span>
+        </div>
+        <div class="nav-right">
+            <div class="nav-avatar" id="nav-avatar" onclick="App.switchTab('perfil')">
+                <span class="badge hidden" id="nav-badge"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <div class="app-content">
+
+        <!-- HOME -->
+        <div id="panel-inicio" class="panel active">
+            <div class="home-hero">
+                <div class="home-greeting" id="home-greeting">Buenos días</div>
+                <h2 class="home-name" id="home-name"></h2>
+                <div class="quick-actions">
+                    <div class="quick-action" onclick="App.quickPublish('oferta')">
+                        <div class="quick-action-icon"><i data-lucide="package-plus"></i></div>
+                        <div class="quick-action-text"><h4>Publicar oferta</h4><p>Tengo para ofrecer</p></div>
+                    </div>
+                    <div class="quick-action" onclick="App.quickPublish('solicitud')">
+                        <div class="quick-action-icon"><i data-lucide="hand"></i></div>
+                        <div class="quick-action-text"><h4>Pedir recursos</h4><p>Necesito algo</p></div>
+                    </div>
+                    <div class="quick-action" onclick="App.quickPublish('prestamo')">
+                        <div class="quick-action-icon"><i data-lucide="key"></i></div>
+                        <div class="quick-action-text"><h4>Prestar equipo</h4><p>Tengo herramienta</p></div>
+                    </div>
+                    <div class="quick-action" onclick="App.quickPublish('trueque')">
+                        <div class="quick-action-icon"><i data-lucide="repeat"></i></div>
+                        <div class="quick-action-text"><h4>Trueque</h4><p>Intercambiar</p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="section-header">
+                <h3 class="section-title">Mis publicaciones</h3>
+                <button class="section-more" onclick="App.switchTab('publicar')">Publicar <i data-lucide="plus"></i></button>
+            </div>
+            <div class="my-resources-list" id="my-resources"></div>
+
+            <div class="section-header">
+                <h3 class="section-title">De la comunidad</h3>
+                <button class="section-more" onclick="App.switchTab('mercado')">Ver todo <i data-lucide="chevron-right"></i></button>
+            </div>
+            <div class="resource-scroll" id="recent-resources"></div>
+        </div>
+
+        <!-- MARKETPLACE -->
+        <div id="panel-mercado" class="panel">
+            <div class="market-header">
+                <div class="market-search">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="market-search-input" placeholder="Buscar recursos, herramientas, semillas...">
+                </div>
+                <div class="filter-section">
+                    <div class="filter-chips" id="type-filters">
+                        <button class="chip active" data-filter="todos" onclick="App.setFilter('todos')">Todos</button>
+                        <button class="chip" data-filter="oferta" onclick="App.setFilter('oferta')"><i data-lucide="package-check"></i> Ofertas</button>
+                        <button class="chip" data-filter="solicitud" onclick="App.setFilter('solicitud')"><i data-lucide="hand"></i> Solicitudes</button>
+                        <button class="chip" data-filter="prestamo" onclick="App.setFilter('prestamo')"><i data-lucide="key"></i> Préstamos</button>
+                        <button class="chip" data-filter="trueque" onclick="App.setFilter('trueque')"><i data-lucide="repeat"></i> Trueques</button>
+                    </div>
+                    <div class="filter-row">
+                        <select id="filter-cat" class="filter-select" onchange="App.setCatFilter(this.value)">
+                            <option value="">Categoría</option>
+                            <option>Herramientas y maquinaria</option>
+                            <option>Semillas e insumos</option>
+                            <option>Fertilizantes y abonos</option>
+                            <option>Mano de obra</option>
+                            <option>Ganadería</option>
+                            <option>Excedentes de producción</option>
+                        </select>
+                        <select id="filter-mun" class="filter-select" onchange="App.setMunFilter(this.value)">
+                            <option value="">Municipio</option>
+                            <option>Duitama</option><option>Sogamoso</option>
+                        </select>
+                    </div>
+                    <div class="filter-row" style="grid-template-columns:1fr auto;margin-top:6px">
+                        <select id="filter-sort" class="filter-select" onchange="App.setSortFilter(this.value)">
+                            <option value="recent">Más recientes</option>
+                            <option value="oldest">Más antiguos</option>
+                        </select>
+                        <button class="clear-filters" onclick="App.clearFilters()">Limpiar filtros</button>
+                    </div>
+                </div>
+            </div>
+            <div class="results-count"><span id="results-count">0 publicaciones</span></div>
+            <div class="market-list" id="market-list"></div>
+        </div>
+
+        <!-- PUBLISH -->
+        <div id="panel-publicar" class="panel">
+            <div class="publish-header">
+                <h2>Nueva publicación</h2>
+                <p>Comparte un recurso con tu comunidad agrícola</p>
+            </div>
+            <div class="type-selector">
+                <div class="type-opt active" data-type="oferta" onclick="App.setPublishType('oferta')">
+                    <div class="type-opt-icon resource-card-icon oferta"><i data-lucide="package-check"></i></div>
+                    <h4>Oferta</h4>
+                    <p>Tengo algo para dar, vender o prestar</p>
+                </div>
+                <div class="type-opt" data-type="solicitud" onclick="App.setPublishType('solicitud')">
+                    <div class="type-opt-icon resource-card-icon solicitud"><i data-lucide="hand"></i></div>
+                    <h4>Solicitud</h4>
+                    <p>Necesito recursos o apoyo</p>
+                </div>
+                <div class="type-opt" data-type="prestamo" onclick="App.setPublishType('prestamo')">
+                    <div class="type-opt-icon resource-card-icon prestamo"><i data-lucide="key"></i></div>
+                    <h4>Préstamo</h4>
+                    <p>Presto maquinaria o herramienta</p>
+                </div>
+                <div class="type-opt" data-type="trueque" onclick="App.setPublishType('trueque')">
+                    <div class="type-opt-icon resource-card-icon trueque"><i data-lucide="repeat"></i></div>
+                    <h4>Trueque</h4>
+                    <p>Intercambio de insumos o servicios</p>
+                </div>
+            </div>
+            <div class="publish-form" id="publish-form-fields"></div>
+        </div>
+
+        <!-- AGREEMENTS -->
+        <div id="panel-intercambios" class="panel">
+            <div class="agreements-header">
+                <h2>Servicios</h2>
+            </div>
+            <div class="status-tabs">
+                <button class="status-tab active" data-status="todos" onclick="App.setAgreementFilter('todos')">Todos <span class="count">0</span></button>
+                <button class="status-tab" data-status="pending" onclick="App.setAgreementFilter('pending')">Pendientes <span class="count">0</span></button>
+                <button class="status-tab" data-status="active" onclick="App.setAgreementFilter('active')">Activos <span class="count">0</span></button>
+                <button class="status-tab" data-status="completed" onclick="App.setAgreementFilter('completed')">Completados <span class="count">0</span></button>
+                <button class="status-tab" data-status="cancelled" onclick="App.setAgreementFilter('cancelled')">Cancelados <span class="count">0</span></button>
+            </div>
+            <div class="agreements-list" id="agreements-list"></div>
+        </div>
+
+        <!-- PROFILE -->
+        <div id="panel-perfil" class="panel">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar"></div>
+                <h2 class="profile-name" id="profile-name"></h2>
+                <p class="profile-role" id="profile-role"></p>
+                <p class="profile-location" id="profile-location"></p>
+            </div>
+            <div class="profile-stats">
+                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label">Acuerdos</div></div>
+                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-reputacion">5.0</div><div class="profile-stat-label">Reputación</div></div>
+                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label">Publicaciones</div></div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-title">Reputación</div>
+                <div style="padding:0 16px 14px">
+                    <div class="reputation-bar"><div class="reputation-fill" id="reputation-fill" style="width:100%"></div></div>
+                    <span class="form-hint" style="margin-top:6px">Tu reputación se calcula con las calificaciones de otros usuarios</span>
+                </div>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-section-title">Cuenta</div>
+                <button class="profile-menu-item" onclick="App.openSettings('cuenta')">
+                    <div class="profile-menu-icon green"><i data-lucide="settings"></i></div>
+                    <div class="profile-menu-text"><h4>Configuración de cuenta</h4><p>Nombre, municipio, tipo de productor</p></div>
+                    <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
+                </button>
+                <button class="profile-menu-item" onclick="App.openSettings('stats')">
+                    <div class="profile-menu-icon gold"><i data-lucide="bar-chart-3"></i></div>
+                    <div class="profile-menu-text"><h4>Mis estadísticas</h4><p>Publicaciones, acuerdos, calificaciones</p></div>
+                    <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
+                </button>
+            </div>
+
+            <div class="profile-section">
+                <button class="profile-menu-item" onclick="App.doLogout()">
+                    <div class="profile-menu-icon red"><i data-lucide="log-out"></i></div>
+                    <div class="profile-menu-text"><h4>Cerrar sesión</h4><p>Salir de tu cuenta</p></div>
+                    <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="inicio" onclick="App.switchTab('inicio')">
+            <i data-lucide="home"></i><span>Inicio</span>
+        </button>
+        <button class="tab-btn" data-tab="mercado" onclick="App.switchTab('mercado')">
+            <i data-lucide="search"></i><span>Buscar</span>
+        </button>
+        <button class="tab-btn tab-btn-publish" data-tab="publicar" onclick="App.switchTab('publicar')">
+            <div class="tab-icon-wrap"><i data-lucide="plus"></i></div><span>Publicar</span>
+        </button>
+        <button class="tab-btn" data-tab="intercambios" onclick="App.switchTab('intercambios')">
+            <i data-lucide="briefcase"></i><span>Servicios</span>
+            <span class="badge hidden" id="agreements-badge"></span>
+        </button>
+        <button class="tab-btn" data-tab="perfil" onclick="App.switchTab('perfil')">
+            <i data-lucide="user"></i><span>Perfil</span>
+        </button>
+    </div>
+</div>
+
+<!-- ===== DETAIL OVERLAY ===== -->
+<div id="detail-overlay" class="detail-overlay" style="display:none"></div>
+
+<!-- ===== CONFIRM MODAL ===== -->
+<div id="confirm-modal" class="confirm-modal-backdrop" style="display:none" onclick="App.confirmCancel(event)">
+    <div class="confirm-modal">
+        <div class="confirm-modal-icon" id="confirm-modal-icon"></div>
+        <h3 id="confirm-modal-title"></h3>
+        <p id="confirm-modal-msg"></p>
+        <div class="confirm-modal-actions">
+            <button class="btn btn-cancel" onclick="App.confirmResolve(false)">Cancelar</button>
+            <button class="btn" id="confirm-modal-ok" onclick="App.confirmResolve(true)">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== INPUT MODAL ===== -->
+<div id="input-modal" class="confirm-modal-backdrop" style="display:none" onclick="App.inputModalCancel(event)">
+    <div class="confirm-modal">
+        <div class="confirm-modal-icon" id="input-modal-icon"></div>
+        <h3 id="input-modal-title"></h3>
+        <p id="input-modal-subtitle" style="margin-bottom:12px"></p>
+        <textarea id="input-modal-text" class="form-input" rows="3" style="text-align:left;margin-bottom:16px" placeholder=""></textarea>
+        <div class="confirm-modal-actions">
+            <button class="btn btn-cancel" onclick="App.inputModalResolve(null)">Cancelar</button>
+            <button class="btn btn-primary" id="input-modal-ok" onclick="App.inputModalResolve(document.getElementById('input-modal-text').value)"></button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== IMAGE LIGHTBOX ===== -->
+<div id="img-lightbox" class="img-lightbox" style="display:none" onclick="App.closeLightbox()">
+    <button class="lightbox-close" onclick="App.closeLightbox()"><i data-lucide="x"></i></button>
+    <img id="img-lightbox-src" src="" alt="">
+</div>
+
+<!-- ===== CHAT OVERLAY ===== -->
+<div id="chat-overlay" class="chat-overlay" style="display:none">
+    <div class="chat-header">
+        <button class="chat-back" onclick="Chat.closeChat()"><i data-lucide="arrow-left"></i></button>
+        <div class="chat-header-info">
+            <h4 id="chat-title">Chat</h4>
+            <p id="chat-subtitle"></p>
+        </div>
+    </div>
+    <div id="chat-status-bar" class="chat-status-bar" style="display:none"></div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div id="chat-image-preview" class="image-preview-bar" style="display:none">
+        <img id="chat-preview-img" src="" alt="">
+        <span>Imagen adjunta</span>
+        <button class="remove-preview" onclick="Chat.clearImage()">×</button>
+    </div>
+    <div class="chat-input-bar" id="chat-input-bar">
+        <div class="chat-input-actions">
+            <button class="chat-action-btn" onclick="document.getElementById('chat-file-input').click()" title="Enviar imagen"><i data-lucide="image"></i></button>
+            <button class="chat-action-btn" onclick="Chat.sendLocation()" title="Compartir ubicación"><i data-lucide="map-pin"></i></button>
+        </div>
+        <input type="text" id="chat-msg-input" placeholder="Escribe un mensaje...">
+        <button class="chat-send-btn" onclick="Chat.sendMessage()"><i data-lucide="send"></i></button>
+        <input type="file" id="chat-file-input" accept="image/*" style="display:none" onchange="Chat.previewImage(event)">
+    </div>
+</div>
+
+<!-- ===== SETTINGS: CUENTA ===== -->
+<div id="settings-cuenta" class="settings-panel" style="display:none">
+    <div class="settings-header">
+        <button class="settings-back" onclick="App.closeSettings('cuenta')"><i data-lucide="arrow-left"></i></button>
+        <h3>Configuración de cuenta</h3>
+    </div>
+    <div class="settings-body">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Nombre</label>
+                <input type="text" id="set-nombre" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Apellido</label>
+                <input type="text" id="set-apellido" class="form-input">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" id="set-email" class="form-input" disabled>
+            <span class="form-hint">El correo no se puede cambiar</span>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Teléfono</label>
+            <input type="tel" id="set-telefono" class="form-input" placeholder="300 123 4567">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Municipio</label>
+                <select id="set-municipio" class="form-select">
+                    <option>Duitama</option><option>Sogamoso</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipo de productor</label>
+                <select id="set-tipo" class="form-select">
+                    <option>Pequeño agricultor</option>
+                    <option>Mediano productor</option>
+                    <option>Cooperativa agrícola</option>
+                    <option>Proveedor de insumos</option>
+                    <option>Técnico agrícola</option>
+                    <option>Joven rural</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Biografía</label>
+            <textarea id="set-bio" class="form-input" rows="3" placeholder="Cuéntale a la comunidad sobre ti y tu actividad"></textarea>
+            <span class="form-hint">Visible para otros usuarios en tu perfil público</span>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-save-settings" onclick="App.saveSettings()" style="margin-top:16px">
+            <i data-lucide="save"></i> Guardar cambios
+        </button>
+    </div>
+</div>
+
+<!-- ===== SETTINGS: STATS ===== -->
+<div id="settings-stats" class="settings-panel" style="display:none">
+    <div class="settings-header">
+        <button class="settings-back" onclick="App.closeSettings('stats')"><i data-lucide="arrow-left"></i></button>
+        <h3>Mis estadísticas</h3>
+    </div>
+    <div class="settings-body" id="stats-content">
+        <div class="skeleton-card skeleton"></div>
+    </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script src="/js/api.js?v=2"></script>
+<script src="/js/geo.js?v=2"></script>
+<script src="/js/chat.js?v=2"></script>
+<script src="/js/app.js?v=2"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    Geo.setupGeoButton('geo-reg', 'reg-lat', 'reg-lng', 'geo-reg-status');
+});
+</script>
+
+</body>
+</html>
