@@ -1695,15 +1695,16 @@ const App = {
     renderAgreementCard(a) {
         const isProvider = a.provider_id === API.user.id;
         const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
-        const parts = otherName.trim().split(' ');
-        const shortName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
+        const nameParts = otherName.trim().split(' ');
+        const shortName = nameParts[0] + (nameParts[1] ? ' ' + nameParts[1][0] + '.' : '');
         const statusLabels = { pending: 'Pendiente', active: 'En curso', completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado' };
         const catIcon = this.ICONS[a.resource_cat] || 'package';
-        const roleText = isProvider
-            ? `<strong>${this.esc(shortName)}</strong> te solicitó`
-            : `Solicitaste a <strong>${this.esc(shortName)}</strong>`;
+        const catShort = (a.resource_cat || '').split(/[\(,]/)[0].trim();
+        const catDisplay = catShort.length > 16 ? catShort.slice(0, 14) + '…' : catShort;
+        const roleText = isProvider ? `${this.esc(shortName)} te solicitó` : `Solicitaste a ${this.esc(shortName)}`;
+        const dateStr = this.formatDateShort(a.created_at);
+        const updStr = a.updated_at && a.updated_at !== a.created_at ? this.formatDateShort(a.updated_at) : null;
 
-        // Bottom action buttons
         let btns = '';
         const chatLabel = a.unread_count > 0 ? `Chat (${a.unread_count})` : 'Chat';
         if (a.status === 'completed') {
@@ -1727,17 +1728,19 @@ const App = {
 
         return `
             <div class="agreement-card ${a.status}" onclick="App.showAgreementDetail('${a.id}')">
-                <div class="agr-card-top">
+                <div class="agr-card-row1">
                     <div class="agr-card-cat-icon"><i data-lucide="${catIcon}"></i></div>
-                    <div class="agr-card-info">
-                        <h4>${this.esc(a.resource_titulo || 'Servicio')}</h4>
-                        <span class="agr-card-sub">${roleText}</span>
-                    </div>
-                    <div class="agreement-badges">
-                        ${a.resource_tipo ? `<span class="tipo-badge ${a.resource_tipo}">${this.TYPE_LABELS[a.resource_tipo] || a.resource_tipo}</span>` : ''}
-                        ${a.resource_cat ? `<span class="agr-cat-badge">${this.esc(a.resource_cat)}</span>` : ''}
-                        <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
-                    </div>
+                    <h4 class="agr-card-title">${this.esc(a.resource_titulo || 'Servicio')}</h4>
+                    <span class="agr-card-date-top">${dateStr}</span>
+                </div>
+                <div class="agr-card-row2">
+                    ${a.resource_tipo ? `<span class="tipo-badge ${a.resource_tipo}">${this.TYPE_LABELS[a.resource_tipo] || a.resource_tipo}</span>` : ''}
+                    <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
+                    ${catDisplay ? `<span class="agr-cat-badge">${this.esc(catDisplay)}</span>` : ''}
+                </div>
+                <div class="agr-card-role-row">
+                    <span class="agr-card-sub">${roleText}</span>
+                    ${updStr ? `<span class="agr-card-upd"><i data-lucide="clock" style="width:10px;height:10px;vertical-align:middle"></i> ${updStr}</span>` : ''}
                 </div>
                 <div class="agr-card-btns">${btns}</div>
             </div>`;
@@ -1800,7 +1803,9 @@ const App = {
             addInfo('tag', 'Categoría', a.resource_cat);
             addInfo('package', 'Tipo', tipoLabels[a.resource_tipo] || a.resource_tipo);
             addInfo('activity', 'Estado', statusLabels[a.status]);
-            addInfo('calendar', 'Fecha', this.formatDate(a.created_at));
+            addInfo('calendar-plus', 'Solicitado', this.formatDate(a.created_at));
+            if (a.status === 'active' || a.status === 'completed') addInfo('calendar-check', 'Asignado', this.formatDate(a.updated_at));
+            if (a.status === 'completed') addInfo('calendar-x2', 'Terminado', this.formatDate(a.updated_at));
 
             const html = `
                 <div class="detail-header">
@@ -2196,15 +2201,24 @@ const App = {
     formatDate(dateStr) {
         if (!dateStr) return '';
         try {
-            let d;
-            if (dateStr.includes('T')) {
-                d = new Date(dateStr);
-            } else {
-                d = new Date(dateStr.replace(' ', 'T') + 'Z');
-            }
+            const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr.replace(' ', 'T') + 'Z');
             if (isNaN(d.getTime())) return dateStr;
             return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
         } catch { return dateStr; }
+    },
+
+    formatDateShort(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr.replace(' ', 'T') + 'Z');
+            if (isNaN(d.getTime())) return '';
+            const now = new Date();
+            const diff = Math.floor((now - d) / 86400000);
+            if (diff === 0) return 'hoy';
+            if (diff === 1) return 'ayer';
+            if (diff < 7) return `hace ${diff}d`;
+            return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+        } catch { return ''; }
     },
 
     showToast(msg, type = 'success') {

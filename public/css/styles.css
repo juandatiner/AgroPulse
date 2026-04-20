@@ -1341,41 +1341,44 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .agreement-card.completed { border-left-color: #2471a3; }
 .agreement-card.cancelled, .agreement-card.rejected { border-left-color: #bbb; opacity: 0.65; }
 
-/* -- Card top row: icon + info + badges -- */
-.agr-card-top {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 10px;
+/* -- Card rows -- */
+.agr-card-row1 {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 7px;
 }
 .agr-card-cat-icon {
-    width: 36px; height: 36px;
-    border-radius: 10px;
+    width: 32px; height: 32px;
+    border-radius: 9px;
     background: var(--cream);
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
     color: var(--earth);
 }
-.agr-card-cat-icon svg { width: 16px; height: 16px; }
-.agr-card-info {
-    flex: 1;
-    min-width: 0;
-}
-.agr-card-info h4 {
+.agr-card-cat-icon svg { width: 15px; height: 15px; }
+.agr-card-title {
+    flex: 1; min-width: 0;
     font-family: 'DM Sans', sans-serif;
-    font-size: 0.92rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 2px;
+    font-size: 0.9rem; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.agr-card-date-top {
+    font-size: 0.68rem; color: var(--text-muted); flex-shrink: 0; white-space: nowrap;
+}
+.agr-card-row2 {
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.agr-card-role-row {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px;
 }
 .agr-card-sub {
-    font-size: 0.74rem;
-    color: var(--text-muted);
-    line-height: 1.3;
+    font-size: 0.74rem; color: var(--text-muted); line-height: 1.3;
 }
-.agr-card-sub strong { color: var(--text); font-weight: 600; }
+.agr-card-upd {
+    font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;
+}
+/* legacy compat */
+.agr-card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.agr-card-info { flex: 1; min-width: 0; }
+.agr-card-info h4 { font-family: 'DM Sans',sans-serif; font-size: 0.92rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
 .agr-cat-badge {
     font-size: 0.6rem;
     font-weight: 600;
