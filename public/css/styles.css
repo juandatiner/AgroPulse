@@ -487,6 +487,24 @@ h1,h2,h3 { font-family: 'Playfair Display', serif; }
     border-color: var(--field);
     box-shadow: 0 0 0 3px rgba(122,154,60,0.1);
 }
+.form-input.input-error, .form-select.input-error {
+    border-color: #e53935 !important;
+    box-shadow: 0 0 0 3px rgba(229,57,53,0.13) !important;
+    animation: shake 0.35s ease;
+}
+.loc-error {
+    border: 1.5px solid #e53935;
+    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 3px rgba(229,57,53,0.13);
+    animation: shake 0.35s ease;
+}
+@keyframes shake {
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+}
 .form-input::placeholder { color: #b0b8a0; }
 textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .form-select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235A6B45' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }

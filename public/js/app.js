@@ -1395,7 +1395,53 @@ const App = {
                     if (modalidad) modalidad.value = 'Gratis';
                 } else {
                     if (modalidad) modalidad.value = 'Monetario';
+                    const periodo = document.getElementById('pub-precio-periodo');
+                    if (periodo) periodo.style.display = '';
                 }
+            });
+        }
+        // Inject periodo select inside pub-precio-group (Monetario only)
+        const precioGroup = document.getElementById('pub-precio-group');
+        if (precioGroup && !document.getElementById('pub-precio-periodo')) {
+            const periodoSel = document.createElement('select');
+            periodoSel.id = 'pub-precio-periodo';
+            periodoSel.className = 'form-select';
+            periodoSel.style.cssText = 'margin-top:8px;display:block';
+            periodoSel.innerHTML = `
+                <option value="">Sin período específico</option>
+                <option value="por hora">por hora</option>
+                <option value="por día">por día</option>
+                <option value="por semana">por semana</option>
+                <option value="por quincena">por quincena</option>
+                <option value="por mes">por mes</option>
+                <option value="por temporada">por temporada</option>
+                <option value="por cosecha">por cosecha</option>
+                <option value="por jornal">por jornal</option>
+                <option value="por kg">por kg</option>
+                <option value="por libra">por libra</option>
+                <option value="por arroba">por arroba</option>
+                <option value="por bulto">por bulto</option>
+                <option value="por hectárea">por hectárea</option>
+                <option value="por fanegada">por fanegada</option>
+                <option value="por lote">por lote</option>
+                <option value="en total">en total</option>
+                <option value="a convenir">a convenir</option>`;
+            precioGroup.appendChild(periodoSel);
+        }
+        // Monetary formatting for pub-precio
+        const precioInput = document.getElementById('pub-precio');
+        if (precioInput) {
+            precioInput.addEventListener('input', () => {
+                const modalidad = document.getElementById('pub-modalidad');
+                if (!modalidad || modalidad.value !== 'Monetario') return;
+                const pos = precioInput.selectionStart;
+                const prevLen = precioInput.value.length;
+                const raw = precioInput.value.replace(/\D/g, '');
+                if (!raw) return;
+                const formatted = parseInt(raw, 10).toLocaleString('es-CO');
+                precioInput.value = formatted;
+                const diff = formatted.length - prevLen;
+                try { precioInput.setSelectionRange(pos + diff, pos + diff); } catch(_) {}
             });
         }
         // Unit toggle (checked = unit active, unchecked = No aplica)
@@ -1436,9 +1482,11 @@ const App = {
                     if (d) {
                         const inp = document.getElementById('pub-precio');
                         const hint = document.getElementById('pub-precio-hint');
-                        if (inp) inp.placeholder = d.placeholder;
+                        if (inp) { inp.placeholder = d.placeholder; inp.value = ''; }
                         if (hint) hint.textContent = d.hint;
                     }
+                    const periodo = document.getElementById('pub-precio-periodo');
+                    if (periodo) periodo.style.display = btn.dataset.val === 'Monetario' ? '' : 'none';
                 });
             });
         });
@@ -1458,6 +1506,26 @@ const App = {
             area.innerHTML = `<img src="${e.target.result}" alt="Preview"><p style="margin-top:8px">Toca para cambiar la foto</p>`;
         };
         reader.readAsDataURL(file);
+    },
+
+    fieldError(id, msg) {
+        const el = document.getElementById(id);
+        if (el) {
+            const target = el.matches('input,select,textarea') ? el : (el.querySelector('input') || el);
+            target.classList.add(el.matches('input,select,textarea') ? 'input-error' : 'input-error');
+            el.classList.add(el.matches('#loc-pub') ? 'loc-error' : '');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => target.focus(), 320);
+            const clear = () => {
+                target.classList.remove('input-error');
+                el.classList.remove('loc-error');
+                target.removeEventListener('input', clear);
+                target.removeEventListener('change', clear);
+            };
+            target.addEventListener('input', clear);
+            target.addEventListener('change', clear);
+        }
+        this.showToast(msg, 'error');
     },
 
     async doPublish(scheduledAt = null) {
@@ -1496,22 +1564,25 @@ const App = {
             if (modalidadEl) data.modalidad = modalidadEl.value;
             const precioToggleEl = document.getElementById('toggle-precio');
             const precioActivo = precioToggleEl && precioToggleEl.checked;
+            const precioPeriodo = document.getElementById('pub-precio-periodo')?.value || '';
+            const precioVal = data.precio_referencia;
+            if (precioActivo && precioVal && precioPeriodo) data.precio_referencia = `${precioVal} ${precioPeriodo}`;
             const disponibilidadEl = document.getElementById('pub-disponibilidad');
             const duracionEl = document.getElementById('pub-duracion');
             const ofreceEl = document.getElementById('pub-ofrece');
             const recibeEl = document.getElementById('pub-recibe');
-            if (!data.titulo || !data.descripcion || !data.categoria) {
-                throw new Error('Completa los campos obligatorios (*)');
-            }
-            if (cantidadEl && !data.cantidad) throw new Error('La cantidad es obligatoria (*)');
-            if (condicionEl && !data.condicion) throw new Error('La condición es obligatoria (*)');
-            if (unidadActiva && unidadActiveEl && !document.getElementById('pub-unidad')?.value?.trim()) throw new Error('La unidad es obligatoria, o desactiva el campo');
-            if (precioActivo && !data.precio_referencia) throw new Error('El precio es obligatorio si está activado');
-            if (disponibilidadEl && !data.disponibilidad) throw new Error('La disponibilidad es obligatoria (*)');
-            if (duracionEl && !data.duracion_prestamo) throw new Error('La duración del préstamo es obligatoria (*)');
-            if (ofreceEl && !data.ofrece) throw new Error('Completa lo que ofreces (*)');
-            if (recibeEl && !data.recibe) throw new Error('Completa lo que deseas recibir (*)');
-            if (!data.municipio) throw new Error('La ubicación es obligatoria (*)');
+            if (!data.titulo) return this.fieldError('pub-titulo', 'El asunto es obligatorio');
+            if (!data.descripcion) return this.fieldError('pub-desc', 'La descripción es obligatoria');
+            if (!data.categoria) return this.fieldError('pub-cat', 'Selecciona una categoría');
+            if (cantidadEl && !data.cantidad) return this.fieldError('pub-cantidad', 'La cantidad es obligatoria');
+            if (unidadActiva && unidadActiveEl && !document.getElementById('pub-unidad')?.value?.trim()) return this.fieldError('pub-unidad', 'Ingresa la unidad o desactiva el campo');
+            if (condicionEl && !data.condicion) return this.fieldError('pub-condicion', 'Selecciona la condición del recurso');
+            if (precioActivo && !precioVal) return this.fieldError('pub-precio', 'Ingresa el precio o desactiva el campo');
+            if (disponibilidadEl && !data.disponibilidad) return this.fieldError('pub-disponibilidad', 'Selecciona la disponibilidad');
+            if (duracionEl && !data.duracion_prestamo) return this.fieldError('pub-duracion', 'Indica la duración máxima del préstamo');
+            if (ofreceEl && !data.ofrece) return this.fieldError('pub-ofrece', 'Describe lo que ofreces en el trueque');
+            if (recibeEl && !data.recibe) return this.fieldError('pub-recibe', 'Describe lo que deseas recibir a cambio');
+            if (!data.municipio) return this.fieldError('loc-pub', 'La ubicación es obligatoria');
             await API.createResource(data);
             this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
             this.switchTab('inicio');
