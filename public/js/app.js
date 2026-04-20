@@ -1816,16 +1816,22 @@ const App = {
                     </div>` : ''}
                     ${a.descripcion ? `<p class="detail-desc">${this.esc(a.descripcion)}</p>` : ''}
                     <div class="detail-info-grid">${infoItems}</div>
-                    <div class="detail-owner">
-                        <div class="detail-owner-avatar">${otherInitials.toUpperCase()}</div>
+                    <div class="detail-owner" onclick="App.showUserProfile('${a.provider_id}')" style="cursor:pointer">
+                        <div class="detail-owner-avatar">${(a.prov_nombre[0]+a.prov_apellido[0]).toUpperCase()}</div>
                         <div class="detail-owner-info">
-                            <h4>${this.esc(otherName)}</h4>
-                            <p>${isProvider ? 'Solicitante' : 'Publicador'}</p>
+                            <h4>${this.esc(a.prov_nombre)} ${this.esc(a.prov_apellido)}</h4>
+                            <p>Publicador <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
+                        </div>
+                    </div>
+                    <div class="detail-owner" onclick="App.showUserProfile('${a.requester_id}')" style="cursor:pointer;margin-top:8px">
+                        <div class="detail-owner-avatar">${(a.req_nombre[0]+a.req_apellido[0]).toUpperCase()}</div>
+                        <div class="detail-owner-info">
+                            <h4>${this.esc(a.req_nombre)} ${this.esc(a.req_apellido)}</h4>
+                            <p>Solicitante <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
                         </div>
                     </div>
                 </div>
                 <div class="detail-actions">
-                    <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
                     <button class="btn btn-primary btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>
                 </div>`;
             const overlay = document.getElementById('detail-overlay');
@@ -1850,11 +1856,11 @@ const App = {
     },
 
     _RATING_DATA: {
-        1: { emoji: '😢', label: 'No funcionó',        msg: 'Algo salió muy mal en este intercambio.',      commentLabel: '¿Qué salió mal? Tu reseña ayuda a la comunidad' },
-        2: { emoji: '😕', label: 'No fue lo esperado', msg: 'El intercambio no cumplió las expectativas.',   commentLabel: '¿Qué no estuvo bien?' },
-        3: { emoji: '🤝', label: 'Regular',             msg: 'Estuvo bien pero hay cosas por mejorar.',     commentLabel: '¿Qué podría mejorar?' },
-        4: { emoji: '😊', label: 'Buena experiencia',   msg: 'El intercambio fue positivo.',               commentLabel: '¿Qué fue lo mejor?' },
-        5: { emoji: '🌟', label: '¡Excelente!',         msg: 'Todo salió perfecto. ¡Gracias por compartir!', commentLabel: '¿Qué destacarías de esta persona?' },
+        1: { emoji: '😢', label: 'No funcionó',        msg: 'Algo salió muy mal en este intercambio.',      commentLabel: '¿Qué salió mal? Cuéntanos qué pasó' },
+        2: { emoji: '😕', label: 'No fue lo esperado', msg: 'El intercambio no cumplió las expectativas.',   commentLabel: '¿Qué no estuvo a la altura?' },
+        3: { emoji: '🤝', label: 'Regular',             msg: 'Estuvo bien pero hay cosas por mejorar.',     commentLabel: '¿Qué crees que podría mejorar?' },
+        4: { emoji: '😊', label: 'Buena experiencia',   msg: 'El intercambio fue positivo.',               commentLabel: '¿Qué fue lo que más te gustó?' },
+        5: { emoji: '🌟', label: '¡Excelente!',         msg: 'Todo salió perfecto. ¡Gracias por compartir!', commentLabel: '¿Qué destacarías de esta persona y del intercambio?' },
     },
     _RATING_TAGS: {
         1: [
@@ -1912,11 +1918,13 @@ const App = {
                             <i data-lucide="star"></i>
                         </button>`).join('')}
                 </div>
+                <div class="rating-emoji-big" id="rating-emoji-big"></div>
                 <div id="rating-label-badge"></div>
                 <div id="rating-tags-row" class="rating-tags-row"></div>
-                <div id="rating-comment-block" style="display:none;margin-top:16px">
-                    <label class="form-label" id="rating-comment-label">Tu reseña</label>
-                    <textarea id="rating-comment" class="form-input" rows="3" placeholder="Opcional — pero ayuda mucho a la comunidad" style="margin-top:6px"></textarea>
+                <div id="rating-comment-block" style="display:none">
+                    <hr class="rating-divider">
+                    <p class="rating-question" id="rating-question"></p>
+                    <textarea id="rating-comment" class="form-input" rows="3" placeholder="Tu reseña ayuda a la comunidad..." style="margin-top:4px"></textarea>
                 </div>
             </div>
             <div class="detail-actions" id="rating-submit-row" style="display:none">
@@ -1938,9 +1946,10 @@ const App = {
 
         document.getElementById('rating-msg').textContent = d.msg;
         document.getElementById('rating-msg').className = `rating-prompt ${tone}`;
+        document.getElementById('rating-emoji-big').textContent = d.emoji;
         document.getElementById('rating-label-badge').innerHTML =
-            `<span class="rating-label-chip ${tone}">${d.emoji} ${d.label}</span>`;
-        document.getElementById('rating-comment-label').textContent = d.commentLabel;
+            `<span class="rating-label-chip ${tone}">${d.label}</span>`;
+        document.getElementById('rating-question').textContent = d.commentLabel;
         document.getElementById('rating-comment-block').style.display = 'block';
         document.getElementById('rating-submit-row').style.display = 'flex';
 

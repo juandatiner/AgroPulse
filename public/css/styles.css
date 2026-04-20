@@ -1285,7 +1285,12 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     padding: 0 20px;
     border-bottom: 1px solid var(--cream-dark);
     margin-bottom: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
 }
+.status-tabs::-webkit-scrollbar { display: none; }
 .status-tab {
     padding: 10px 16px;
     font-size: 0.8rem;
@@ -1303,6 +1308,14 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 }
 .status-tab:hover { color: var(--text); }
 .status-tab.active { color: var(--earth); border-bottom-color: var(--field); }
+.status-tab[data-status="pending"].active  { color: #d68910; border-bottom-color: #d68910; }
+.status-tab[data-status="pending"].active .count { background: rgba(214,137,16,0.15); color: #d68910; }
+.status-tab[data-status="active"].active   { color: var(--field); border-bottom-color: var(--field); }
+.status-tab[data-status="active"].active .count { background: rgba(122,154,60,0.15); color: var(--field); }
+.status-tab[data-status="completed"].active { color: #2471a3; border-bottom-color: #2471a3; }
+.status-tab[data-status="completed"].active .count { background: rgba(36,113,163,0.13); color: #2471a3; }
+.status-tab[data-status="cancelled"].active { color: var(--danger); border-bottom-color: var(--danger); }
+.status-tab[data-status="cancelled"].active .count { background: rgba(192,57,43,0.12); color: var(--danger); }
 .status-tab .count {
     background: var(--cream-dark);
     padding: 1px 7px;
@@ -1739,6 +1752,9 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .rating-star-btn.active svg { fill: var(--harvest); }
 .rating-star-btn:hover { transform: scale(1.2); }
 .rating-label-badge { text-align: center; margin-bottom: 8px; }
+.rating-emoji-big { text-align: center; font-size: 2.8rem; line-height: 1; margin: 4px 0 8px; min-height: 44px; transition: all 0.2s; }
+.rating-divider { border: none; border-top: 1.5px solid var(--cream-dark); margin: 16px 0 14px; }
+.rating-question { font-size: 0.95rem; font-weight: 600; color: var(--earth); margin-bottom: 8px; text-align: center; }
 .rating-tags-row {
     display: flex; flex-wrap: wrap; gap: 8px;
     justify-content: center; margin: 8px 0 4px;
@@ -2389,6 +2405,18 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     .my-resources-list { padding: 0 16px; }
     .resource-scroll { padding: 0 16px 16px; }
 
+    /* Cards — compact on mobile */
+    .my-resource-item { padding: 8px 10px; gap: 8px; }
+    .resource-card { min-width: 210px; max-width: 230px; padding: 11px; }
+    .resource-card h4 { font-size: 0.85rem; }
+    .resource-card p { font-size: 0.78rem; }
+    .resource-card-icon { width: 34px; height: 34px; }
+    .market-item { padding: 11px 12px; }
+    .market-item-icon { width: 36px; height: 36px; }
+    .market-item-icon svg { width: 18px; height: 18px; }
+    .agreement-card { padding: 9px 11px; }
+    .agr-card-cat-icon { width: 30px; height: 30px; }
+
     /* Market */
     .market-header { padding: 12px 16px 0; }
     .market-list { padding: 0 16px 16px; }
@@ -2418,8 +2446,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 
     /* Agreements */
     .agreements-header { padding: 16px 16px 0; }
-    .status-tabs { padding: 0 16px; gap: 4px; }
-    .status-tab { padding: 6px 8px; font-size: 0.72rem; }
+    .status-tabs { padding: 0 12px; gap: 0; }
+    .status-tab { padding: 8px 10px; font-size: 0.73rem; flex-shrink: 0; }
     .agreements-list { padding: 0 16px 16px; }
 
     /* Profile */
