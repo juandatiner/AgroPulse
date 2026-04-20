@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgroPulse — Panel de Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+  <meta name="theme-color" content="#2C3E1F">
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --earth:   #2C3E1F;
+      --earth2:  #3a5229;
+      --field:   #7A9A3C;
+      --harvest: #C8962A;
+      --cream:   #F5F0E8;
+      --white:   #ffffff;
+      --gray50:  #f9fafb;
+      --gray100: #f3f4f6;
+      --gray200: #e5e7eb;
+      --gray400: #9ca3af;
+      --gray500: #6b7280;
+      --gray700: #374151;
+      --gray900: #111827;
+      --red:     #dc2626;
+      --green:   #16a34a;
+      --amber:   #d97706;
+      --blue:    #2563eb;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+      --shadow:    0 2px 8px rgba(0,0,0,0.10);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
+      --radius:  8px;
+      --radius-lg: 12px;
+      --font: 'DM Sans', system-ui, sans-serif;
+      --font-serif: 'Playfair Display', Georgia, serif;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      font-size: 14px;
+      background: var(--cream);
+      color: var(--gray900);
+    }
+
+    /* ── Layout ── */
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ── Header ── */
+    .admin-header {
+      background: var(--earth);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-brand .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--field);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-brand .logo-icon svg { color: white; }
+
+    .header-brand h1 {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header-brand h1 span { color: var(--field); }
+
+    .header-brand .admin-badge {
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,255,255,0.15);
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .live-dot {
+      width: 8px; height: 8px;
+      background: #4ade80;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
+    }
+
+    #refresh-badge { font-size: 12px; color: rgba(255,255,255,0.65); }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.12);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── Login Screen ── */
+    #login-screen {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--cream);
+    }
+
+    .login-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .login-logo {
+      width: 56px; height: 56px;
+      background: var(--earth);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .login-logo svg { color: white; }
+
+    .login-card h2 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      margin-bottom: 6px;
+      color: var(--earth);
+    }
+
+    .login-card p {
+      color: var(--gray500);
+      font-size: 13px;
+      margin-bottom: 28px;
+    }
+
+    .login-field {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--gray200);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 14px;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+      background: var(--gray50);
+    }
+    .login-field:focus { border-color: var(--field); background: white; }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: var(--earth);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-login:hover { background: var(--earth2); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── App Screen ── */
+    #app-screen {
+      flex: 1;
+      flex-direction: column;
+      display: none;
+    }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      background: var(--white);
+      border-bottom: 1px solid var(--gray200);
+      display: flex;
+      gap: 0;
+      padding: 0 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-btn {
+      padding: 14px 20px;
+      font-family: var(--font);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--gray500);
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--earth); }
+    .tab-btn.active { color: var(--earth); border-bottom-color: var(--field); font-weight: 600; }
+    .tab-btn svg { width: 16px; height: 16px; }
+
+    /* ── Content ── */
+    .content {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray100);
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray400);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-card-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--earth);
+      line-height: 1;
+    }
+
+    .stat-card.highlight { border-left: 4px solid var(--field); }
+    .stat-card.amber-card { border-left: 4px solid var(--harvest); }
+    .stat-card.blue-card { border-left: 4px solid var(--blue); }
+
+    /* ── Recent lists ── */
+    .recent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .recent-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content { padding: 16px; }
+    }
+
+    .section-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray100);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray100);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--gray700);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 18px;
+      border-bottom: 1px solid var(--gray100);
+      font-size: 13px;
+    }
+    .list-item:last-child { border-bottom: none; }
+
+    .list-item-title {
+      flex: 1;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .list-item-sub {
+      color: var(--gray500);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .list-item-date {
+      color: var(--gray400);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--gray400);
+      font-size: 13px;
+    }
+
+    /* ── Tables ── */
+    .table-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--gray100);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .table-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray100);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--gray700);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: var(--gray50);
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray400);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--gray200);
+      white-space: nowrap;
+    }
+
+    tbody tr:hover { background: var(--gray50); }
+
+    tbody td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--gray100);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .td-center { text-align: center; }
+    .td-small { font-size: 12px; }
+    .muted { color: var(--gray500); }
+    small.muted { font-size: 11px; }
+
+    .loading-cell, .empty-cell, .error-cell {
+      text-align: center;
+      padding: 32px !important;
+      color: var(--gray400);
+    }
+    .error-cell { color: var(--red); }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge-oferta  { background: #dcfce7; color: #15803d; }
+    .badge-demanda { background: #fee2e2; color: #b91c1c; }
+    .badge-prestamo{ background: #dbeafe; color: #1d4ed8; }
+    .badge-trueque { background: #fef3c7; color: #b45309; }
+
+    .badge-status-pending   { background: #fef3c7; color: #b45309; }
+    .badge-status-active    { background: #dcfce7; color: #15803d; }
+    .badge-status-completed { background: #e0e7ff; color: #4338ca; }
+    .badge-status-rejected  { background: #fee2e2; color: #b91c1c; }
+    .badge-status-cancelled { background: #f3f4f6; color: #6b7280; }
+    .badge-status-scheduled { background: #dbeafe; color: #1d4ed8; }
+    .badge-status-closed    { background: #f3f4f6; color: #6b7280; }
+
+    /* ── Online dot ── */
+    .online-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .online-dot.online  { background: #22c55e; box-shadow: 0 0 0 2px #bbf7d0; }
+    .online-dot.offline { background: var(--gray200); }
+
+    /* ── Delete button ── */
+    .btn-delete {
+      background: none;
+      border: 1px solid var(--gray200);
+      border-radius: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      color: var(--gray400);
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+    }
+    .btn-delete svg { width: 14px; height: 14px; }
+    .btn-delete:hover { background: #fee2e2; border-color: #fca5a5; color: var(--red); }
+
+    /* ── Misc ── */
+    .arrow { color: var(--gray400); margin: 0 4px; }
+    .img-indicator { font-size: 12px; margin-left: 4px; }
+
+    /* ── Toast ── */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--gray900);
+      color: white;
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      max-width: 320px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s, transform 0.25s;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-success { background: #15803d; }
+    .toast-error   { background: var(--red); }
+    .toast-info    { background: var(--earth); }
+
+    /* ── Page title ── */
+    .page-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--earth);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-title svg { color: var(--field); }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="admin-header">
+  <div class="header-brand">
+    <div class="logo-icon">
+      <i data-lucide="sprout" style="width:18px;height:18px;"></i>
+    </div>
+    <h1>Agro<span>Pulse</span></h1>
+    <span class="admin-badge">Admin</span>
+  </div>
+  <div class="header-right" id="header-right-live" style="display:none;">
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      <span id="refresh-badge">En vivo</span>
+    </div>
+    <button class="btn-logout" onclick="Admin.logout()">
+      <i data-lucide="log-out" style="width:14px;height:14px;"></i>
+      Salir
+    </button>
+  </div>
+</header>
+
+<!-- ── Login Screen ── -->
+<div id="login-screen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">
+      <i data-lucide="shield-check" style="width:26px;height:26px;"></i>
+    </div>
+    <h2>Panel de Administración</h2>
+    <p>Ingresa la contraseña de administrador para continuar</p>
+    <form id="login-form">
+      <input
+        type="password"
+        id="login-password"
+        class="login-field"
+        placeholder="Contraseña"
+        autocomplete="current-password"
+        autofocus
+      >
+      <button type="submit" id="login-btn" class="btn-login">Ingresar</button>
+    </form>
+  </div>
+</div>
+
+<!-- ── App Screen ── -->
+<div id="app-screen" style="display:none; flex-direction:column; flex:1;">
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" data-tab="dashboard" onclick="Admin.switchTab('dashboard')">
+      <i data-lucide="layout-dashboard"></i> Dashboard
+    </button>
+    <button class="tab-btn" data-tab="users" onclick="Admin.switchTab('users')">
+      <i data-lucide="users"></i> Usuarios
+    </button>
+    <button class="tab-btn" data-tab="resources" onclick="Admin.switchTab('resources')">
+      <i data-lucide="package"></i> Publicaciones
+    </button>
+    <button class="tab-btn" data-tab="agreements" onclick="Admin.switchTab('agreements')">
+      <i data-lucide="handshake"></i> Acuerdos
+    </button>
+  </nav>
+
+  <!-- Content area -->
+  <div class="content">
+
+    <!-- ═══ Dashboard Panel ═══ -->
+    <div class="tab-panel active" id="panel-dashboard">
+      <div class="page-title">
+        <i data-lucide="layout-dashboard" style="width:22px;height:22px;"></i>
+        Resumen general
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card highlight">
+          <div class="stat-card-label"><i data-lucide="wifi" style="width:13px;height:13px;"></i> En línea</div>
+          <div class="stat-card-value" id="stat-online">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label"><i data-lucide="users" style="width:13px;height:13px;"></i> Total usuarios</div>
+          <div class="stat-card-value" id="stat-total-users">—</div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-card-label"><i data-lucide="package" style="width:13px;height:13px;"></i> Publicaciones activas</div>
+          <div class="stat-card-value" id="stat-resources-active">—</div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-card-label"><i data-lucide="handshake" style="width:13px;height:13px;"></i> Acuerdos activos</div>
+          <div class="stat-card-value" id="stat-agreements-active">—</div>
+        </div>
+        <div class="stat-card amber-card">
+          <div class="stat-card-label"><i data-lucide="clock" style="width:13px;height:13px;"></i> Acuerdos pendientes</div>
+          <div class="stat-card-value" id="stat-agreements-pending">—</div>
+        </div>
+        <div class="stat-card blue-card">
+          <div class="stat-card-label"><i data-lucide="message-circle" style="width:13px;height:13px;"></i> Mensajes hoy</div>
+          <div class="stat-card-value" id="stat-messages-today">—</div>
+        </div>
+      </div>
+
+      <div class="recent-grid">
+        <div class="section-card">
+          <div class="section-header">
+            <i data-lucide="package" style="width:15px;height:15px;"></i>
+            Últimas publicaciones
+          </div>
+          <div id="recent-resources-list">
+            <div class="empty-state">Cargando…</div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-header">
+            <i data-lucide="handshake" style="width:15px;height:15px;"></i>
+            Últimos acuerdos
+          </div>
+          <div id="recent-agreements-list">
+            <div class="empty-state">Cargando…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Users Panel ═══ -->
+    <div class="tab-panel" id="panel-users">
+      <div class="page-title">
+        <i data-lucide="users" style="width:22px;height:22px;"></i>
+        Usuarios registrados
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px;"></th>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Tipo</th>
+                <th class="td-center">Reputación</th>
+                <th class="td-center">Pub.</th>
+                <th class="td-center">Acuerdos</th>
+                <th>Registro</th>
+                <th style="width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="9" class="loading-cell">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Resources Panel ═══ -->
+    <div class="tab-panel" id="panel-resources">
+      <div class="page-title">
+        <i data-lucide="package" style="width:22px;height:22px;"></i>
+        Publicaciones
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Título</th>
+                <th>Categoría</th>
+                <th>Usuario</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th style="width:44px;"></th>
+              </tr>
+            </thead>
+            <tbody id="resources-tbody">
+              <tr><td colspan="7" class="loading-cell">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Agreements Panel ═══ -->
+    <div class="tab-panel" id="panel-agreements">
+      <div class="page-title">
+        <i data-lucide="handshake" style="width:22px;height:22px;"></i>
+        Acuerdos
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Recurso</th>
+                <th>Solicitante → Proveedor</th>
+                <th>Estado</th>
+                <th>Actualizado</th>
+                <th>Calificaciones</th>
+              </tr>
+            </thead>
+            <tbody id="agreements-tbody">
+              <tr><td colspan="5" class="loading-cell">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app-screen -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="/js/admin.js"></script>
+<script>
+  // Show/hide header live section based on login state
+  const origShowApp = Admin.init;
+  document.addEventListener('DOMContentLoaded', () => {
+    const headerLive = document.getElementById('header-right-live');
+
+    // Patch showApp to reveal header controls
+    const appScreen = document.getElementById('app-screen');
+    const observer = new MutationObserver(() => {
+      if (appScreen.style.display !== 'none') {
+        headerLive.style.display = 'flex';
+      } else {
+        headerLive.style.display = 'none';
+      }
+    });
+    observer.observe(appScreen, { attributes: true, attributeFilter: ['style'] });
+
+    // Init lucide icons
+    if (window.lucide) lucide.createIcons();
+  });
+</script>
+</body>
+</html>

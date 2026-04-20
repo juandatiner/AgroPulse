@@ -47,10 +47,35 @@ h1,h2,h3 { font-family: 'Playfair Display', serif; }
 @keyframes pulse { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
 @keyframes spin { to { transform:rotate(360deg); } }
 @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+@keyframes blobFloat {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%      { transform: translate(30px,-40px) scale(1.05); }
+    66%      { transform: translate(-20px,20px) scale(0.97); }
+}
+@keyframes logoFloat {
+    0%,100% { transform: translateY(0) rotate(0deg); box-shadow: 0 8px 32px rgba(200,150,42,0.35); }
+    50%      { transform: translateY(-10px) rotate(2deg); box-shadow: 0 20px 48px rgba(200,150,42,0.5); }
+}
+@keyframes floatEmoji {
+    0%,100% { transform: translateY(0) rotate(0deg); opacity: 0.18; }
+    50%      { transform: translateY(-18px) rotate(8deg); opacity: 0.28; }
+}
+@keyframes landingIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+@keyframes glow {
+    0%,100% { box-shadow: 0 0 0 0 rgba(200,150,42,0); }
+    50%      { box-shadow: 0 0 0 8px rgba(200,150,42,0.15); }
+}
 
 /* ===== LANDING ===== */
 .landing {
-    background: var(--earth);
+    background: linear-gradient(160deg, #1a2710 0%, var(--earth) 40%, #1e2d14 100%);
     color: var(--cream);
     display: flex;
     flex-direction: column;
@@ -61,78 +86,156 @@ h1,h2,h3 { font-family: 'Playfair Display', serif; }
     position: relative;
     overflow: hidden;
 }
-.landing::before {
-    content: '';
+
+/* Animated blobs */
+.landing-blob {
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at 30% 20%, rgba(122,154,60,0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 80%, rgba(200,150,42,0.1) 0%, transparent 50%);
-    animation: fadeIn 2s ease;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
 }
-.landing > * { position: relative; z-index: 1; }
+.lb-1 {
+    width: 340px; height: 340px;
+    background: radial-gradient(circle, rgba(122,154,60,0.22) 0%, transparent 70%);
+    top: -80px; left: -80px;
+    animation: blobFloat 12s ease-in-out infinite;
+}
+.lb-2 {
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(200,150,42,0.18) 0%, transparent 70%);
+    bottom: -60px; right: -60px;
+    animation: blobFloat 16s ease-in-out infinite reverse;
+}
+.lb-3 {
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(61,84,41,0.3) 0%, transparent 70%);
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    animation: blobFloat 20s ease-in-out infinite 4s;
+}
+
+/* Floating emoji decorations */
+.landing-float {
+    position: absolute;
+    font-size: 2rem;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.18;
+}
+.lf-1 { top: 12%; left: 8%;  animation: floatEmoji 6s ease-in-out infinite; }
+.lf-2 { top: 20%; right: 10%; animation: floatEmoji 8s ease-in-out infinite 1s; }
+.lf-3 { bottom: 22%; left: 6%; animation: floatEmoji 7s ease-in-out infinite 2s; }
+.lf-4 { bottom: 30%; right: 8%; animation: floatEmoji 9s ease-in-out infinite 0.5s; }
+.lf-5 { top: 55%; left: 50%; animation: floatEmoji 10s ease-in-out infinite 3s; }
+
+.landing-inner {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    width: 100%;
+}
 
 .logo-mark {
-    width: 80px; height: 80px;
+    width: 84px; height: 84px;
     background: linear-gradient(135deg, var(--harvest), var(--harvest-light));
-    border-radius: 22px;
+    border-radius: 24px;
     display: flex; align-items: center; justify-content: center;
-    margin-bottom: 28px;
-    box-shadow: 0 8px 32px rgba(200,150,42,0.3);
+    margin-bottom: 24px;
+    animation: logoFloat 4s ease-in-out infinite;
 }
-.logo-mark svg { width: 40px; height: 40px; color: var(--earth); }
+.logo-mark svg { width: 42px; height: 42px; color: var(--earth); }
+.logo-mark-anim { animation: logoFloat 4s ease-in-out infinite; }
 
-.landing h1 {
-    font-size: clamp(2.4rem, 8vw, 3.6rem);
+.landing-title {
+    font-size: clamp(2.6rem, 9vw, 4rem);
     font-weight: 900;
-    margin-bottom: 12px;
-    letter-spacing: -1px;
+    margin-bottom: 14px;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    animation: landingIn 0.7s ease both 0.1s;
 }
-.landing h1 .highlight { color: var(--harvest-light); }
-.landing .tagline {
-    font-size: 1rem;
-    color: rgba(245,240,232,0.8);
-    max-width: 320px;
-    line-height: 1.5;
-    margin-bottom: 20px;
+.landing-title .highlight {
+    background: linear-gradient(90deg, var(--harvest-light), #f5c842, var(--harvest-light));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
 }
-.region-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(245,240,232,0.1);
-    border: 1px solid rgba(245,240,232,0.2);
-    padding: 8px 16px;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    color: rgba(245,240,232,0.7);
-    margin-bottom: 40px;
-}
-.region-tag svg { width: 14px; height: 14px; }
 
-.landing-ctas { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 48px; }
-.landing-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-    max-width: 400px;
+.landing .tagline {
+    font-size: 1.05rem;
+    color: rgba(245,240,232,0.78);
+    max-width: 300px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    animation: landingIn 0.7s ease both 0.25s;
 }
-.stat-item { text-align: center; }
+
+.landing-pills {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin-bottom: 32px;
+    animation: landingIn 0.7s ease both 0.35s;
+}
+.landing-pill {
+    background: rgba(245,240,232,0.09);
+    border: 1px solid rgba(245,240,232,0.18);
+    color: rgba(245,240,232,0.8);
+    padding: 5px 13px; border-radius: 20px;
+    font-size: 0.8rem; font-weight: 500;
+    backdrop-filter: blur(4px);
+}
+
+.landing-ctas {
+    width: 100%; max-width: 340px;
+    display: flex; flex-direction: column; gap: 12px;
+    margin-bottom: 44px;
+    animation: landingIn 0.7s ease both 0.45s;
+}
+.landing-btn-primary {
+    background: linear-gradient(135deg, var(--harvest), var(--harvest-light));
+    color: var(--earth); font-weight: 700; font-size: 1rem;
+    padding: 14px 24px; border-radius: 14px; border: none;
+    width: 100%; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(200,150,42,0.4);
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: glow 3s ease-in-out infinite;
+}
+.landing-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(200,150,42,0.55); }
+.landing-btn-secondary {
+    background: rgba(245,240,232,0.08);
+    border: 1.5px solid rgba(245,240,232,0.25);
+    color: rgba(245,240,232,0.9); font-size: 1rem;
+    padding: 13px 24px; border-radius: 14px;
+    width: 100%; cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s, border-color 0.2s;
+}
+.landing-btn-secondary:hover { background: rgba(245,240,232,0.14); border-color: rgba(245,240,232,0.4); }
+
+.landing-stats {
+    display: flex; align-items: center; gap: 0;
+    width: 100%; max-width: 340px;
+    background: rgba(245,240,232,0.07);
+    border: 1px solid rgba(245,240,232,0.12);
+    border-radius: 16px; padding: 16px 0;
+    backdrop-filter: blur(8px);
+    animation: landingIn 0.7s ease both 0.55s;
+}
+.stat-item { flex: 1; text-align: center; }
+.stat-divider { width: 1px; height: 36px; background: rgba(245,240,232,0.15); flex-shrink: 0; }
 .stat-value {
     font-family: 'Playfair Display', serif;
-    font-size: 1.6rem;
+    font-size: 1.7rem;
     font-weight: 700;
     color: var(--harvest-light);
+    line-height: 1;
 }
 .stat-label {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgba(245,240,232,0.5);
-    margin-top: 4px;
+    letter-spacing: 0.8px;
+    color: rgba(245,240,232,0.45);
+    margin-top: 5px;
 }
 
 /* ===== BUTTONS ===== */

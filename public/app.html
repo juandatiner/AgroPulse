@@ -15,22 +15,54 @@
 
 <!-- ===== LANDING ===== -->
 <div id="screen-landing" class="screen active landing">
-    <div class="logo-mark"><i data-lucide="sprout"></i></div>
-    <h1>Agro<span class="highlight">Pulse</span></h1>
-    <p class="tagline">Conecta tu comunidad agrícola. Comparte recursos, fortalece la tierra.</p>
-    <div class="region-tag"><i data-lucide="map-pin"></i> Colombia — Conecta productores rurales</div>
-    <div class="landing-ctas">
-        <button class="btn btn-primary btn-full" onclick="App.showScreen('screen-register')">
-            <i data-lucide="user-plus"></i> Crear cuenta gratuita
-        </button>
-        <button class="btn btn-secondary btn-full" onclick="App.showScreen('screen-login')">
-            <i data-lucide="log-in"></i> Ya tengo cuenta
-        </button>
-    </div>
-    <div class="landing-stats">
-        <div class="stat-item"><div class="stat-value">4.8M</div><div class="stat-label">Empleos rurales</div></div>
-        <div class="stat-item"><div class="stat-value">4</div><div class="stat-label">Tipos de intercambio</div></div>
-        <div class="stat-item"><div class="stat-value">2</div><div class="stat-label">Municipios piloto</div></div>
+    <!-- Animated background blobs -->
+    <div class="landing-blob lb-1"></div>
+    <div class="landing-blob lb-2"></div>
+    <div class="landing-blob lb-3"></div>
+    <!-- Floating decorative icons -->
+    <div class="landing-float lf-1">🌱</div>
+    <div class="landing-float lf-2">🌾</div>
+    <div class="landing-float lf-3">🚜</div>
+    <div class="landing-float lf-4">🌿</div>
+    <div class="landing-float lf-5">🥕</div>
+
+    <div class="landing-inner">
+        <div class="logo-mark logo-mark-anim"><i data-lucide="sprout"></i></div>
+        <h1 class="landing-title">Agro<span class="highlight">Pulse</span></h1>
+        <p class="tagline">Conecta tu comunidad agrícola.<br>Comparte recursos, fortalece la tierra.</p>
+
+        <div class="landing-pills">
+            <span class="landing-pill">🤝 Intercambia</span>
+            <span class="landing-pill">📍 Ubica en mapa</span>
+            <span class="landing-pill">⭐ Calificaciones</span>
+            <span class="landing-pill">🇨🇴 Nacional</span>
+        </div>
+
+        <div class="landing-ctas">
+            <button class="btn landing-btn-primary" onclick="App.showScreen('screen-register')">
+                <i data-lucide="user-plus"></i> Crear cuenta gratuita
+            </button>
+            <button class="btn landing-btn-secondary" onclick="App.showScreen('screen-login')">
+                <i data-lucide="log-in"></i> Ya tengo cuenta
+            </button>
+        </div>
+
+        <div class="landing-stats">
+            <div class="stat-item">
+                <div class="stat-value">4</div>
+                <div class="stat-label">Tipos de intercambio</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Gratuito</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="stat-value">∞</div>
+                <div class="stat-label">Posibilidades</div>
+            </div>
+        </div>
     </div>
 </div>
 

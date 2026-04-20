@@ -10,6 +10,13 @@ export async function GET(request: Request) {
     if (!user) return json({ error: 'No autorizado' }, 401)
 
     const db = await getDb()
+
+    // Update last_seen for this user
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(user.id) },
+      { $set: { last_seen: new Date() } }
+    )
+
     const uid = new ObjectId(user.id)
     const params = parseParams(request)
     const since = params.since ? new Date(params.since) : new Date('2000-01-01')
