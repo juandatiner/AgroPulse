@@ -604,8 +604,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     background: var(--white);
     border-top: 1px solid var(--cream-dark);
     display: flex;
-    padding: 6px 0;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding: 6px 0 8px;
 }
 .tab-btn {
     flex: 1;

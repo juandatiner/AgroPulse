@@ -37,14 +37,39 @@ const App = {
 
     showApp() {
         this.showScreen('screen-app');
+        history.replaceState({ type: 'tab', tab: 'inicio' }, '');
+        window.addEventListener('popstate', e => this.handlePopState(e));
         this.switchTab('inicio');
         Chat.startGlobalPolling();
         this.updateNavAvatar();
         this.refreshAgreementCounts();
     },
 
+    handlePopState(e) {
+        const state = e.state;
+        if (!state) return;
+        this._skipHistory = true;
+        document.getElementById('detail-overlay').style.display = 'none';
+        const chatO = document.getElementById('chat-overlay');
+        if (chatO && chatO.style.display !== 'none') { chatO.style.display = 'none'; Chat.stopPolling && Chat.stopPolling(); }
+        if (state.type === 'tab') {
+            this.switchTab(state.tab);
+        } else if (state.type === 'detail') {
+            this.switchTab(state.tab);
+            this.showResourceDetail(state.id);
+        } else if (state.type === 'userProfile') {
+            this.switchTab(state.tab);
+            this.showUserProfile(state.id);
+        } else if (state.type === 'chat') {
+            this.switchTab(state.tab);
+            this.openAgreementChat(state.id);
+        }
+        this._skipHistory = false;
+    },
+
     switchTab(tab) {
         this.currentTab = tab;
+        if (!this._skipHistory) history.pushState({ type: 'tab', tab }, '');
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById('panel-' + tab).classList.add('active');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -294,7 +319,7 @@ const App = {
         const container = document.getElementById(containerId);
         if (!container) return;
         if (resources.length === 0) {
-            container.innerHTML = `<div class="empty-state" style="padding:24px">
+            container.innerHTML = `<div class="empty-state" style="padding:16px 24px">
                 <i data-lucide="sprout"></i>
                 <h3>Tu espacio está listo</h3>
                 <p>Publica tu primer recurso y empieza a conectar con otros agricultores de la región</p>
@@ -554,6 +579,7 @@ const App = {
             overlay.innerHTML = html;
             overlay.style.display = 'block';
             lucide.createIcons({ nodes: [overlay] });
+            if (!this._skipHistory) history.pushState({ type: 'detail', tab: this.currentTab, id }, '');
         } catch (e) {
             console.error('showResourceDetail error:', e);
             this.showToast(e.message || 'Error al cargar detalle', 'error');
@@ -573,6 +599,7 @@ const App = {
 
     closeDetail() {
         document.getElementById('detail-overlay').style.display = 'none';
+        if (!this._skipHistory && history.state?.type !== 'tab') history.back();
     },
 
     // Custom confirm dialog (replaces browser confirm())
@@ -1819,6 +1846,7 @@ const App = {
             const isProvider = a.provider_id === API.user.id;
             const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
             Chat.openChat(id, a.resource_titulo || 'Chat', `Con ${otherName}`, a);
+            if (!this._skipHistory) history.pushState({ type: 'chat', tab: this.currentTab, id }, '');
         } catch (e) {
             this.showToast('Error al abrir chat', 'error');
         }
@@ -2013,10 +2041,6 @@ const App = {
                 }).join('');
 
             overlay.innerHTML = `
-                <div class="detail-header">
-                    <button class="detail-back" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i></button>
-                    <h3>Perfil</h3>
-                </div>
                 <div class="detail-body">
                     <div class="user-profile-hero">
                         <div class="user-profile-avatar">${initials}</div>
@@ -2045,6 +2069,7 @@ const App = {
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
                 </div>`;
             lucide.createIcons({ nodes: [overlay] });
+            if (!this._skipHistory) history.pushState({ type: 'userProfile', tab: this.currentTab, id: userId }, '');
         } catch (e) {
             this.showToast('Error al cargar perfil', 'error');
             this.closeDetail();
