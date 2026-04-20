@@ -323,9 +323,6 @@ const App = {
                 <i data-lucide="sprout"></i>
                 <h3>Tu espacio está listo</h3>
                 <p>Publica tu primer recurso y empieza a conectar con otros agricultores de la región</p>
-                <button class="btn btn-outline" onclick="App.switchTab('publicar')" style="margin-top:10px;padding:7px 16px;font-size:0.82rem">
-                    <i data-lucide="plus"></i> Crear publicación
-                </button>
             </div>`;
             lucide.createIcons({ nodes: [container] });
             return;

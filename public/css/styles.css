@@ -802,7 +802,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
 }
-.resource-scroll .empty-state { width: 100%; }
+.resource-scroll .empty-state, .resource-scroll .empty-state-compact { width: 100%; }
 .resource-scroll::-webkit-scrollbar { display: none; }
 
 .resource-card {
