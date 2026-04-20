@@ -120,6 +120,9 @@ const App = {
             if (!data.nombre || !data.apellido || !data.email || !data.password || !data.tipo) {
                 throw new Error('Completa todos los campos obligatorios');
             }
+            if (!data.latitude || !data.longitude) {
+                throw new Error('La ubicación es obligatoria — usa el GPS o elige en el mapa');
+            }
             if (!this.isStrongPassword(data.password)) {
                 throw new Error('La contraseña no cumple los requisitos de seguridad');
             }
@@ -1062,7 +1065,7 @@ const App = {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Disponibilidad / Urgencia</label>
+                        <label class="form-label">Disponibilidad / Urgencia *</label>
                         <select id="pub-disponibilidad" class="form-select">
                             <option value="">Seleccionar...</option>
                             <option>Urgente - esta semana</option><option>Próximas 2 semanas</option>
@@ -1119,17 +1122,17 @@ const App = {
                         <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Duración máxima del préstamo</label>
+                        <label class="form-label">Duración máxima del préstamo *</label>
                         <input type="text" id="pub-duracion" class="form-input" placeholder="Ej: Máximo 3 días, 1 semana">
                         <span class="form-hint">¿Por cuánto tiempo puedes prestarlo?</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Garantía o condiciones de devolución</label>
                         <textarea id="pub-garantia" class="form-input" rows="2" placeholder="Ej: Se devuelve limpio y funcional, cualquier daño se repara"></textarea>
-                        <span class="form-hint">¿Qué esperas al recibirlo de vuelta?</span>
+                        <span class="form-hint">Opcional — ¿Qué esperas al recibirlo de vuelta?</span>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Disponibilidad</label>
+                        <label class="form-label">Disponibilidad *</label>
                         <select id="pub-disponibilidad" class="form-select">
                             <option value="">Seleccionar...</option>
                             <option>Inmediata</option><option>Fines de semana</option>
@@ -1220,7 +1223,7 @@ const App = {
                 </div>
             </div>
             <div class="publish-form-section">
-                <div class="publish-form-section-title"><i data-lucide="map-pin"></i> Ubicación</div>
+                <div class="publish-form-section-title"><i data-lucide="map-pin"></i> Ubicación *</div>
                 <p class="form-hint" style="margin-bottom:8px">¿Dónde está el recurso o se presta el servicio? No necesariamente donde vives</p>
                 <div id="loc-pub"></div>
                 <input type="hidden" id="pub-lat">
@@ -1487,11 +1490,24 @@ const App = {
             };
             const modalidadEl = document.getElementById('pub-modalidad');
             if (modalidadEl) data.modalidad = modalidadEl.value;
+            const precioToggleEl = document.getElementById('toggle-precio');
+            const precioActivo = precioToggleEl && precioToggleEl.checked;
+            const disponibilidadEl = document.getElementById('pub-disponibilidad');
+            const duracionEl = document.getElementById('pub-duracion');
+            const ofreceEl = document.getElementById('pub-ofrece');
+            const recibeEl = document.getElementById('pub-recibe');
             if (!data.titulo || !data.descripcion || !data.categoria) {
                 throw new Error('Completa los campos obligatorios (*)');
             }
             if (cantidadEl && !data.cantidad) throw new Error('La cantidad es obligatoria (*)');
             if (condicionEl && !data.condicion) throw new Error('La condición es obligatoria (*)');
+            if (unidadActiva && unidadActiveEl && !document.getElementById('pub-unidad')?.value?.trim()) throw new Error('La unidad es obligatoria, o desactiva el campo');
+            if (precioActivo && !data.precio_referencia) throw new Error('El precio es obligatorio si está activado');
+            if (disponibilidadEl && !data.disponibilidad) throw new Error('La disponibilidad es obligatoria (*)');
+            if (duracionEl && !data.duracion_prestamo) throw new Error('La duración del préstamo es obligatoria (*)');
+            if (ofreceEl && !data.ofrece) throw new Error('Completa lo que ofreces (*)');
+            if (recibeEl && !data.recibe) throw new Error('Completa lo que deseas recibir (*)');
+            if (!data.municipio) throw new Error('La ubicación es obligatoria (*)');
             await API.createResource(data);
             this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
             this.switchTab('inicio');

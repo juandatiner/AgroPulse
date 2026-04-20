@@ -2278,9 +2278,118 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 }
 
 /* ===== RESPONSIVE ===== */
+/* ===== MOBILE: stack form-rows on small screens ===== */
+@media (max-width: 520px) {
+    /* Stack two-column form rows */
+    .form-row { grid-template-columns: 1fr; gap: 0; }
+
+    /* Auth screens */
+    .auth-screen { padding: 20px 16px 32px; justify-content: flex-start; }
+    .auth-title { font-size: 1.5rem; }
+    .auth-subtitle { font-size: 0.85rem; }
+
+    /* Landing */
+    .landing-inner { padding: 0 4px; }
+    .landing-title { font-size: clamp(2.2rem, 10vw, 3rem); }
+    .landing .tagline { font-size: 0.92rem; }
+    .landing-pills { gap: 6px; }
+    .landing-pill { font-size: 0.72rem; padding: 4px 10px; }
+    .landing-btn-primary, .landing-btn-secondary { font-size: 0.92rem; padding: 12px 20px; }
+    .landing-stats { padding: 12px 0; }
+    .stat-value { font-size: 1.4rem; }
+    .stat-label { font-size: 0.6rem; }
+    .logo-mark { width: 70px; height: 70px; margin-bottom: 18px; }
+    .logo-mark svg { width: 34px; height: 34px; }
+
+    /* Tab bar — tighter on tiny screens */
+    .tab-btn span { font-size: 0.6rem; }
+    .tab-btn { padding: 6px 0; }
+    .tab-btn svg { width: 20px; height: 20px; }
+
+    /* Home */
+    .home-hero { padding: 20px 16px; }
+    .home-greeting { font-size: 0.85rem; }
+    .home-name { font-size: 1.4rem; }
+    .quick-action { padding: 10px 8px; }
+    .quick-action-icon { width: 32px; height: 32px; }
+    .quick-action-text h4 { font-size: 0.8rem; }
+    .quick-action-text p { font-size: 0.68rem; }
+    .section-header { padding: 0 16px; }
+    .section-title { font-size: 1rem; }
+    .my-resources-list { padding: 0 16px; }
+    .resource-scroll { padding: 0 16px 16px; }
+
+    /* Market */
+    .market-header { padding: 12px 16px 0; }
+    .market-list { padding: 0 16px 16px; }
+    .results-count { padding: 6px 16px; font-size: 0.78rem; }
+    .filter-row { grid-template-columns: 1fr; }
+    .market-item-top { gap: 10px; }
+    .market-item-info h4 { font-size: 0.88rem; }
+
+    /* Publish */
+    .publish-header { padding: 16px 16px 10px; }
+    .publish-header h2 { font-size: 1.2rem; }
+    .type-selector { grid-template-columns: 1fr 1fr; padding: 0 16px 16px; gap: 8px; }
+    .type-opt { padding: 10px 8px; }
+    .type-opt h4 { font-size: 0.8rem; }
+    .type-opt p { font-size: 0.68rem; }
+    .publish-form { padding: 0 16px 16px; }
+    .publish-form-section { padding: 14px; margin-bottom: 10px; }
+    .publish-action-row { flex-direction: column; gap: 8px; }
+
+    /* Detail overlay */
+    .detail-header { padding: 12px 16px; }
+    .detail-header h3 { font-size: 1rem; }
+    .detail-body { padding: 16px; }
+    .detail-title { font-size: 1.2rem; }
+    .detail-actions { padding: 12px 16px; gap: 8px; flex-direction: column; }
+    .detail-info-grid { grid-template-columns: 1fr; }
+
+    /* Agreements */
+    .agreements-header { padding: 16px 16px 0; }
+    .status-tabs { padding: 0 16px; gap: 4px; }
+    .status-tab { padding: 6px 8px; font-size: 0.72rem; }
+    .agreements-list { padding: 0 16px 16px; }
+
+    /* Profile */
+    .profile-header { padding: 24px 16px 16px; }
+    .profile-name { font-size: 1.4rem; }
+    .profile-stats { gap: 0; }
+    .profile-stat { padding: 12px 8px; }
+    .profile-stat-value { font-size: 1.4rem; }
+    .profile-section { margin: 0 16px 12px; }
+    .settings-body { padding: 16px; }
+
+    /* Modals */
+    .confirm-modal { padding: 20px 16px; margin: 8px; }
+    .confirm-modal h3 { font-size: 1rem; }
+
+    /* Fullscreen map */
+    .map-fullscreen-footer { padding: 10px 12px; gap: 8px; }
+    .map-fullscreen-addr { font-size: 0.78rem; }
+
+    /* Rating */
+    .rating-stars-row { gap: 4px; }
+    .rating-star-btn svg { width: 30px; height: 30px; }
+
+    /* User profile overlay */
+    .user-profile-hero { gap: 10px; }
+    .user-profile-name { font-size: 1rem; }
+    .user-reputation-block { padding: 10px 12px; gap: 10px; }
+    .user-rep-score { font-size: 1.8rem; }
+
+    /* Chat */
+    .chat-header { padding: 10px 12px; }
+    .chat-messages { padding: 10px 12px; }
+}
+
 @media (max-width: 420px) {
     .quick-actions { grid-template-columns: 1fr 1fr; }
     .type-selector { grid-template-columns: 1fr 1fr; }
     .quick-action { padding: 10px; }
     .quick-action-icon { width: 32px; height: 32px; }
+
+    /* Extra tiny screens: stack detail actions horizontally collapsed */
+    .tab-btn-publish .tab-icon-wrap { width: 44px; height: 44px; }
 }
