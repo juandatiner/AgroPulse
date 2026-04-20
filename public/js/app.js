@@ -298,6 +298,8 @@ const App = {
     async loadHome() {
         const u = API.user;
         if (!u) return;
+        const nameEl = document.getElementById('home-name');
+        if (nameEl) nameEl.textContent = u.nombre;
 
         try {
             const [otherResources, myResources, profile] = await Promise.all([
@@ -317,11 +319,11 @@ const App = {
         const container = document.getElementById(containerId);
         if (!container) return;
         if (resources.length === 0) {
-            container.innerHTML = `<div class="empty-state" style="padding:16px 24px">
+            container.innerHTML = `<div class="empty-state-compact">
                 <i data-lucide="sprout"></i>
                 <h3>Tu espacio está listo</h3>
                 <p>Publica tu primer recurso y empieza a conectar con otros agricultores de la región</p>
-                <button class="btn btn-secondary" onclick="App.switchTab('publicar')" style="margin-top:12px;padding:8px 18px;font-size:0.8rem">
+                <button class="btn btn-outline" onclick="App.switchTab('publicar')" style="margin-top:10px;padding:7px 16px;font-size:0.82rem">
                     <i data-lucide="plus"></i> Crear publicación
                 </button>
             </div>`;
@@ -386,7 +388,7 @@ const App = {
         const container = document.getElementById(containerId);
         if (!container) return;
         if (resources.length === 0) {
-            container.innerHTML = `<div class="empty-state">
+            container.innerHTML = `<div class="empty-state-compact">
                 <i data-lucide="users"></i>
                 <h3>La comunidad te espera</h3>
                 <p>Cuando otros agricultores publiquen recursos, aparecerán aquí</p>
