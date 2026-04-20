@@ -721,6 +721,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     align-items: center;
     padding: 20px 20px 12px;
 }
+#section-mis-pub { padding-top: 28px; }
+#section-comunidad { padding-top: 8px; }
 .section-title { font-size: 1.1rem; color: var(--earth); }
 .section-more {
     font-size: 0.8rem;
