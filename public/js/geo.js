@@ -246,9 +246,13 @@ const Geo = {
                     <p>Toca el mapa o arrastra el pin</p>
                 </div>
             </div>
-            <div class="map-fullscreen-gps-row">
-                <button type="button" id="fs-gps" class="loc-gps-full-btn" style="width:100%">
-                    <i data-lucide="crosshair"></i> Usar mi ubicación actual
+            <div class="map-fullscreen-search-row">
+                <div class="map-search-wrap">
+                    <input type="text" id="fs-search" class="form-input" placeholder="Buscar lugar, municipio, vereda..." autocomplete="off">
+                    <div id="fs-search-results" class="map-search-results" style="display:none"></div>
+                </div>
+                <button type="button" id="fs-gps" class="loc-gps-icon-btn" title="Usar mi ubicación actual">
+                    <i data-lucide="crosshair"></i>
                 </button>
             </div>
             <div id="fs-map" class="map-fullscreen-map"></div>
@@ -313,6 +317,37 @@ const Geo = {
             btn.innerHTML = '<i data-lucide="crosshair"></i>';
             lucide.createIcons({ nodes: [btn] });
         });
+
+        // Search
+        let _searchTimeout;
+        const searchInput = document.getElementById('fs-search');
+        const searchResults = document.getElementById('fs-search-results');
+        searchInput.addEventListener('input', () => {
+            clearTimeout(_searchTimeout);
+            const q = searchInput.value.trim();
+            if (q.length < 3) { searchResults.style.display = 'none'; return; }
+            _searchTimeout = setTimeout(async () => {
+                const results = await Geo.nominatimSearch(q);
+                if (!results.length) { searchResults.style.display = 'none'; return; }
+                searchResults.innerHTML = results.map(r =>
+                    `<div class="map-search-result" data-lat="${r.lat}" data-lng="${r.lon}">${r.display_name}</div>`
+                ).join('');
+                searchResults.style.display = 'block';
+                searchResults.querySelectorAll('.map-search-result').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const lat = parseFloat(el.dataset.lat);
+                        const lng = parseFloat(el.dataset.lng);
+                        placeMarker(lat, lng);
+                        map.setView([lat, lng], 14);
+                        searchResults.style.display = 'none';
+                        searchInput.value = el.textContent.trim();
+                    });
+                });
+            }, 420);
+        });
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.map-search-wrap')) searchResults.style.display = 'none';
+        }, { once: false });
 
         // Confirm — delegate to picker's setLocation
         document.getElementById('fs-confirm').addEventListener('click', async () => {

@@ -338,8 +338,8 @@ const App = {
             }
 
             const clickFn = isScheduled
-                ? `App.showResourceDetail(${r.id})`
-                : (r.agr_id ? `App.openAgreementChat(${r.agr_id})` : `App.showResourceDetail(${r.id})`);
+                ? `App.showResourceDetail('${r.id}')`
+                : (r.agr_id ? `App.openAgreementChat('${r.agr_id}')` : `App.showResourceDetail('${r.id}')`);
 
             return `
             <div class="${itemClass}" onclick="${clickFn}">
@@ -372,7 +372,7 @@ const App = {
             return;
         }
         container.innerHTML = resources.map(r => `
-            <div class="resource-card" onclick="App.showResourceDetail(${r.id})">
+            <div class="resource-card" onclick="App.showResourceDetail('${r.id}')">
                 <div class="resource-card-header">
                     <div class="resource-card-icon ${r.tipo}">
                         <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
@@ -382,7 +382,7 @@ const App = {
                 <h4>${this.esc(r.titulo)}</h4>
                 <p>${this.esc(r.descripcion)}</p>
                 <div class="resource-card-meta">
-                    <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile(${r.user_id})">
+                    <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
                         <i data-lucide="user"></i> ${this.esc(r.user_nombre)}
                         <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
                     </span>
@@ -427,7 +427,7 @@ const App = {
                 return;
             }
             container.innerHTML = resources.map(r => `
-                <div class="market-item" onclick="App.showResourceDetail(${r.id})">
+                <div class="market-item" onclick="App.showResourceDetail('${r.id}')">
                     <div class="market-item-top">
                         <div class="market-item-icon resource-card-icon ${r.tipo}">
                             <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
@@ -439,7 +439,7 @@ const App = {
                     </div>
                     <div class="market-item-footer">
                         <div class="market-item-meta">
-                            <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile(${r.user_id})">
+                            <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
                                 <i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}
                                 <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
                             </span>
@@ -534,7 +534,7 @@ const App = {
                     <p class="detail-desc">${this.esc(r.descripcion)}</p>
                     <div class="detail-info-grid">${infoItems}</div>
                     ${locationBlock}
-                    <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile(${r.owner_id})` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
+                    <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile('${r.owner_id}')` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
                             <h4>${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}</h4>
@@ -555,7 +555,8 @@ const App = {
             overlay.style.display = 'block';
             lucide.createIcons({ nodes: [overlay] });
         } catch (e) {
-            this.showToast('Error al cargar detalle', 'error');
+            console.error('showResourceDetail error:', e);
+            this.showToast(e.message || 'Error al cargar detalle', 'error');
         }
     },
 
@@ -567,7 +568,7 @@ const App = {
             trueque: { icon: 'repeat', label: 'Proponer trueque', msg: '¿Qué ofreces a cambio? Escribe tu propuesta.' },
         };
         const a = actions[r.tipo] || actions.oferta;
-        return `<button class="btn btn-primary btn-full" onclick="App.requestService(${r.id}, '${r.tipo}')"><i data-lucide="${a.icon}"></i> ${a.label}</button>`;
+        return `<button class="btn btn-primary btn-full" onclick="App.requestService('${r.id}', '${r.tipo}')"><i data-lucide="${a.icon}"></i> ${a.label}</button>`;
     },
 
     closeDetail() {
@@ -676,38 +677,38 @@ const App = {
         const hasDeactivSched = deactivAt && deactivAt > now;
 
         if (isScheduled) {
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate(${r.id})"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
-                    <button class="btn btn-primary btn-full btn-sm" onclick="App.publishNow(${r.id})"><i data-lucide="send"></i> Publicar ya</button>
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate('${r.id}')"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
+                    <button class="btn btn-primary btn-full btn-sm" onclick="App.publishNow('${r.id}')"><i data-lucide="send"></i> Publicar ya</button>
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
 
         let deactivBtns = '';
         if (hasDeactivSched) {
             const date = this.formatDate(r.deactivation_scheduled_at);
-            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.editDeactivationDate(${r.id})"><i data-lucide="calendar-x"></i> Editar desactivación (${date})</button>
-                           <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelDeactivationSchedule(${r.id})"><i data-lucide="x-circle"></i> Cancelar desactivación</button>`;
+            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.editDeactivationDate('${r.id}')"><i data-lucide="calendar-x"></i> Editar desactivación (${date})</button>
+                           <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelDeactivationSchedule('${r.id}')"><i data-lucide="x-circle"></i> Cancelar desactivación</button>`;
         } else if (r.status === 'active') {
-            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleDeactivation(${r.id})"><i data-lucide="calendar-x"></i> Programar desactivación</button>`;
+            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleDeactivation('${r.id}')"><i data-lucide="calendar-x"></i> Programar desactivación</button>`;
         }
 
         if (r.status === 'active') {
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource(${r.id}, 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource('${r.id}', 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
                     ${deactivBtns}
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
 
         // Closed resource — activation options
         const hasActivSched = r.scheduled_at && new Date(r.scheduled_at.replace(' ', 'T') + 'Z') > now;
         if (hasActivSched) {
             const date = this.formatDate(r.scheduled_at);
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate(${r.id})"><i data-lucide="calendar"></i> Editar activación (${date})</button>
-                    <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow(${r.id})"><i data-lucide="eye"></i> Activar ya</button>
-                    <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelActivationSchedule(${r.id})"><i data-lucide="x-circle"></i> Cancelar activación programada</button>
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate('${r.id}')"><i data-lucide="calendar"></i> Editar activación (${date})</button>
+                    <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ya</button>
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelActivationSchedule('${r.id}')"><i data-lucide="x-circle"></i> Cancelar activación programada</button>
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
-        return `<button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow(${r.id})"><i data-lucide="eye"></i> Activar ahora</button>
-                <button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleActivation(${r.id})"><i data-lucide="calendar"></i> Programar activación</button>
-                <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+        return `<button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ahora</button>
+                <button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleActivation('${r.id}')"><i data-lucide="calendar"></i> Programar activación</button>
+                <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
     },
 
     async changeScheduleDate(id) {
@@ -1683,23 +1684,23 @@ const App = {
             const rated = isProvider ? a.rating_provider : a.rating_requester;
             btns = rated
                 ? `<span class="agr-btn-done"><i data-lucide="star"></i> Calificado ${rated}/5</span>`
-                : `<button class="btn btn-earth btn-xs" onclick="event.stopPropagation();App.showRating(${a.id})"><i data-lucide="star"></i> Calificar</button>`;
+                : `<button class="btn btn-earth btn-xs" onclick="event.stopPropagation();App.showRating('${a.id}')"><i data-lucide="star"></i> Calificar</button>`;
         } else if (a.status === 'cancelled' || a.status === 'rejected') {
-            btns = `<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();App.openAgreementChat(${a.id})"><i data-lucide="message-circle"></i> Ver chat</button>`;
+            btns = `<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Ver chat</button>`;
         } else {
-            btns = `<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();App.openAgreementChat(${a.id})"><i data-lucide="message-circle"></i> ${chatLabel}</button>`;
+            btns = `<button class="btn btn-outline btn-xs" onclick="event.stopPropagation();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> ${chatLabel}</button>`;
             if (isProvider && a.status === 'pending') {
-                btns += `<button class="btn btn-success btn-xs" onclick="event.stopPropagation();App.updateAgreement(${a.id},'active')"><i data-lucide="check"></i> Aceptar</button>
-                         <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();App.updateAgreement(${a.id},'rejected')"><i data-lucide="x"></i></button>`;
+                btns += `<button class="btn btn-success btn-xs" onclick="event.stopPropagation();App.updateAgreement('${a.id}','active')"><i data-lucide="check"></i> Aceptar</button>
+                         <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();App.updateAgreement('${a.id}','rejected')"><i data-lucide="x"></i></button>`;
             } else if (isProvider && a.status === 'active') {
-                btns += `<button class="btn btn-success btn-xs" onclick="event.stopPropagation();App.markComplete(${a.id})"><i data-lucide="check-circle"></i> Completar</button>`;
+                btns += `<button class="btn btn-success btn-xs" onclick="event.stopPropagation();App.markComplete('${a.id}')"><i data-lucide="check-circle"></i> Completar</button>`;
             } else if (!isProvider && a.status === 'pending') {
                 btns += `<span class="agreement-waiting"><i data-lucide="clock"></i> Esperando</span>`;
             }
         }
 
         return `
-            <div class="agreement-card ${a.status}" onclick="App.showAgreementDetail(${a.id})">
+            <div class="agreement-card ${a.status}" onclick="App.showAgreementDetail('${a.id}')">
                 <div class="agr-card-top">
                     <div class="agr-card-cat-icon"><i data-lucide="${catIcon}"></i></div>
                     <div class="agr-card-info">
@@ -1801,7 +1802,7 @@ const App = {
                 </div>
                 <div class="detail-actions">
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
-                    <button class="btn btn-primary btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat(${a.id})"><i data-lucide="message-circle"></i> Abrir chat</button>
+                    <button class="btn btn-primary btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>
                 </div>`;
             const overlay = document.getElementById('detail-overlay');
             overlay.innerHTML = html;
@@ -1895,7 +1896,7 @@ const App = {
             </div>
             <div class="detail-actions" id="rating-submit-row" style="display:none">
                 <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()">Cancelar</button>
-                <button class="btn btn-primary btn-full btn-sm" onclick="App._submitRating(${agreementId})">
+                <button class="btn btn-primary btn-full btn-sm" onclick="App._submitRating('${agreementId}')">
                     <i data-lucide="send"></i> Enviar calificación
                 </button>
             </div>`;
@@ -1977,7 +1978,7 @@ const App = {
             const resourcesHtml = (u.resources || []).length === 0
                 ? `<p class="empty-mini">Sin publicaciones activas</p>`
                 : (u.resources || []).map(r => `
-                    <div class="market-item profile-resource-item" onclick="App.closeDetail();setTimeout(()=>App.showResourceDetail(${r.id}),120)">
+                    <div class="market-item profile-resource-item" onclick="App.closeDetail();setTimeout(()=>App.showResourceDetail('${r.id}'),120)">
                         <div class="market-item-top">
                             <div class="market-item-icon resource-card-icon ${r.tipo}">
                                 <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>

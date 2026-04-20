@@ -2213,6 +2213,35 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     padding: 10px 12px; background: var(--white);
     border-bottom: 1px solid var(--cream-dark); flex-shrink: 0;
 }
+.map-fullscreen-search-row {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 10px 12px; background: var(--white);
+    border-bottom: 1px solid var(--cream-dark); flex-shrink: 0;
+    position: relative;
+}
+.map-search-wrap { flex: 1; position: relative; }
+.map-search-wrap .form-input { font-size: 0.9rem; padding: 10px 12px; }
+.map-search-results {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: var(--white); border: 1.5px solid var(--cream-dark);
+    border-radius: var(--radius-sm); box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    z-index: 99999; max-height: 220px; overflow-y: auto;
+}
+.map-search-result {
+    padding: 10px 12px; font-size: 0.84rem; cursor: pointer;
+    border-bottom: 1px solid var(--cream); color: var(--text); line-height: 1.4;
+}
+.map-search-result:last-child { border-bottom: none; }
+.map-search-result:hover { background: var(--cream); }
+.loc-gps-icon-btn {
+    flex-shrink: 0; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(122,154,60,0.1); color: var(--field);
+    border: 1.5px solid var(--cream-dark); border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s;
+}
+.loc-gps-icon-btn:hover { background: rgba(122,154,60,0.2); }
+.loc-gps-icon-btn svg { width: 18px; height: 18px; }
 .map-fullscreen-map { flex: 1; z-index: 1; }
 .map-fullscreen-footer {
     flex-shrink: 0; padding: 12px 16px; background: var(--white);
