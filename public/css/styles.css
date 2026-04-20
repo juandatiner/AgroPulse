@@ -368,6 +368,42 @@ h1,h2,h3 { font-family: 'Playfair Display', serif; }
     text-decoration: none;
 }
 .auth-switch a:hover { text-decoration: underline; }
+.auth-link-sm {
+    font-size: 0.82rem; color: var(--text-muted); cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+}
+.auth-link-sm:hover { color: var(--field); }
+
+/* Forgot password steps */
+.forgot-step-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(139,105,20,0.1); border: 1px solid rgba(139,105,20,0.2);
+    color: var(--soil); padding: 5px 14px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 600; margin-bottom: 12px;
+}
+.forgot-step-badge.ok { background: rgba(39,174,96,0.1); border-color: rgba(39,174,96,0.2); color: var(--success); }
+
+/* Password checklist */
+.pw-checklist { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.pw-check {
+    font-size: 0.78rem; color: #8B6914;
+    display: flex; align-items: center; gap: 6px;
+    transition: color 0.2s;
+}
+.pw-check::before { content: '○'; font-size: 0.7rem; color: #b0b8a8; flex-shrink: 0; }
+.pw-check.ok { color: var(--success); }
+.pw-check.ok::before { content: '✓'; color: var(--success); font-weight: 700; }
+.pw-match-hint { font-size: 0.78rem; min-height: 16px; display: block; }
+.pw-match-hint.ok { color: var(--success); }
+.pw-match-hint.err { color: var(--danger); }
+
+/* Settings divider */
+.settings-divider {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted);
+    border-top: 1px solid var(--cream-dark);
+    padding-top: 20px; margin-top: 20px; margin-bottom: 14px;
+}
 
 .demo-accounts {
     margin-top: 24px;

@@ -118,8 +118,19 @@
         </div>
         <div class="form-group" style="margin-top:12px">
             <label class="form-label">Contraseña *</label>
-            <input type="password" id="reg-pass" class="form-input" placeholder="Mínimo 6 caracteres">
-            <span class="form-hint">Usa letras y números para mayor seguridad</span>
+            <input type="password" id="reg-pass" class="form-input" placeholder="Crea una contraseña segura">
+            <div class="pw-checklist" id="reg-pw-checklist">
+                <div class="pw-check" data-rule="len">Mínimo 8 caracteres</div>
+                <div class="pw-check" data-rule="upper">Al menos una mayúscula (A-Z)</div>
+                <div class="pw-check" data-rule="lower">Al menos una minúscula (a-z)</div>
+                <div class="pw-check" data-rule="num">Al menos un número (0-9)</div>
+                <div class="pw-check" data-rule="sym">Al menos un símbolo (!@#$...)</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Confirmar contraseña *</label>
+            <input type="password" id="reg-pass-confirm" class="form-input" placeholder="Repite tu contraseña">
+            <span class="form-hint pw-match-hint" id="reg-match-hint"></span>
         </div>
         <button class="btn btn-primary btn-full" id="btn-register" onclick="App.doRegister()" style="margin-top:8px">
             <i data-lucide="user-plus"></i> Crear mi cuenta
@@ -148,9 +159,86 @@
         <button class="btn btn-primary btn-full" id="btn-login" onclick="App.doLogin()" style="margin-top:8px">
             <i data-lucide="log-in"></i> Entrar
         </button>
+        <div style="text-align:center;margin-top:14px">
+            <a class="auth-link-sm" onclick="App.showScreen('screen-forgot')">¿Olvidaste tu contraseña?</a>
+        </div>
     </div>
     <p class="auth-switch">¿No tienes cuenta? <a onclick="App.showScreen('screen-register')">Regístrate gratis</a></p>
+</div>
 
+<!-- ===== FORGOT PASSWORD ===== -->
+<div id="screen-forgot" class="screen auth-screen">
+    <div class="auth-logo">
+        <div class="auth-logo-icon"><i data-lucide="sprout"></i></div>
+        <span class="auth-logo-text">AgroPulse</span>
+    </div>
+
+    <!-- Step 1: email -->
+    <div id="forgot-step-1">
+        <h2 class="auth-title">Recuperar contraseña</h2>
+        <p class="auth-subtitle">Ingresa el correo de tu cuenta</p>
+        <div class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Correo electrónico</label>
+                <input type="email" id="forgot-email" class="form-input" placeholder="tu@correo.com">
+            </div>
+            <button class="btn btn-primary btn-full" id="btn-forgot-1" onclick="App.forgotStep1()" style="margin-top:8px">
+                Continuar <i data-lucide="arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 2: identity verification -->
+    <div id="forgot-step-2" style="display:none">
+        <div class="forgot-step-badge">🔒 Verificación de identidad</div>
+        <h2 class="auth-title">Confirma quién eres</h2>
+        <p class="auth-subtitle">Ingresa el nombre con el que te registraste</p>
+        <div class="auth-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" id="forgot-nombre" class="form-input" placeholder="Tu nombre">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Apellido</label>
+                    <input type="text" id="forgot-apellido" class="form-input" placeholder="Tu apellido">
+                </div>
+            </div>
+            <button class="btn btn-primary btn-full" id="btn-forgot-2" onclick="App.forgotStep2()" style="margin-top:8px">
+                <i data-lucide="shield-check"></i> Verificar identidad
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 3: new password -->
+    <div id="forgot-step-3" style="display:none">
+        <div class="forgot-step-badge ok">✓ Identidad verificada</div>
+        <h2 class="auth-title">Nueva contraseña</h2>
+        <p class="auth-subtitle">Crea una contraseña segura</p>
+        <div class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Nueva contraseña</label>
+                <input type="password" id="forgot-pass" class="form-input" placeholder="Contraseña segura">
+                <div class="pw-checklist" id="forgot-pw-checklist">
+                    <div class="pw-check" data-rule="len">Mínimo 8 caracteres</div>
+                    <div class="pw-check" data-rule="upper">Al menos una mayúscula (A-Z)</div>
+                    <div class="pw-check" data-rule="lower">Al menos una minúscula (a-z)</div>
+                    <div class="pw-check" data-rule="num">Al menos un número (0-9)</div>
+                    <div class="pw-check" data-rule="sym">Al menos un símbolo (!@#$...)</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirmar contraseña</label>
+                <input type="password" id="forgot-pass-confirm" class="form-input" placeholder="Repite la contraseña">
+                <span class="form-hint pw-match-hint" id="forgot-match-hint"></span>
+            </div>
+            <button class="btn btn-primary btn-full" id="btn-forgot-3" onclick="App.forgotStep3()" style="margin-top:8px">
+                <i data-lucide="lock"></i> Cambiar contraseña
+            </button>
+        </div>
+    </div>
+
+    <p class="auth-switch" style="margin-top:20px"><a onclick="App.resetForgotFlow()">← Volver al inicio de sesión</a></p>
 </div>
 
 <!-- ===== APP ===== -->
@@ -477,6 +565,31 @@
         <button class="btn btn-primary btn-full" id="btn-save-settings" onclick="App.saveSettings()" style="margin-top:16px">
             <i data-lucide="save"></i> Guardar cambios
         </button>
+
+        <div class="settings-divider">Cambiar contraseña</div>
+        <div class="form-group">
+            <label class="form-label">Contraseña actual</label>
+            <input type="password" id="set-pass-current" class="form-input" placeholder="Tu contraseña actual">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Nueva contraseña</label>
+            <input type="password" id="set-pass-new" class="form-input" placeholder="Nueva contraseña segura">
+            <div class="pw-checklist" id="set-pw-checklist">
+                <div class="pw-check" data-rule="len">Mínimo 8 caracteres</div>
+                <div class="pw-check" data-rule="upper">Al menos una mayúscula (A-Z)</div>
+                <div class="pw-check" data-rule="lower">Al menos una minúscula (a-z)</div>
+                <div class="pw-check" data-rule="num">Al menos un número (0-9)</div>
+                <div class="pw-check" data-rule="sym">Al menos un símbolo (!@#$...)</div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Confirmar nueva contraseña</label>
+            <input type="password" id="set-pass-confirm" class="form-input" placeholder="Repite la nueva contraseña">
+            <span class="form-hint pw-match-hint" id="set-match-hint"></span>
+        </div>
+        <button class="btn btn-outline btn-full" id="btn-change-pass" onclick="App.changePassword()" style="margin-top:8px">
+            <i data-lucide="lock"></i> Cambiar contraseña
+        </button>
     </div>
 </div>
 
@@ -520,8 +633,9 @@ document.addEventListener('DOMContentLoaded', () => {
         latId: 'reg-lat',
         lngId: 'reg-lng',
         addrHiddenId: 'reg-addr',
-        placeholder: 'Buscar tu municipio o vereda...'
     });
+    App.bindPasswordChecklist('reg-pass', 'reg-pw-checklist');
+    App.bindPasswordConfirm('reg-pass', 'reg-pass-confirm', 'reg-match-hint');
 });
 </script>
 

@@ -13,8 +13,9 @@ export async function POST(request: Request) {
 
     const db = await getDb()
     const userDoc = await db.collection('users').findOne({ email })
-    if (!userDoc || !verifyPassword(password, userDoc.password_hash as string))
-      return json({ error: 'Correo o contraseña incorrectos' }, 401)
+    if (!userDoc) return json({ error: 'No existe una cuenta con este correo' }, 401)
+    if (!verifyPassword(password, userDoc.password_hash as string))
+      return json({ error: 'Contraseña incorrecta' }, 401)
 
     const uid = userDoc._id.toHexString()
     const token = await createSession(uid)

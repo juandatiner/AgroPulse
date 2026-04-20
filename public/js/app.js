@@ -63,6 +63,44 @@ const App = {
         document.getElementById('nav-avatar').textContent = initials;
     },
 
+    // ===== PASSWORD STRENGTH =====
+    _PW_RULES: {
+        len:   pw => pw.length >= 8,
+        upper: pw => /[A-Z]/.test(pw),
+        lower: pw => /[a-z]/.test(pw),
+        num:   pw => /[0-9]/.test(pw),
+        sym:   pw => /[!@#$%^&*()\-_=+[\]{};':"\\|,.<>/?`~]/.test(pw),
+    },
+    isStrongPassword(pw) {
+        return Object.values(this._PW_RULES).every(fn => fn(pw));
+    },
+    bindPasswordChecklist(inputId, checklistId) {
+        const input = document.getElementById(inputId);
+        const list = document.getElementById(checklistId);
+        if (!input || !list) return;
+        input.addEventListener('input', () => {
+            const pw = input.value;
+            list.querySelectorAll('.pw-check').forEach(el => {
+                const rule = el.dataset.rule;
+                el.classList.toggle('ok', !!(this._PW_RULES[rule] && this._PW_RULES[rule](pw)));
+            });
+        });
+    },
+    bindPasswordConfirm(passId, confirmId, hintId) {
+        const confirm = document.getElementById(confirmId);
+        const hint = document.getElementById(hintId);
+        if (!confirm || !hint) return;
+        const check = () => {
+            const pw = document.getElementById(passId)?.value || '';
+            const c = confirm.value;
+            if (!c) { hint.textContent = ''; hint.className = 'form-hint pw-match-hint'; return; }
+            if (pw === c) { hint.textContent = '✓ Las contraseñas coinciden'; hint.className = 'form-hint pw-match-hint ok'; }
+            else { hint.textContent = '✗ No coinciden'; hint.className = 'form-hint pw-match-hint err'; }
+        };
+        confirm.addEventListener('input', check);
+        document.getElementById(passId)?.addEventListener('input', check);
+    },
+
     // ===== AUTH =====
     async doRegister() {
         const btn = document.getElementById('btn-register');
@@ -81,6 +119,13 @@ const App = {
             };
             if (!data.nombre || !data.apellido || !data.email || !data.password || !data.tipo) {
                 throw new Error('Completa todos los campos obligatorios');
+            }
+            if (!this.isStrongPassword(data.password)) {
+                throw new Error('La contraseña no cumple los requisitos de seguridad');
+            }
+            const confirm = document.getElementById('reg-pass-confirm')?.value || '';
+            if (data.password !== confirm) {
+                throw new Error('Las contraseñas no coinciden');
             }
             await API.register(data);
             this.showToast('Cuenta creada exitosamente');
@@ -102,6 +147,106 @@ const App = {
             await API.login({ email, password });
             this.showToast('Bienvenido de vuelta');
             this.showApp();
+        } catch (e) {
+            this.showToast(e.message, 'error');
+        } finally {
+            btn.classList.remove('loading');
+        }
+    },
+
+    _forgotToken: null,
+    _forgotEmail: null,
+
+    resetForgotFlow() {
+        this._forgotToken = null;
+        this._forgotEmail = null;
+        document.getElementById('forgot-step-1').style.display = '';
+        document.getElementById('forgot-step-2').style.display = 'none';
+        document.getElementById('forgot-step-3').style.display = 'none';
+        document.getElementById('forgot-email').value = '';
+        document.getElementById('forgot-nombre').value = '';
+        document.getElementById('forgot-apellido').value = '';
+        document.getElementById('forgot-pass').value = '';
+        document.getElementById('forgot-pass-confirm').value = '';
+        this.showScreen('screen-login');
+    },
+
+    async forgotStep1() {
+        const btn = document.getElementById('btn-forgot-1');
+        btn.classList.add('loading');
+        try {
+            const email = document.getElementById('forgot-email').value.trim();
+            if (!email) throw new Error('Ingresa tu correo electrónico');
+            await API.request('POST', '/forgot-password', { email });
+            this._forgotEmail = email;
+            document.getElementById('forgot-step-1').style.display = 'none';
+            document.getElementById('forgot-step-2').style.display = '';
+            lucide.createIcons({ nodes: [document.getElementById('forgot-step-2')] });
+            document.getElementById('forgot-nombre').focus();
+        } catch (e) {
+            this.showToast(e.message, 'error');
+        } finally {
+            btn.classList.remove('loading');
+        }
+    },
+
+    async forgotStep2() {
+        const btn = document.getElementById('btn-forgot-2');
+        btn.classList.add('loading');
+        try {
+            const nombre = document.getElementById('forgot-nombre').value.trim();
+            const apellido = document.getElementById('forgot-apellido').value.trim();
+            if (!nombre || !apellido) throw new Error('Ingresa tu nombre y apellido');
+            const res = await API.request('POST', '/forgot-password', {
+                email: this._forgotEmail, nombre, apellido
+            });
+            this._forgotToken = res.token;
+            document.getElementById('forgot-step-2').style.display = 'none';
+            document.getElementById('forgot-step-3').style.display = '';
+            lucide.createIcons({ nodes: [document.getElementById('forgot-step-3')] });
+            this.bindPasswordChecklist('forgot-pass', 'forgot-pw-checklist');
+            this.bindPasswordConfirm('forgot-pass', 'forgot-pass-confirm', 'forgot-match-hint');
+            document.getElementById('forgot-pass').focus();
+        } catch (e) {
+            this.showToast(e.message, 'error');
+        } finally {
+            btn.classList.remove('loading');
+        }
+    },
+
+    async forgotStep3() {
+        const btn = document.getElementById('btn-forgot-3');
+        btn.classList.add('loading');
+        try {
+            const pw = document.getElementById('forgot-pass').value;
+            const confirm = document.getElementById('forgot-pass-confirm').value;
+            if (!this.isStrongPassword(pw)) throw new Error('La contraseña no cumple los requisitos de seguridad');
+            if (pw !== confirm) throw new Error('Las contraseñas no coinciden');
+            await API.request('PUT', '/forgot-password', { token: this._forgotToken, password: pw });
+            this.showToast('¡Contraseña cambiada! Inicia sesión');
+            this.resetForgotFlow();
+        } catch (e) {
+            this.showToast(e.message, 'error');
+        } finally {
+            btn.classList.remove('loading');
+        }
+    },
+
+    async changePassword() {
+        const btn = document.getElementById('btn-change-pass');
+        btn.classList.add('loading');
+        try {
+            const current = document.getElementById('set-pass-current')?.value || '';
+            const newPw = document.getElementById('set-pass-new')?.value || '';
+            const confirm = document.getElementById('set-pass-confirm')?.value || '';
+            if (!current || !newPw || !confirm) throw new Error('Completa todos los campos de contraseña');
+            if (!this.isStrongPassword(newPw)) throw new Error('La nueva contraseña no cumple los requisitos de seguridad');
+            if (newPw !== confirm) throw new Error('Las contraseñas nuevas no coinciden');
+            await API.request('PUT', '/users/me/password', { current_password: current, new_password: newPw });
+            this.showToast('Contraseña cambiada exitosamente');
+            document.getElementById('set-pass-current').value = '';
+            document.getElementById('set-pass-new').value = '';
+            document.getElementById('set-pass-confirm').value = '';
         } catch (e) {
             this.showToast(e.message, 'error');
         } finally {
@@ -1862,6 +2007,8 @@ const App = {
         if (u.latitude) document.getElementById('set-lat').value = u.latitude;
         if (u.longitude) document.getElementById('set-lng').value = u.longitude;
         if (u.municipio) document.getElementById('set-addr').value = u.municipio;
+        this.bindPasswordChecklist('set-pass-new', 'set-pw-checklist');
+        this.bindPasswordConfirm('set-pass-new', 'set-pass-confirm', 'set-match-hint');
         // Init picker (may already exist if settings opened before)
         Geo.setupLocationPicker({
             containerId: 'loc-settings',

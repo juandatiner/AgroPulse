@@ -46,6 +46,10 @@ async function ensureIndexes(db: Db): Promise<void> {
   // messages
   await db.collection('messages').createIndex({ agreement_id: 1 })
   await db.collection('messages').createIndex({ created_at: 1 })
+
+  // password resets (TTL: expires_at)
+  await db.collection('password_resets').createIndex({ token: 1 }, { unique: true })
+  await db.collection('password_resets').createIndex({ expires_at: 1 }, { expireAfterSeconds: 0 })
 }
 
 /** Serialize a MongoDB document: _id → id (string), nested ObjectIds → string, Date → ISO */
