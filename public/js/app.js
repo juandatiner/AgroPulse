@@ -1695,11 +1695,13 @@ const App = {
     renderAgreementCard(a) {
         const isProvider = a.provider_id === API.user.id;
         const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
+        const parts = otherName.trim().split(' ');
+        const shortName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
         const statusLabels = { pending: 'Pendiente', active: 'En curso', completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado' };
         const catIcon = this.ICONS[a.resource_cat] || 'package';
         const roleText = isProvider
-            ? `<strong>${this.esc(otherName)}</strong> te solicitó`
-            : `Solicitaste a <strong>${this.esc(otherName)}</strong>`;
+            ? `<strong>${this.esc(shortName)}</strong> te solicitó`
+            : `Solicitaste a <strong>${this.esc(shortName)}</strong>`;
 
         // Bottom action buttons
         let btns = '';
@@ -1816,18 +1818,11 @@ const App = {
                     </div>` : ''}
                     ${a.descripcion ? `<p class="detail-desc">${this.esc(a.descripcion)}</p>` : ''}
                     <div class="detail-info-grid">${infoItems}</div>
-                    <div class="detail-owner" onclick="App.showUserProfile('${a.provider_id}')" style="cursor:pointer">
-                        <div class="detail-owner-avatar">${(a.prov_nombre[0]+a.prov_apellido[0]).toUpperCase()}</div>
+                    <div class="detail-owner" onclick="App.showUserProfile('${isProvider ? a.requester_id : a.provider_id}')" style="cursor:pointer">
+                        <div class="detail-owner-avatar">${otherInitials.toUpperCase()}</div>
                         <div class="detail-owner-info">
-                            <h4>${this.esc(a.prov_nombre)} ${this.esc(a.prov_apellido)}</h4>
-                            <p>Publicador <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
-                        </div>
-                    </div>
-                    <div class="detail-owner" onclick="App.showUserProfile('${a.requester_id}')" style="cursor:pointer;margin-top:8px">
-                        <div class="detail-owner-avatar">${(a.req_nombre[0]+a.req_apellido[0]).toUpperCase()}</div>
-                        <div class="detail-owner-info">
-                            <h4>${this.esc(a.req_nombre)} ${this.esc(a.req_apellido)}</h4>
-                            <p>Solicitante <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
+                            <h4>${this.esc(otherName)}</h4>
+                            <p>${isProvider ? 'Solicitante' : 'Publicador'} <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
                         </div>
                     </div>
                 </div>

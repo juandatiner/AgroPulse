@@ -1335,7 +1335,11 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     transition: transform 0.15s, box-shadow 0.15s;
 }
 .agreement-card:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(44,62,31,0.1); }
-.agreement-card.rejected, .agreement-card.cancelled { opacity: 0.6; }
+.agreement-card { border-left: 3px solid transparent; }
+.agreement-card.pending   { border-left-color: #d68910; }
+.agreement-card.active    { border-left-color: var(--field); }
+.agreement-card.completed { border-left-color: #2471a3; }
+.agreement-card.cancelled, .agreement-card.rejected { border-left-color: #bbb; opacity: 0.65; }
 
 /* -- Card top row: icon + info + badges -- */
 .agr-card-top {
@@ -2445,9 +2449,20 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     .detail-info-grid { grid-template-columns: 1fr; }
 
     /* Agreements */
-    .agreements-header { padding: 16px 16px 0; }
+    .agreements-header { padding: 12px 14px 0; }
+    .agreements-list { padding: 0 12px 16px; gap: 8px; }
     .status-tabs { padding: 0 12px; gap: 0; }
-    .status-tab { padding: 8px 10px; font-size: 0.73rem; flex-shrink: 0; }
+    .status-tab { padding: 7px 9px; font-size: 0.68rem; flex-shrink: 0; }
+    .status-tab .count { display: none; }
+    .agreement-card { padding: 10px 12px; }
+    .agr-card-top { gap: 8px; margin-bottom: 7px; }
+    .agr-card-cat-icon { width: 28px; height: 28px; border-radius: 8px; }
+    .agr-card-cat-icon svg { width: 13px; height: 13px; }
+    .agr-card-info h4 { font-size: 0.84rem; }
+    .agr-card-sub { font-size: 0.7rem; }
+    .agr-cat-badge { display: none; }
+    .agr-card-btns { padding-top: 7px; gap: 5px; }
+    .agreement-badges { gap: 3px; }
     .agreements-list { padding: 0 16px 16px; }
 
     /* Profile */
