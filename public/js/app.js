@@ -989,7 +989,7 @@ const App = {
                         </div>
                         <div class="form-group">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                                <label class="form-label" style="margin-bottom:0">Unidad</label>
+                                <label class="form-label" style="margin-bottom:0">Unidad <span id="unidad-req-star">*</span></label>
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="toggle-unidad-active" checked>
                                     <span class="toggle-thumb"></span>
@@ -1021,7 +1021,8 @@ const App = {
                                 <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                                 <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             </div>
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $50.000/día" style="margin-top:10px">
+                            <label class="form-label" style="margin:8px 0 4px;font-size:0.82rem">Valor *</label>
+                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $50.000/día">
                             <span class="form-hint" id="pub-precio-hint">Monto o descripción del pago</span>
                         </div>
                     </div>
@@ -1055,7 +1056,7 @@ const App = {
                         </div>
                         <div class="form-group">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-                                <label class="form-label" style="margin-bottom:0">Unidad</label>
+                                <label class="form-label" style="margin-bottom:0">Unidad <span id="unidad-req-star">*</span></label>
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="toggle-unidad-active" checked>
                                     <span class="toggle-thumb"></span>
@@ -1402,16 +1403,19 @@ const App = {
         if (unidadActive) {
             unidadActive.addEventListener('change', () => {
                 const unidad = document.getElementById('pub-unidad');
+                const star = document.getElementById('unidad-req-star');
                 if (!unidad) return;
                 if (!unidadActive.checked) {
                     unidad.dataset.prev = unidad.value;
                     unidad.value = 'No aplica';
                     unidad.disabled = true;
                     unidad.classList.add('input-disabled');
+                    if (star) star.style.display = 'none';
                 } else {
                     unidad.value = unidad.dataset.prev || '';
                     unidad.disabled = false;
                     unidad.classList.remove('input-disabled');
+                    if (star) star.style.display = '';
                 }
             });
         }
