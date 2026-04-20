@@ -7,6 +7,7 @@ const Admin = (() => {
   let _refreshInterval = null;
   let _lastRefresh = null;
   let _refreshTimer = null;
+  let _modalOpen = false;
 
   /* ── Token ── */
   function getToken() { return _token; }
@@ -84,7 +85,7 @@ const Admin = (() => {
   function startAutoRefresh() {
     stopAutoRefresh();
     _refreshInterval = setInterval(() => {
-      loadCurrentTab();
+      if (!_modalOpen) loadCurrentTab();
     }, 8000);
     startRefreshTimer();
   }
@@ -153,26 +154,30 @@ const Admin = (() => {
     const el = document.getElementById('recent-resources-list');
     if (!items.length) { el.innerHTML = '<div class="empty-state">Sin publicaciones recientes</div>'; return; }
     el.innerHTML = items.map(r => `
-      <div class="list-item">
+      <div class="list-item list-item-clickable" onclick="Admin.openResourceModal('${esc(r.id)}')">
         <span class="badge badge-${r.tipo}">${tipoLabel(r.tipo)}</span>
         <span class="list-item-title">${esc(r.titulo)}</span>
         <span class="list-item-sub">${esc(r.user_nombre)}</span>
         <span class="list-item-date">${formatDate(r.created_at)}</span>
+        <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
       </div>
     `).join('');
+    if (window.lucide) lucide.createIcons();
   }
 
   function renderRecentAgreements(items) {
     const el = document.getElementById('recent-agreements-list');
     if (!items.length) { el.innerHTML = '<div class="empty-state">Sin acuerdos recientes</div>'; return; }
     el.innerHTML = items.map(a => `
-      <div class="list-item">
+      <div class="list-item list-item-clickable" onclick="Admin.openAgreementModal('${esc(a.id)}')">
         <span class="badge badge-status-${a.status}">${statusLabel(a.status)}</span>
         <span class="list-item-title">${esc(a.resource_titulo || '—')}</span>
         <span class="list-item-sub">${esc(a.req_nombre)} → ${esc(a.prov_nombre)}</span>
         <span class="list-item-date">${formatDate(a.created_at)}</span>
+        <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
       </div>
     `).join('');
+    if (window.lucide) lucide.createIcons();
   }
 
   /* ── Users ── */
@@ -187,7 +192,7 @@ const Admin = (() => {
         return;
       }
       tbody.innerHTML = users.map(u => `
-        <tr>
+        <tr class="clickable-row" onclick="Admin.openUserModal('${esc(u.id)}')">
           <td class="td-center">
             <span class="online-dot ${u.is_online ? 'online' : 'offline'}" title="${u.is_online ? 'En línea' : 'Desconectado'}"></span>
           </td>
@@ -198,8 +203,11 @@ const Admin = (() => {
           <td class="td-center">${u.resources_count}</td>
           <td class="td-center">${u.agreements_count}</td>
           <td class="td-small muted">${formatDate(u.created_at)}</td>
-          <td>
-            <button class="btn-delete" onclick="Admin.deleteUser('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}')">
+          <td class="td-actions">
+            <button class="btn-icon btn-view" title="Ver perfil" onclick="event.stopPropagation(); Admin.openUserModal('${esc(u.id)}')">
+              <i data-lucide="eye"></i>
+            </button>
+            <button class="btn-delete" title="Eliminar" onclick="event.stopPropagation(); Admin.deleteUser('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}')">
               <i data-lucide="trash-2"></i>
             </button>
           </td>
@@ -223,7 +231,7 @@ const Admin = (() => {
         return;
       }
       tbody.innerHTML = resources.map(r => `
-        <tr>
+        <tr class="clickable-row" onclick="Admin.openResourceModal('${esc(r.id)}')">
           <td><span class="badge badge-${r.tipo}">${tipoLabel(r.tipo)}</span></td>
           <td>
             <strong>${esc(r.titulo)}</strong>
@@ -233,8 +241,11 @@ const Admin = (() => {
           <td class="td-small">${esc(r.user_nombre)} ${esc(r.user_apellido)}</td>
           <td><span class="badge badge-status-${r.status}">${statusResLabel(r.status)}</span></td>
           <td class="td-small muted">${formatDate(r.created_at)}</td>
-          <td>
-            <button class="btn-delete" onclick="Admin.deleteResource('${esc(r.id)}', '${esc(r.titulo)}')">
+          <td class="td-actions">
+            <button class="btn-icon btn-view" title="Ver detalle" onclick="event.stopPropagation(); Admin.openResourceModal('${esc(r.id)}')">
+              <i data-lucide="eye"></i>
+            </button>
+            <button class="btn-delete" title="Eliminar" onclick="event.stopPropagation(); Admin.deleteResource('${esc(r.id)}', '${esc(r.titulo)}')">
               <i data-lucide="trash-2"></i>
             </button>
           </td>
@@ -249,16 +260,16 @@ const Admin = (() => {
   /* ── Agreements ── */
   async function loadAgreements() {
     const tbody = document.getElementById('agreements-tbody');
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Cargando…</td></tr>';
     try {
       const agreements = await apiFetch('/api/admin/agreements');
       markRefreshed();
       if (!agreements.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-cell">No hay acuerdos</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">No hay acuerdos</td></tr>';
         return;
       }
       tbody.innerHTML = agreements.map(a => `
-        <tr>
+        <tr class="clickable-row" onclick="Admin.openAgreementModal('${esc(a.id)}')">
           <td>${esc(a.resource_titulo || '—')}</td>
           <td class="td-small">
             <strong>${esc(a.req_nombre)} ${esc(a.req_apellido)}</strong>
@@ -271,10 +282,16 @@ const Admin = (() => {
             ${a.rating_requester != null ? `⭐ ${a.rating_requester}` : '—'} /
             ${a.rating_provider != null ? `⭐ ${a.rating_provider}` : '—'}
           </td>
+          <td class="td-actions">
+            <button class="btn-icon btn-view" title="Ver detalle" onclick="event.stopPropagation(); Admin.openAgreementModal('${esc(a.id)}')">
+              <i data-lucide="eye"></i>
+            </button>
+          </td>
         </tr>
       `).join('');
+      if (window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="error-cell">${esc(e.message)}</td></tr>`;
     }
   }
 
@@ -301,12 +318,469 @@ const Admin = (() => {
     }
   }
 
+  /* ── Modal core ── */
+  function openModal() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.add('active');
+    _modalOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(e) {
+    if (e && e.target.id !== 'modal-overlay') return;
+    closeModalDirect();
+  }
+
+  function closeModalDirect() {
+    const overlay = document.getElementById('modal-overlay');
+    overlay.classList.remove('active');
+    _modalOpen = false;
+    document.body.style.overflow = '';
+  }
+
+  /* ── User modal ── */
+  async function openUserModal(id) {
+    const card = document.getElementById('modal-card');
+    card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
+    openModal();
+    if (window.lucide) lucide.createIcons();
+    try {
+      const u = await apiFetch(`/api/admin/users/${id}`);
+      const initials = ((u.nombre?.[0] || '') + (u.apellido?.[0] || '')).toUpperCase() || '?';
+      card.innerHTML = `
+        <div class="modal-header">
+          <div class="modal-header-info">
+            <div class="modal-avatar">${esc(initials)}</div>
+            <div>
+              <div class="modal-title">${esc(u.nombre)} ${esc(u.apellido)}</div>
+              <div class="modal-subtitle">${esc(u.email)} · ${tipoUserLabel(u.tipo)}</div>
+            </div>
+          </div>
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()">
+            <i data-lucide="x" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-stats-row">
+            <div class="modal-stat">
+              <span class="modal-stat-value">${u.is_online ? '<span class="online-chip">En línea</span>' : '<span class="offline-chip">Desconectado</span>'}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Reputación</span>
+              <span class="modal-stat-value">⭐ ${Number(u.reputation_score).toFixed(1)}<small> (${u.total_ratings})</small></span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Publicaciones</span>
+              <span class="modal-stat-value">${u.resources_count}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Acuerdos</span>
+              <span class="modal-stat-value">${u.agreements_count}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Miembro desde</span>
+              <span class="modal-stat-value">${formatDateShort(u.created_at)}</span>
+            </div>
+          </div>
+
+          <div class="modal-section-title">Editar datos</div>
+
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Nombre</label>
+              <input class="modal-input" id="uf-nombre" value="${esc(u.nombre)}" placeholder="Nombre">
+            </div>
+            <div class="modal-field">
+              <label>Apellido</label>
+              <input class="modal-input" id="uf-apellido" value="${esc(u.apellido)}" placeholder="Apellido">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Email</label>
+              <input class="modal-input" id="uf-email" type="email" value="${esc(u.email)}" placeholder="Email">
+            </div>
+            <div class="modal-field">
+              <label>Teléfono</label>
+              <input class="modal-input" id="uf-telefono" value="${esc(u.telefono)}" placeholder="Teléfono">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Tipo de usuario</label>
+              <select class="modal-select" id="uf-tipo">
+                <option value="agricultor" ${u.tipo === 'agricultor' ? 'selected' : ''}>Agricultor</option>
+                <option value="proveedor" ${u.tipo === 'proveedor' ? 'selected' : ''}>Proveedor</option>
+                <option value="comercializador" ${u.tipo === 'comercializador' ? 'selected' : ''}>Comercializador</option>
+                <option value="consumidor" ${u.tipo === 'consumidor' ? 'selected' : ''}>Consumidor</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Municipio</label>
+              <input class="modal-input" id="uf-municipio" value="${esc(u.municipio)}" placeholder="Municipio">
+            </div>
+          </div>
+          <div class="modal-field-group modal-field-full">
+            <div class="modal-field">
+              <label>Bio</label>
+              <textarea class="modal-textarea" id="uf-bio" placeholder="Descripción del perfil">${esc(u.bio)}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cancelar</button>
+          <button class="btn-primary" id="btn-save-user" onclick="Admin.saveUser('${esc(id)}')">
+            <i data-lucide="save" style="width:14px;height:14px;"></i>
+            Guardar cambios
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
+    }
+  }
+
+  async function saveUser(id) {
+    const btn = document.getElementById('btn-save-user');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await apiFetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nombre: document.getElementById('uf-nombre').value,
+          apellido: document.getElementById('uf-apellido').value,
+          email: document.getElementById('uf-email').value,
+          telefono: document.getElementById('uf-telefono').value,
+          tipo: document.getElementById('uf-tipo').value,
+          municipio: document.getElementById('uf-municipio').value,
+          bio: document.getElementById('uf-bio').value,
+        }),
+      });
+      showToast('Usuario actualizado correctamente', 'success');
+      closeModalDirect();
+      if (_currentTab === 'users') loadUsers();
+    } catch (e) {
+      showToast(e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;"></i> Guardar cambios';
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  /* ── Resource modal ── */
+  async function openResourceModal(id) {
+    const card = document.getElementById('modal-card');
+    card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
+    openModal();
+    if (window.lucide) lucide.createIcons();
+    try {
+      const r = await apiFetch(`/api/admin/resources/${id}`);
+
+      let extraFields = '';
+      if (r.cantidad || r.unidad) {
+        extraFields += `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Cantidad</label>
+              <input class="modal-input" value="${esc(r.cantidad || '—')}" readonly>
+            </div>
+            <div class="modal-field">
+              <label>Unidad</label>
+              <input class="modal-input" value="${esc(r.unidad || '—')}" readonly>
+            </div>
+          </div>`;
+      }
+      if (r.precio_referencia || r.condicion) {
+        extraFields += `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Precio referencia</label>
+              <input class="modal-input" value="${esc(r.precio_referencia || '—')}" readonly>
+            </div>
+            <div class="modal-field">
+              <label>Condición</label>
+              <input class="modal-input" value="${esc(r.condicion || '—')}" readonly>
+            </div>
+          </div>`;
+      }
+      if (r.disponibilidad) {
+        extraFields += `
+          <div class="modal-field-group modal-field-full">
+            <div class="modal-field">
+              <label>Disponibilidad</label>
+              <input class="modal-input" value="${esc(r.disponibilidad)}" readonly>
+            </div>
+          </div>`;
+      }
+      if (r.ofrece || r.recibe) {
+        extraFields += `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Ofrece (trueque)</label>
+              <input class="modal-input" value="${esc(r.ofrece || '—')}" readonly>
+            </div>
+            <div class="modal-field">
+              <label>Recibe (trueque)</label>
+              <input class="modal-input" value="${esc(r.recibe || '—')}" readonly>
+            </div>
+          </div>`;
+      }
+      if (r.duracion_prestamo || r.garantia) {
+        extraFields += `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Duración préstamo</label>
+              <input class="modal-input" value="${esc(r.duracion_prestamo || '—')}" readonly>
+            </div>
+            <div class="modal-field">
+              <label>Garantía</label>
+              <input class="modal-input" value="${esc(r.garantia || '—')}" readonly>
+            </div>
+          </div>`;
+      }
+
+      card.innerHTML = `
+        <div class="modal-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="badge badge-${esc(r.tipo)}">${tipoLabel(r.tipo)}</span>
+              <span class="badge badge-status-${esc(r.status)}">${statusResLabel(r.status)}</span>
+              ${r.has_image ? '<span style="font-size:12px;">📷</span>' : ''}
+            </div>
+            <div class="modal-title">${esc(r.titulo)}</div>
+            <div class="modal-subtitle">por <strong>${esc(r.user_nombre)} ${esc(r.user_apellido)}</strong>${r.user_email ? ' · ' + esc(r.user_email) : ''} · ${esc(r.municipio || '—')}</div>
+          </div>
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()">
+            <i data-lucide="x" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-stats-row">
+            <div class="modal-stat">
+              <span class="modal-stat-label">Categoría</span>
+              <span class="modal-stat-value">${esc(r.categoria || '—')}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Municipio</span>
+              <span class="modal-stat-value">${esc(r.municipio || '—')}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Publicado</span>
+              <span class="modal-stat-value">${formatDateShort(r.created_at)}</span>
+            </div>
+            ${r.scheduled_at ? `
+              <div class="modal-stat">
+                <span class="modal-stat-label">Programado</span>
+                <span class="modal-stat-value">${formatDateShort(r.scheduled_at)}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          ${extraFields ? `<div class="modal-section-title">Detalles del recurso</div>${extraFields}` : ''}
+
+          <div class="modal-section-title">Editar datos</div>
+
+          <div class="modal-field-group modal-field-full">
+            <div class="modal-field">
+              <label>Título</label>
+              <input class="modal-input" id="rf-titulo" value="${esc(r.titulo)}" placeholder="Título">
+            </div>
+          </div>
+          <div class="modal-field-group modal-field-full">
+            <div class="modal-field">
+              <label>Descripción</label>
+              <textarea class="modal-textarea" id="rf-descripcion" placeholder="Descripción">${esc(r.descripcion)}</textarea>
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Categoría</label>
+              <input class="modal-input" id="rf-categoria" value="${esc(r.categoria)}" placeholder="Categoría">
+            </div>
+            <div class="modal-field">
+              <label>Municipio</label>
+              <input class="modal-input" id="rf-municipio" value="${esc(r.municipio)}" placeholder="Municipio">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Estado</label>
+              <select class="modal-select" id="rf-status">
+                <option value="active" ${r.status === 'active' ? 'selected' : ''}>Activo</option>
+                <option value="scheduled" ${r.status === 'scheduled' ? 'selected' : ''}>Programado</option>
+                <option value="closed" ${r.status === 'closed' ? 'selected' : ''}>Cerrado</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cancelar</button>
+          <button class="btn-primary" id="btn-save-resource" onclick="Admin.saveResource('${esc(id)}')">
+            <i data-lucide="save" style="width:14px;height:14px;"></i>
+            Guardar cambios
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
+    }
+  }
+
+  async function saveResource(id) {
+    const btn = document.getElementById('btn-save-resource');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await apiFetch(`/api/admin/resources/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          titulo: document.getElementById('rf-titulo').value,
+          descripcion: document.getElementById('rf-descripcion').value,
+          categoria: document.getElementById('rf-categoria').value,
+          municipio: document.getElementById('rf-municipio').value,
+          status: document.getElementById('rf-status').value,
+        }),
+      });
+      showToast('Publicación actualizada correctamente', 'success');
+      closeModalDirect();
+      if (_currentTab === 'resources') loadResources();
+      if (_currentTab === 'dashboard') loadStats();
+    } catch (e) {
+      showToast(e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;"></i> Guardar cambios';
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  /* ── Agreement modal ── */
+  async function openAgreementModal(id) {
+    const card = document.getElementById('modal-card');
+    card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
+    openModal();
+    if (window.lucide) lucide.createIcons();
+    try {
+      const a = await apiFetch(`/api/admin/agreements/${id}`);
+
+      const reqInitials = ((a.req_nombre?.[0] || '') + (a.req_apellido?.[0] || '')).toUpperCase() || '?';
+      const provInitials = ((a.prov_nombre?.[0] || '') + (a.prov_apellido?.[0] || '')).toUpperCase() || '?';
+
+      const hasRatings = a.rating_requester != null || a.rating_provider != null;
+      const ratingsHtml = hasRatings ? `
+        <div class="modal-section-title">Calificaciones</div>
+        <div class="rating-block">
+          ${a.rating_requester != null ? `
+            <div class="rating-item">
+              <div class="rating-by">Calificó ${esc(a.req_nombre)}</div>
+              <div class="rating-score">⭐ ${a.rating_requester}<span>/5</span></div>
+              ${a.review_requester ? `<div class="rating-review">${esc(a.review_requester)}</div>` : '<div class="rating-review muted">Sin comentario</div>'}
+            </div>
+          ` : ''}
+          ${a.rating_provider != null ? `
+            <div class="rating-item">
+              <div class="rating-by">Calificó ${esc(a.prov_nombre)}</div>
+              <div class="rating-score">⭐ ${a.rating_provider}<span>/5</span></div>
+              ${a.review_provider ? `<div class="rating-review">${esc(a.review_provider)}</div>` : '<div class="rating-review muted">Sin comentario</div>'}
+            </div>
+          ` : ''}
+        </div>
+      ` : '';
+
+      card.innerHTML = `
+        <div class="modal-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="badge badge-status-${esc(a.status)}">${statusLabel(a.status)}</span>
+              ${a.resource_tipo ? `<span class="badge badge-${esc(a.resource_tipo)}">${tipoLabel(a.resource_tipo)}</span>` : ''}
+            </div>
+            <div class="modal-title">${esc(a.resource_titulo) || 'Acuerdo'}</div>
+            <div class="modal-subtitle">${esc(a.resource_categoria || '')}${a.resource_categoria ? ' · ' : ''}${formatDate(a.created_at)}</div>
+          </div>
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()">
+            <i data-lucide="x" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+
+          <div class="agreement-parties">
+            <div class="party-card">
+              <div class="party-avatar">${esc(reqInitials)}</div>
+              <div class="party-name">${esc(a.req_nombre)} ${esc(a.req_apellido)}</div>
+              <div class="party-role">Solicitante</div>
+              ${a.req_email ? `<div class="party-email">${esc(a.req_email)}</div>` : ''}
+            </div>
+            <div class="party-arrow">
+              <i data-lucide="arrow-right" style="width:20px;height:20px;"></i>
+            </div>
+            <div class="party-card">
+              <div class="party-avatar" style="background:var(--field);">${esc(provInitials)}</div>
+              <div class="party-name">${esc(a.prov_nombre)} ${esc(a.prov_apellido)}</div>
+              <div class="party-role">Proveedor</div>
+              ${a.prov_email ? `<div class="party-email">${esc(a.prov_email)}</div>` : ''}
+            </div>
+          </div>
+
+          <div class="modal-stats-row">
+            <div class="modal-stat">
+              <span class="modal-stat-label">Mensajes</span>
+              <span class="modal-stat-value">💬 ${a.message_count}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Completado por solicitante</span>
+              <span class="modal-stat-value">${a.complete_requester ? '✅ Sí' : '⏳ No'}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Completado por proveedor</span>
+              <span class="modal-stat-value">${a.complete_provider ? '✅ Sí' : '⏳ No'}</span>
+            </div>
+            <div class="modal-stat">
+              <span class="modal-stat-label">Última actualización</span>
+              <span class="modal-stat-value">${formatDateShort(a.updated_at)}</span>
+            </div>
+          </div>
+
+          ${a.message ? `
+            <div class="modal-section-title">Mensaje inicial</div>
+            <div class="message-bubble">${esc(a.message)}</div>
+          ` : ''}
+
+          ${a.resource_descripcion ? `
+            <div class="modal-section-title">Descripción del recurso</div>
+            <div class="message-bubble">${esc(a.resource_descripcion)}</div>
+          ` : ''}
+
+          ${ratingsHtml}
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cerrar</button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
+    }
+  }
+
   /* ── Formatting helpers ── */
   function formatDate(str) {
     if (!str) return '—';
     try {
       const d = new Date(str);
       return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return str; }
+  }
+
+  function formatDateShort(str) {
+    if (!str) return '—';
+    try {
+      const d = new Date(str);
+      return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
     } catch { return str; }
   }
 
@@ -380,6 +854,10 @@ const Admin = (() => {
     document.getElementById('login-password').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') document.getElementById('login-form').dispatchEvent(new Event('submit'));
     });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && _modalOpen) closeModalDirect();
+    });
   }
 
   return {
@@ -388,6 +866,10 @@ const Admin = (() => {
     switchTab,
     loadStats, loadUsers, loadResources, loadAgreements,
     deleteUser, deleteResource,
+    openUserModal, saveUser,
+    openResourceModal, saveResource,
+    openAgreementModal,
+    closeModal, closeModalDirect,
     startAutoRefresh, stopAutoRefresh,
     formatDate, showToast,
   };
