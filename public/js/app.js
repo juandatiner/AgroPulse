@@ -1212,12 +1212,12 @@ const App = {
         const formContainer = document.getElementById('publish-form-fields');
         formContainer.innerHTML = (sections[tipo] || sections.oferta) + `
             <div class="publish-form-section">
-                <div class="publish-form-section-title"><i data-lucide="camera"></i> Imagen</div>
+                <div class="publish-form-section-title"><i data-lucide="camera"></i> Imagen *</div>
                 <div class="form-group">
                     <div class="image-upload-area" id="pub-image-area" onclick="document.getElementById('pub-image-input').click()">
                         <i data-lucide="image-plus"></i>
                         <p>Toca para agregar una foto</p>
-                        <span class="form-hint">Opcional. Ayuda a que otros vean el recurso (máx 500KB)</span>
+                        <span class="form-hint">Ayuda a que otros vean el recurso (máx 500KB)</span>
                     </div>
                     <input type="file" id="pub-image-input" accept="image/*" style="display:none" onchange="App.previewPublishImage(event)">
                     <input type="hidden" id="pub-image-data">
@@ -1511,19 +1511,22 @@ const App = {
     fieldError(id, msg) {
         const el = document.getElementById(id);
         if (el) {
-            const target = el.matches('input,select,textarea') ? el : (el.querySelector('input') || el);
-            target.classList.add(el.matches('input,select,textarea') ? 'input-error' : 'input-error');
-            el.classList.add(el.matches('#loc-pub') ? 'loc-error' : '');
+            const isField = el.matches('input,select,textarea');
+            const target = isField ? el : (el.querySelector('input') || el);
+            target.classList.add('input-error');
+            if (id === 'loc-pub') el.classList.add('loc-error');
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => target.focus(), 320);
+            if (isField) setTimeout(() => target.focus(), 320);
             const clear = () => {
                 target.classList.remove('input-error');
                 el.classList.remove('loc-error');
                 target.removeEventListener('input', clear);
                 target.removeEventListener('change', clear);
+                el.removeEventListener('click', clear);
             };
             target.addEventListener('input', clear);
             target.addEventListener('change', clear);
+            el.addEventListener('click', clear);
         }
         this.showToast(msg, 'error');
     },
@@ -1582,6 +1585,7 @@ const App = {
             if (duracionEl && !data.duracion_prestamo) return this.fieldError('pub-duracion', 'Indica la duración máxima del préstamo');
             if (ofreceEl && !data.ofrece) return this.fieldError('pub-ofrece', 'Describe lo que ofreces en el trueque');
             if (recibeEl && !data.recibe) return this.fieldError('pub-recibe', 'Describe lo que deseas recibir a cambio');
+            if (!data.image_data) return this.fieldError('pub-image-area', 'Agrega una foto del recurso');
             if (!data.municipio) return this.fieldError('loc-pub', 'La ubicación es obligatoria');
             await API.createResource(data);
             this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');

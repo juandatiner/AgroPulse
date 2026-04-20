@@ -492,10 +492,10 @@ h1,h2,h3 { font-family: 'Playfair Display', serif; }
     box-shadow: 0 0 0 3px rgba(229,57,53,0.13) !important;
     animation: shake 0.35s ease;
 }
-.loc-error {
-    border: 1.5px solid #e53935;
+.loc-error, .image-upload-area.input-error {
+    border: 1.5px solid #e53935 !important;
     border-radius: var(--radius-sm);
-    box-shadow: 0 0 0 3px rgba(229,57,53,0.13);
+    box-shadow: 0 0 0 3px rgba(229,57,53,0.13) !important;
     animation: shake 0.35s ease;
 }
 @keyframes shake {
