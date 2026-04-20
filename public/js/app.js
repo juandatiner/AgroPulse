@@ -298,8 +298,6 @@ const App = {
     async loadHome() {
         const u = API.user;
         if (!u) return;
-        document.getElementById('home-greeting').textContent = this.getGreeting();
-        document.getElementById('home-name').innerHTML = `${u.nombre} ${u.apellido}`;
 
         try {
             const [otherResources, myResources, profile] = await Promise.all([
