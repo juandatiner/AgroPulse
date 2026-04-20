@@ -73,13 +73,13 @@ const App = {
                 apellido: document.getElementById('reg-apellido').value.trim(),
                 email: document.getElementById('reg-email').value.trim(),
                 password: document.getElementById('reg-pass').value,
-                municipio: document.getElementById('reg-municipio').value,
+                municipio: document.getElementById('reg-addr')?.value || '',
                 tipo: document.getElementById('reg-tipo').value,
                 telefono: document.getElementById('reg-telefono').value.trim(),
                 latitude: parseFloat(document.getElementById('reg-lat').value) || null,
                 longitude: parseFloat(document.getElementById('reg-lng').value) || null,
             };
-            if (!data.nombre || !data.apellido || !data.email || !data.password || !data.municipio || !data.tipo) {
+            if (!data.nombre || !data.apellido || !data.email || !data.password || !data.tipo) {
                 throw new Error('Completa todos los campos obligatorios');
             }
             await API.register(data);
@@ -158,19 +158,43 @@ const App = {
             return;
         }
         container.innerHTML = resources.map(r => {
+            const now = new Date();
+            const scheduledAt = r.scheduled_at ? new Date(r.scheduled_at.replace(' ', 'T') + 'Z') : null;
+            const deactivAt = r.deactivation_scheduled_at ? new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z') : null;
+            const isScheduled = scheduledAt && scheduledAt > now;
+            const hasDeactivSched = deactivAt && deactivAt > now;
+
             let statusChip = '';
             let itemClass = 'my-resource-item';
-            if (r.agr_status === 'pending') {
+
+            if (isScheduled) {
+                const daysUntil = Math.ceil((scheduledAt - now) / 86400000);
+                const daysTxt = daysUntil <= 0 ? 'hoy' : daysUntil === 1 ? 'mañana' : `en ${daysUntil} días`;
+                statusChip = `<span class="my-res-agr-badge scheduled">⏰ Se publicará ${daysTxt}</span>`;
+                itemClass += ' scheduled';
+            } else if (r.agr_status === 'pending') {
                 statusChip = `<span class="my-res-agr-badge pending"><i data-lucide="bell"></i> Solicitud de ${this.esc(r.agr_req_nombre)}</span>`;
                 itemClass += ' has-request';
             } else if (r.agr_status === 'active') {
                 statusChip = `<span class="my-res-agr-badge active"><i data-lucide="handshake"></i> En curso con ${this.esc(r.agr_req_nombre)}</span>`;
                 itemClass += ' in-progress';
             } else if (r.status === 'active') {
-                statusChip = `<span class="my-res-agr-badge open"><i data-lucide="circle-dot"></i> Disponible</span>`;
+                if (hasDeactivSched) {
+                    statusChip = `<span class="my-res-agr-badge scheduled">⏰ Se desactivará el ${this.formatDate(r.deactivation_scheduled_at)}</span>`;
+                } else {
+                    statusChip = `<span class="my-res-agr-badge open"><i data-lucide="circle-dot"></i> Disponible</span>`;
+                }
+            } else if (r.status === 'closed') {
+                statusChip = `<span class="my-res-agr-badge inactive"><i data-lucide="eye-off"></i> Desactivada</span>`;
+                itemClass += ' inactive';
             }
+
+            const clickFn = isScheduled
+                ? `App.showResourceDetail(${r.id})`
+                : (r.agr_id ? `App.openAgreementChat(${r.agr_id})` : `App.showResourceDetail(${r.id})`);
+
             return `
-            <div class="${itemClass}" onclick="${r.agr_id ? `App.openAgreementChat(${r.agr_id})` : `App.showResourceDetail(${r.id})`}">
+            <div class="${itemClass}" onclick="${clickFn}">
                 <div class="resource-card-icon ${r.tipo}" style="width:36px;height:36px;border-radius:10px;flex-shrink:0">
                     <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
                 </div>
@@ -210,8 +234,11 @@ const App = {
                 <h4>${this.esc(r.titulo)}</h4>
                 <p>${this.esc(r.descripcion)}</p>
                 <div class="resource-card-meta">
-                    <span><i data-lucide="user"></i> ${this.esc(r.user_nombre)}</span>
-                    <span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>
+                    <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile(${r.user_id})">
+                        <i data-lucide="user"></i> ${this.esc(r.user_nombre)}
+                        <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
+                    </span>
+                    ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
                 </div>
             </div>
         `).join('');
@@ -264,8 +291,11 @@ const App = {
                     </div>
                     <div class="market-item-footer">
                         <div class="market-item-meta">
-                            <span><i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}</span>
-                            <span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>
+                            <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile(${r.user_id})">
+                                <i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}
+                                <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
+                            </span>
+                            ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
                         </div>
                         <span class="type-badge ${r.tipo}">${this.TYPE_LABELS[r.tipo]}</span>
                     </div>
@@ -323,12 +353,23 @@ const App = {
             addInfo('arrow-up-right', 'Ofrece', r.ofrece);
             addInfo('arrow-down-left', 'Recibe', r.recibe);
             addInfo('map-pin', 'Municipio', r.municipio);
+            if (r.scheduled_at) {
+                const sd = new Date(r.scheduled_at.replace(' ', 'T') + 'Z');
+                if (sd > new Date()) addInfo('calendar-clock', 'Se publicará el', this.formatDate(r.scheduled_at));
+            }
+            if (r.deactivation_scheduled_at) {
+                const dd = new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z');
+                if (dd > new Date()) addInfo('calendar-x', 'Se desactivará el', this.formatDate(r.deactivation_scheduled_at));
+            }
             const locationBlock = (r.latitude != null && r.longitude != null)
                 ? `<div class="detail-location-section">
-                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map"></i> Ubicación en el mapa</div>
-                        ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '200px' })}
+                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
+                        ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '220px', notes: r.location_notes || '' })}
                    </div>`
-                : '';
+                : (r.location_notes ? `<div class="detail-location-section">
+                        <div class="detail-info-label"><i data-lucide="navigation"></i> Indicaciones</div>
+                        <p style="font-size:0.85rem;margin-top:4px">${this.esc(r.location_notes)}</p>
+                   </div>` : '');
 
             const html = `
                 <div class="detail-header">
@@ -345,19 +386,18 @@ const App = {
                     <p class="detail-desc">${this.esc(r.descripcion)}</p>
                     <div class="detail-info-grid">${infoItems}</div>
                     ${locationBlock}
-                    <div class="detail-owner">
+                    <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile(${r.owner_id})` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
                             <h4>${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}</h4>
-                            <p>${this.esc(r.user_tipo || '')} · ${this.esc(r.user_municipio)}</p>
+                            <p>${this.esc(r.user_tipo || '')}${r.user_municipio ? ' · ' + this.esc(r.user_municipio) : ''}</p>
                         </div>
                         <div class="detail-owner-rating"><i data-lucide="star"></i> ${(r.user_reputation || 5).toFixed(1)}</div>
                     </div>
                 </div>
                 <div class="detail-actions">
                     ${isOwner
-                        ? `<button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource(${r.id}, '${r.status}')"><i data-lucide="${r.status === 'active' ? 'eye-off' : 'eye'}"></i> ${r.status === 'active' ? 'Desactivar' : 'Activar'}</button>
-                           <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`
+                        ? this.renderOwnerDetailActions(r)
                         : `<button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
                            ${this.getActionButton(r)}`
                     }
@@ -480,6 +520,243 @@ const App = {
         }
     },
 
+    renderOwnerDetailActions(r) {
+        const now = new Date();
+        const scheduledAt = r.scheduled_at ? new Date(r.scheduled_at.replace(' ', 'T') + 'Z') : null;
+        const deactivAt = r.deactivation_scheduled_at ? new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z') : null;
+        const isScheduled = scheduledAt && scheduledAt > now;
+        const hasDeactivSched = deactivAt && deactivAt > now;
+
+        if (isScheduled) {
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate(${r.id})"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
+                    <button class="btn btn-primary btn-full btn-sm" onclick="App.publishNow(${r.id})"><i data-lucide="send"></i> Publicar ya</button>
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+        }
+
+        let deactivBtns = '';
+        if (hasDeactivSched) {
+            const date = this.formatDate(r.deactivation_scheduled_at);
+            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.editDeactivationDate(${r.id})"><i data-lucide="calendar-x"></i> Editar desactivación (${date})</button>
+                           <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelDeactivationSchedule(${r.id})"><i data-lucide="x-circle"></i> Cancelar desactivación</button>`;
+        } else if (r.status === 'active') {
+            deactivBtns = `<button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleDeactivation(${r.id})"><i data-lucide="calendar-x"></i> Programar desactivación</button>`;
+        }
+
+        if (r.status === 'active') {
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource(${r.id}, 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
+                    ${deactivBtns}
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+        }
+
+        // Closed resource — activation options
+        const hasActivSched = r.scheduled_at && new Date(r.scheduled_at.replace(' ', 'T') + 'Z') > now;
+        if (hasActivSched) {
+            const date = this.formatDate(r.scheduled_at);
+            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate(${r.id})"><i data-lucide="calendar"></i> Editar activación (${date})</button>
+                    <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow(${r.id})"><i data-lucide="eye"></i> Activar ya</button>
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelActivationSchedule(${r.id})"><i data-lucide="x-circle"></i> Cancelar activación programada</button>
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+        }
+        return `<button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow(${r.id})"><i data-lucide="eye"></i> Activar ahora</button>
+                <button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleActivation(${r.id})"><i data-lucide="calendar"></i> Programar activación</button>
+                <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource(${r.id})"><i data-lucide="trash-2"></i> Eliminar</button>`;
+    },
+
+    async changeScheduleDate(id) {
+        const r = await API.getResource(id);
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 1);
+        const min = now.toISOString().slice(0, 16);
+        const current = r.scheduled_at ? r.scheduled_at.replace(' ', 'T').slice(0, 16) : '';
+        const date = await this.showDatepicker({
+            icon: 'calendar',
+            title: 'Cambiar fecha de publicación',
+            subtitle: 'Nueva fecha en que se publicará el recurso',
+            okLabel: 'Guardar',
+            minDate: min,
+            defaultDate: current
+        });
+        if (!date) return;
+        try {
+            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            await API.updateResource(id, { scheduled_at: isoDate });
+            this.closeDetail();
+            this.showToast('Fecha de publicación actualizada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async publishNow(id) {
+        const ok = await this.showConfirm({
+            icon: 'send', title: 'Publicar ahora',
+            msg: 'El recurso será visible en la comunidad de inmediato.',
+            okLabel: 'Publicar'
+        });
+        if (!ok) return;
+        try {
+            await API.updateResource(id, { scheduled_at: null });
+            this.closeDetail();
+            this.showToast('Publicación activa');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async activateNow(id) {
+        const ok = await this.showConfirm({
+            icon: 'eye', title: 'Activar publicación',
+            msg: 'La publicación volverá a ser visible para toda la comunidad.',
+            okLabel: 'Activar'
+        });
+        if (!ok) return;
+        try {
+            await API.updateResource(id, { status: 'active', scheduled_at: null });
+            this.closeDetail();
+            this.showToast('Publicación activada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async scheduleActivation(id) {
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+        const min = new Date().toISOString().slice(0, 16);
+        const date = await this.showDatepicker({
+            icon: 'calendar',
+            title: 'Programar activación',
+            subtitle: 'La publicación se hará visible en esa fecha',
+            okLabel: 'Programar',
+            minDate: min,
+            defaultDate: tomorrow
+        });
+        if (!date) return;
+        try {
+            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            await API.updateResource(id, { status: 'active', scheduled_at: isoDate });
+            this.closeDetail();
+            this.showToast('Activación programada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async editActivationDate(id) {
+        const r = await API.getResource(id);
+        const min = new Date().toISOString().slice(0, 16);
+        const current = r.scheduled_at ? r.scheduled_at.replace(' ', 'T').slice(0, 16) : '';
+        const date = await this.showDatepicker({
+            icon: 'calendar',
+            title: 'Editar fecha de activación',
+            subtitle: 'Nueva fecha en que se publicará el recurso',
+            okLabel: 'Guardar',
+            minDate: min,
+            defaultDate: current
+        });
+        if (!date) return;
+        try {
+            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            await API.updateResource(id, { scheduled_at: isoDate });
+            this.closeDetail();
+            this.showToast('Fecha de activación actualizada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async cancelActivationSchedule(id) {
+        const ok = await this.showConfirm({
+            icon: 'x-circle', title: 'Cancelar activación programada',
+            msg: 'La publicación permanecerá desactivada.',
+            okLabel: 'Cancelar activación'
+        });
+        if (!ok) return;
+        try {
+            await API.updateResource(id, { scheduled_at: null });
+            this.closeDetail();
+            this.showToast('Activación cancelada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async scheduleDeactivation(id) {
+        const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+        const min = new Date().toISOString().slice(0, 16);
+        const date = await this.showDatepicker({
+            icon: 'calendar-x',
+            title: 'Programar desactivación',
+            subtitle: 'La publicación se ocultará automáticamente en esa fecha',
+            okLabel: 'Programar',
+            minDate: min,
+            defaultDate: tomorrow
+        });
+        if (!date) return;
+        try {
+            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            await API.updateResource(id, { deactivation_scheduled_at: isoDate });
+            this.closeDetail();
+            this.showToast('Desactivación programada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async editDeactivationDate(id) {
+        const r = await API.getResource(id);
+        const min = new Date().toISOString().slice(0, 16);
+        const current = r.deactivation_scheduled_at ? r.deactivation_scheduled_at.replace(' ', 'T').slice(0, 16) : '';
+        const date = await this.showDatepicker({
+            icon: 'calendar-x',
+            title: 'Editar fecha de desactivación',
+            subtitle: 'Nueva fecha en que se desactivará el recurso',
+            okLabel: 'Guardar',
+            minDate: min,
+            defaultDate: current
+        });
+        if (!date) return;
+        try {
+            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            await API.updateResource(id, { deactivation_scheduled_at: isoDate });
+            this.closeDetail();
+            this.showToast('Fecha de desactivación actualizada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async cancelDeactivationSchedule(id) {
+        const ok = await this.showConfirm({
+            icon: 'x-circle', title: 'Cancelar desactivación',
+            msg: 'La publicación permanecerá activa indefinidamente.',
+            okLabel: 'Cancelar desactivación'
+        });
+        if (!ok) return;
+        try {
+            await API.updateResource(id, { deactivation_scheduled_at: null });
+            this.closeDetail();
+            this.showToast('Desactivación cancelada');
+            this.loadHome();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    _datepickerResolve: null,
+    showDatepicker({ icon = 'calendar', title, subtitle = '', okLabel = 'Confirmar', minDate = null, defaultDate = null }) {
+        return new Promise(resolve => {
+            this._datepickerResolve = resolve;
+            const iconEl = document.getElementById('datepicker-icon');
+            iconEl.innerHTML = `<i data-lucide="${icon}"></i>`;
+            lucide.createIcons({ nodes: [iconEl] });
+            document.getElementById('datepicker-title').textContent = title;
+            document.getElementById('datepicker-subtitle').textContent = subtitle;
+            document.getElementById('datepicker-ok').textContent = okLabel;
+            const input = document.getElementById('datepicker-input');
+            input.min = minDate || '';
+            input.value = defaultDate || '';
+            document.getElementById('datepicker-modal').style.display = 'flex';
+            setTimeout(() => input.focus(), 100);
+        });
+    },
+    datepickerResolve(val) {
+        document.getElementById('datepicker-modal').style.display = 'none';
+        if (this._datepickerResolve) { this._datepickerResolve(val); this._datepickerResolve = null; }
+    },
+    datepickerCancel(e) {
+        if (e.target === document.getElementById('datepicker-modal')) this.datepickerResolve(null);
+    },
+
     refreshCurrentTab() {
         if (this.currentTab === 'inicio') this.loadHome();
         if (this.currentTab === 'mercado') this.loadMarket();
@@ -559,20 +836,23 @@ const App = {
                     <div class="publish-form-section-title"><i data-lucide="box"></i> Detalles del recurso</div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Cantidad</label>
+                            <label class="form-label">Cantidad *</label>
                             <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 50">
-                            <span class="form-hint">Cuánto ofreces</span>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Unidad</label>
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                                <label class="form-label" style="margin-bottom:0">Unidad</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-unidad-active" checked>
+                                    <span class="toggle-thumb"></span>
+                                </label>
+                            </div>
                             <input type="text" id="pub-unidad" class="form-input" placeholder="Ej: kg, unidades">
-                            <span class="form-hint">Medida o unidad</span>
                         </div>
                     </div>
-                    ${this.unidadToggleBlock()}
                     <div class="form-group">
-                        <label class="form-label">Condición</label>
-                        <select id="pub-condicion" class="form-select">${this.conditionOptions('oferta')}</select>
+                        <label class="form-label">Condición *</label>
+                        <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
                         <span class="form-hint">Estado actual del recurso</span>
                     </div>
                     <div class="form-group">
@@ -587,7 +867,14 @@ const App = {
                             </label>
                         </div>
                         <div id="pub-precio-group" style="display:none; margin-top:10px">
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $50.000/día, Negociable">
+                            <div class="toggle-label" style="margin-bottom:8px;font-size:0.8rem">¿Cómo recibes el pago?</div>
+                            <div class="segmented-control" id="oferta-pago-tipo">
+                                <button type="button" class="seg-opt active" data-val="Monetario">Monetario</button>
+                                <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
+                                <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
+                            </div>
+                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $50.000/día" style="margin-top:10px">
+                            <span class="form-hint" id="pub-precio-hint">Monto o descripción del pago</span>
                         </div>
                     </div>
                     <input type="hidden" id="pub-modalidad" value="Gratis">
@@ -615,15 +902,20 @@ const App = {
                     <div class="publish-form-section-title"><i data-lucide="target"></i> Especificaciones</div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Cantidad requerida</label>
+                            <label class="form-label">Cantidad *</label>
                             <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 100">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Unidad</label>
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                                <label class="form-label" style="margin-bottom:0">Unidad</label>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="toggle-unidad-active" checked>
+                                    <span class="toggle-thumb"></span>
+                                </label>
+                            </div>
                             <input type="text" id="pub-unidad" class="form-input" placeholder="Ej: kg, bultos">
                         </div>
                     </div>
-                    ${this.unidadToggleBlock()}
                     <div class="form-group">
                         <label class="form-label">Disponibilidad / Urgencia</label>
                         <select id="pub-disponibilidad" class="form-select">
@@ -678,8 +970,8 @@ const App = {
                 <div class="publish-form-section">
                     <div class="publish-form-section-title"><i data-lucide="clock"></i> Condiciones del préstamo</div>
                     <div class="form-group">
-                        <label class="form-label">Condición del equipo</label>
-                        <select id="pub-condicion" class="form-select">${this.conditionOptions('prestamo')}</select>
+                        <label class="form-label">Condición del equipo *</label>
+                        <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Duración máxima del préstamo</label>
@@ -711,7 +1003,14 @@ const App = {
                             </label>
                         </div>
                         <div id="pub-precio-group" style="display:none; margin-top:10px">
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $30.000/día">
+                            <div class="toggle-label" style="margin-bottom:8px;font-size:0.8rem">¿Cómo cobra el préstamo?</div>
+                            <div class="segmented-control" id="prestamo-pago-tipo">
+                                <button type="button" class="seg-opt active" data-val="Monetario">Monetario</button>
+                                <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
+                                <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
+                            </div>
+                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $30.000/día" style="margin-top:10px">
+                            <span class="form-hint" id="pub-precio-hint">Monto o descripción del cobro</span>
                         </div>
                     </div>
                     <input type="hidden" id="pub-modalidad" value="Gratis">
@@ -741,8 +1040,8 @@ const App = {
                         <span class="form-hint">Describe el recurso que darás a cambio</span>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Condición de lo que ofreces</label>
-                        <select id="pub-condicion" class="form-select">${this.conditionOptions('trueque')}</select>
+                        <label class="form-label">Condición de lo que ofreces *</label>
+                        <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">¿Qué deseas recibir? *</label>
@@ -777,30 +1076,35 @@ const App = {
             </div>
             <div class="publish-form-section">
                 <div class="publish-form-section-title"><i data-lucide="map-pin"></i> Ubicación</div>
-                <div class="form-group">
-                    <label class="form-label">Municipio *</label>
-                    <select id="pub-municipio" class="form-select">
-                        <option value="">Seleccionar municipio...</option>
-                        <option>Duitama</option><option>Sogamoso</option>
-                    </select>
-                    <span class="form-hint">¿Dónde está disponible el recurso?</span>
+                <p class="form-hint" style="margin-bottom:8px">¿Dónde está el recurso o se presta el servicio? No necesariamente donde vives</p>
+                <div id="loc-pub"></div>
+                <input type="hidden" id="pub-lat">
+                <input type="hidden" id="pub-lng">
+                <input type="hidden" id="pub-addr">
+                <div class="form-group" style="margin-top:10px">
+                    <label class="form-label">Indicaciones de llegada</label>
+                    <input type="text" id="pub-loc-notes" class="form-input" placeholder="Casa azul, 200m después del parque, portón negro...">
+                    <span class="form-hint">Opcional — ayuda a que te encuentren fácilmente</span>
                 </div>
-                <input type="hidden" id="pub-lat"><input type="hidden" id="pub-lng">
-                <button type="button" id="geo-pub" class="geo-btn"><i data-lucide="crosshair"></i> Detectar mi ubicación</button>
-                <span id="geo-pub-status" class="form-hint" style="display:block;margin-top:6px"></span>
-                <div id="geo-pub-map" class="geo-map-preview"></div>
             </div>
-            <button class="btn btn-primary btn-full" onclick="App.doPublish()" id="btn-publish">
-                <i data-lucide="send"></i> Publicar en la comunidad
-            </button>`;
+            <div class="publish-action-row">
+                <button class="btn btn-primary" onclick="App.doPublish()" id="btn-publish">
+                    <i data-lucide="send"></i> Publicar
+                </button>
+                <button class="btn btn-outline" onclick="App.doPublishScheduled()" id="btn-publish-schedule">
+                    <i data-lucide="calendar-clock"></i> Programar
+                </button>
+            </div>`;
         lucide.createIcons({ nodes: [formContainer] });
         this.initCharCounters();
         this.bindExchangeOptions();
-        Geo.setupGeoButton('geo-pub', 'pub-lat', 'pub-lng', 'geo-pub-status');
-        if (API.user) {
-            const munSelect = document.getElementById('pub-municipio');
-            if (munSelect) munSelect.value = API.user.municipio || '';
-        }
+        Geo.setupLocationPicker({
+            containerId: 'loc-pub',
+            latId: 'pub-lat',
+            lngId: 'pub-lng',
+            addrHiddenId: 'pub-addr',
+            placeholder: 'Buscar municipio, vereda, corregimiento...'
+        });
     },
 
     initCharCounters() {
@@ -857,25 +1161,52 @@ const App = {
                 <option>Otros recursos</option>`;
     },
 
-    conditionOptions(tipo) {
-        const common = [
-            'Nuevo', 'Sellado / Empacado', 'Seminuevo',
-            'Excelente', 'Buen estado', 'Usado', 'Regular',
-            'Requiere mantenimiento'
-        ];
-        const produce = [
-            'Recién cosechado', 'Fresco', 'Orgánico certificado',
-            'Convencional', 'Procesado', 'Deshidratado'
-        ];
-        const prestamo = [
-            'Nuevo', 'Excelente', 'Buen estado', 'Funcional',
-            'Seminuevo', 'Requiere mantenimiento menor'
-        ];
-        let list;
-        if (tipo === 'prestamo') list = prestamo;
-        else list = [...common, ...produce];
-        return '<option value="">Seleccionar...</option>' +
-               list.map(c => `<option>${c}</option>`).join('');
+    CONDITIONS_BY_CAT: {
+        'Herramientas y maquinaria':    ['Nuevo','Sellado / Empacado','Seminuevo','Excelente','Buen estado','Usado','Regular','Requiere mantenimiento menor','Requiere reparación','Para repuestos / piezas'],
+        'Riego y sistemas de agua':     ['Nuevo','Sellado','Excelente','Buen estado','Funcional','Usado','Regular','Requiere mantenimiento','Requiere reparación'],
+        'Energía (solar, generadores)': ['Nuevo','Sellado','Excelente','Buen estado','Usado','Regular','Requiere revisión técnica','Incompleto / Piezas'],
+        'Transporte y logística':       ['Nuevo','Excelente','Buen estado','Usado','Regular','Requiere mantenimiento','Solo para carga liviana'],
+        'Empaque y almacenamiento':     ['Nuevo','Sellado / Sin uso','Buen estado','Reparado','Usado','Regular'],
+
+        'Semillas e insumos':           ['Certificada','Tratada','Orgánica','Convencional','Fresca / Reciente','Próxima a vencer','Sellada / Empaque original','Granel'],
+        'Fertilizantes y abonos':       ['Sellado / Empaque original','Abierto - buen estado','Próximo a vencer','Certificado orgánico','Convencional','Granel'],
+        'Compost y abono orgánico':     ['Fresco / Reciente','Maduro','Semi-maduro','Seco','Granel','Empacado'],
+        'Control de plagas':            ['Sellado / Empaque original','Abierto - buen estado','Próximo a vencer','Registrado ICA','Biológico / Orgánico'],
+        'Viveros y plántulas':          ['Germinado','En semillero','Plántula joven','Saludable','En crecimiento','Listo para trasplantar'],
+
+        'Frutas y verduras':            ['Recién cosechado','Fresco','Orgánico certificado','Convencional','Segunda calidad','Procesado','Deshidratado'],
+        'Granos y cereales':            ['Recién cosechado','Seco','Limpio y clasificado','Orgánico','Convencional','En bulto / Empacado','Trillado'],
+        'Hortalizas':                   ['Recién cosechado','Fresco','Orgánico','Convencional','Segunda calidad','Lavado y clasificado'],
+        'Tubérculos':                   ['Recién cosechado','Fresco','Clasificado','Orgánico','Convencional','Para semilla','Segunda calidad'],
+        'Ganadería':                    ['Sano / Vacunado','En producción','En destete','Adulto','Joven / Cría','Con registros sanitarios ICA','Para levante','Para ceba'],
+        'Aves de corral':               ['Sano / Vacunado','En postura','Para engorde','Pollito / Joven','Con historial sanitario','Ponedora descartada'],
+        'Productos lácteos':            ['Fresco / Del día','Pasteurizado','Crudo','Artesanal','Refrigerado','Con fecha de vencimiento vigente'],
+        'Miel y apicultura':            ['Cruda / Sin procesar','Filtrada','Orgánica','Convencional','Cristalizada','Líquida','Subproducto (cera / propóleo)'],
+        'Excedentes de producción':     ['Fresco','Buen estado','Segunda calidad','Próximo a vencer','Procesado'],
+        'Cosecha y postcosecha':        ['Para cosechar de inmediato','Listo para cosechar','En campo','Postcosecha procesado','Enfriado / Refrigerado'],
+
+        'Mano de obra':                 ['Con experiencia','Semi-experimentado','En aprendizaje','Con certificación SENA','Disponible de inmediato','Por jornada','Por proyecto','Por contrato'],
+        'Asesoría técnica':             ['Presencial','Virtual / Remota','Con certificación profesional','Con experiencia práctica','Especializado en la zona','Por visita','Por proyecto'],
+        'Capacitación y cursos':        ['Teórico','Práctico','Curso certificado SENA','Taller en campo','Virtual','Presencial','Con materiales incluidos'],
+        'Tierra en arriendo':           ['Con riego','Sin riego','Preparada / Lista para siembra','Sin preparar','Terreno plano','Ladera','Con invernadero','Con galpón','Con bodega','Área cercada'],
+
+        'Otros recursos':               ['Nuevo','Buen estado','Usado','Regular','Otro'],
+    },
+
+    getConditionsForCategory(cat) {
+        const list = this.CONDITIONS_BY_CAT[cat];
+        if (!cat) return '<option value="">Selecciona una categoría primero...</option>';
+        if (!list) return '<option value="">Seleccionar condición...</option><option>Buen estado</option><option>Regular</option><option>Otro</option>';
+        return '<option value="">Seleccionar condición...</option>' + list.map(c => `<option>${c}</option>`).join('');
+    },
+
+    refreshCondicionOptions() {
+        const cat = document.getElementById('pub-cat')?.value || '';
+        const el = document.getElementById('pub-condicion');
+        if (!el) return;
+        const prev = el.value;
+        el.innerHTML = this.getConditionsForCategory(cat);
+        if (prev) el.value = prev;
     },
 
     unidadToggleBlock() {
@@ -896,6 +1227,12 @@ const App = {
 
     bindExchangeOptions() {
         const tipo = this.currentPublishType;
+        // Category → dynamic condition options
+        const catEl = document.getElementById('pub-cat');
+        if (catEl) {
+            catEl.addEventListener('change', () => this.refreshCondicionOptions());
+            this.refreshCondicionOptions();
+        }
         // Toggle precio on/off
         const toggle = document.getElementById('toggle-precio');
         if (toggle) {
@@ -908,21 +1245,17 @@ const App = {
                     if (inp) inp.value = '';
                     if (modalidad) modalidad.value = 'Gratis';
                 } else {
-                    if (modalidad) {
-                        // For solicitud, modalidad reflects payment type (default Monetario)
-                        if (tipo === 'solicitud') modalidad.value = 'Monetario';
-                        else modalidad.value = 'Con precio';
-                    }
+                    if (modalidad) modalidad.value = 'Monetario';
                 }
             });
         }
-        // Unit "no aplica" toggle
-        const unidadNa = document.getElementById('toggle-unidad-na');
-        if (unidadNa) {
-            unidadNa.addEventListener('change', () => {
+        // Unit toggle (checked = unit active, unchecked = No aplica)
+        const unidadActive = document.getElementById('toggle-unidad-active');
+        if (unidadActive) {
+            unidadActive.addEventListener('change', () => {
                 const unidad = document.getElementById('pub-unidad');
                 if (!unidad) return;
-                if (unidadNa.checked) {
+                if (!unidadActive.checked) {
                     unidad.dataset.prev = unidad.value;
                     unidad.value = 'No aplica';
                     unidad.disabled = true;
@@ -934,36 +1267,27 @@ const App = {
                 }
             });
         }
-        // Segmented control for trueque tipo
-        document.querySelectorAll('#trueque-tipo .seg-opt').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#trueque-tipo .seg-opt').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const modalidad = document.getElementById('pub-modalidad');
-                if (modalidad) modalidad.value = btn.dataset.val;
-            });
-        });
-        // Segmented control for solicitud payment type (monetario / bien / servicio)
+        // Segmented controls: trueque tipo, and all payment-type controls
         const pagoHints = {
-            'Monetario': 'Monto aproximado que estás dispuesto a pagar',
-            'Bien o producto': 'Describe el bien o producto que ofreces a cambio',
-            'Servicio': 'Describe el servicio que ofreces a cambio',
+            'Monetario':       { hint: 'Monto o valor acordado', placeholder: 'Ej: $50.000/día' },
+            'Bien o producto': { hint: 'Describe qué bien o producto', placeholder: 'Ej: 2 bultos de papa criolla' },
+            'Servicio':        { hint: 'Describe el servicio', placeholder: 'Ej: 1 jornada de trabajo' },
         };
-        const pagoPlaceholders = {
-            'Monetario': 'Ej: Hasta $200.000',
-            'Bien o producto': 'Ej: 2 bultos de papa criolla',
-            'Servicio': 'Ej: 1 jornada de arada',
-        };
-        document.querySelectorAll('#solicitud-pago-tipo .seg-opt').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('#solicitud-pago-tipo .seg-opt').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const modalidad = document.getElementById('pub-modalidad');
-                if (modalidad) modalidad.value = btn.dataset.val;
-                const precioInp = document.getElementById('pub-precio');
-                const hint = document.getElementById('pub-precio-hint');
-                if (precioInp) precioInp.placeholder = pagoPlaceholders[btn.dataset.val] || '';
-                if (hint) hint.textContent = pagoHints[btn.dataset.val] || '';
+        ['#trueque-tipo', '#oferta-pago-tipo', '#prestamo-pago-tipo', '#solicitud-pago-tipo'].forEach(sel => {
+            document.querySelectorAll(`${sel} .seg-opt`).forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll(`${sel} .seg-opt`).forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const modalidad = document.getElementById('pub-modalidad');
+                    if (modalidad) modalidad.value = btn.dataset.val;
+                    const d = pagoHints[btn.dataset.val];
+                    if (d) {
+                        const inp = document.getElementById('pub-precio');
+                        const hint = document.getElementById('pub-precio-hint');
+                        if (inp) inp.placeholder = d.placeholder;
+                        if (hint) hint.textContent = d.hint;
+                    }
+                });
             });
         });
     },
@@ -984,21 +1308,26 @@ const App = {
         reader.readAsDataURL(file);
     },
 
-    async doPublish() {
+    async doPublish(scheduledAt = null) {
         const btn = document.getElementById('btn-publish');
-        btn.classList.add('loading');
+        if (btn) btn.classList.add('loading');
+        const schedBtn = document.getElementById('btn-publish-schedule');
+        if (schedBtn) schedBtn.disabled = true;
         try {
             const tipo = this.currentPublishType;
-            const unidadNa = document.getElementById('toggle-unidad-na')?.checked;
+            const unidadActiveEl = document.getElementById('toggle-unidad-active');
+            const unidadActiva = !unidadActiveEl || unidadActiveEl.checked;
+            const cantidadEl = document.getElementById('pub-cantidad');
+            const condicionEl = document.getElementById('pub-condicion');
             const data = {
                 tipo,
                 titulo: document.getElementById('pub-titulo')?.value?.trim() || '',
                 descripcion: document.getElementById('pub-desc')?.value?.trim() || '',
                 categoria: document.getElementById('pub-cat')?.value || '',
-                municipio: document.getElementById('pub-municipio')?.value || '',
-                cantidad: document.getElementById('pub-cantidad')?.value?.trim() || '',
-                unidad: unidadNa ? 'No aplica' : (document.getElementById('pub-unidad')?.value?.trim() || ''),
-                condicion: document.getElementById('pub-condicion')?.value || '',
+                municipio: document.getElementById('pub-addr')?.value || '',
+                cantidad: cantidadEl?.value?.trim() || '',
+                unidad: unidadActiva ? (document.getElementById('pub-unidad')?.value?.trim() || '') : 'No aplica',
+                condicion: condicionEl?.value || '',
                 disponibilidad: document.getElementById('pub-disponibilidad')?.value || '',
                 precio_referencia: document.getElementById('pub-precio')?.value?.trim() || '',
                 duracion_prestamo: document.getElementById('pub-duracion')?.value?.trim() || '',
@@ -1008,20 +1337,43 @@ const App = {
                 image_data: document.getElementById('pub-image-data')?.value || '',
                 latitude: parseFloat(document.getElementById('pub-lat')?.value) || null,
                 longitude: parseFloat(document.getElementById('pub-lng')?.value) || null,
+                scheduled_at: scheduledAt || null,
+                location_notes: document.getElementById('pub-loc-notes')?.value?.trim() || '',
             };
             const modalidadEl = document.getElementById('pub-modalidad');
             if (modalidadEl) data.modalidad = modalidadEl.value;
-            if (!data.titulo || !data.descripcion || !data.categoria || !data.municipio) {
+            if (!data.titulo || !data.descripcion || !data.categoria) {
                 throw new Error('Completa los campos obligatorios (*)');
             }
+            if (cantidadEl && !data.cantidad) throw new Error('La cantidad es obligatoria (*)');
+            if (condicionEl && !data.condicion) throw new Error('La condición es obligatoria (*)');
             await API.createResource(data);
-            this.showToast('Publicación creada exitosamente');
-            this.switchTab('mercado');
+            this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
+            this.switchTab('inicio');
         } catch (e) {
             this.showToast(e.message, 'error');
         } finally {
-            btn.classList.remove('loading');
+            if (btn) btn.classList.remove('loading');
+            if (schedBtn) schedBtn.disabled = false;
         }
+    },
+
+    async doPublishScheduled() {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + 5);
+        const min = now.toISOString().slice(0, 16);
+        const def = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+        const date = await this.showDatepicker({
+            icon: 'calendar-clock',
+            title: 'Programar publicación',
+            subtitle: 'Elige cuándo quieres que sea visible en la comunidad',
+            okLabel: 'Programar',
+            minDate: min,
+            defaultDate: def
+        });
+        if (!date) return;
+        const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+        await this.doPublish(isoDate);
     },
 
     // ===== AGREEMENTS =====
@@ -1231,43 +1583,238 @@ const App = {
         }
     },
 
+    _RATING_DATA: {
+        1: { emoji: '😢', label: 'No funcionó',        msg: 'Algo salió muy mal en este intercambio.',      commentLabel: '¿Qué salió mal? Tu reseña ayuda a la comunidad' },
+        2: { emoji: '😕', label: 'No fue lo esperado', msg: 'El intercambio no cumplió las expectativas.',   commentLabel: '¿Qué no estuvo bien?' },
+        3: { emoji: '🤝', label: 'Regular',             msg: 'Estuvo bien pero hay cosas por mejorar.',     commentLabel: '¿Qué podría mejorar?' },
+        4: { emoji: '😊', label: 'Buena experiencia',   msg: 'El intercambio fue positivo.',               commentLabel: '¿Qué fue lo mejor?' },
+        5: { emoji: '🌟', label: '¡Excelente!',         msg: 'Todo salió perfecto. ¡Gracias por compartir!', commentLabel: '¿Qué destacarías de esta persona?' },
+    },
+    _RATING_TAGS: {
+        1: [
+            { emoji: '🚫', label: 'No apareció' },
+            { emoji: '😤', label: 'Mala actitud' },
+            { emoji: '❌', label: 'No cumplió lo acordado' },
+            { emoji: '📦', label: 'Producto en mal estado' },
+            { emoji: '🤥', label: 'Descripción engañosa' },
+        ],
+        2: [
+            { emoji: '📵', label: 'Mala comunicación' },
+            { emoji: '⏰', label: 'Tardó demasiado' },
+            { emoji: '🔄', label: 'Cambió condiciones' },
+            { emoji: '📉', label: 'Calidad diferente a la descrita' },
+            { emoji: '😕', label: 'Actitud difícil' },
+        ],
+        3: [
+            { emoji: '⏱️', label: 'Puntualidad mejorable' },
+            { emoji: '💬', label: 'Comunicación regular' },
+            { emoji: '📝', label: 'Podría ser más claro' },
+            { emoji: '🌿', label: 'Calidad aceptable' },
+            { emoji: '🔧', label: 'Necesita mejorar detalles' },
+        ],
+        4: [
+            { emoji: '✅', label: 'Cumplió lo prometido' },
+            { emoji: '😊', label: 'Buen trato' },
+            { emoji: '⚡', label: 'Respuesta rápida' },
+            { emoji: '🌿', label: 'Buena calidad' },
+            { emoji: '🤝', label: 'Flexible y abierto' },
+        ],
+        5: [
+            { emoji: '⭐', label: 'Muy recomendado' },
+            { emoji: '⚡', label: 'Súper puntual' },
+            { emoji: '💎', label: 'Calidad excepcional' },
+            { emoji: '💬', label: 'Comunicación excelente' },
+            { emoji: '🌱', label: 'Volvería a intercambiar' },
+        ],
+    },
+    _currentRating: 0,
+    _selectedTags: [],
+
     showRating(agreementId) {
-        let selected = 0;
-        const overlay = document.createElement('div');
-        overlay.className = 'confirm-overlay';
+        this._currentRating = 0;
+        const overlay = document.getElementById('detail-overlay');
         overlay.innerHTML = `
-            <div class="confirm-dialog">
-                <h3>Califica el intercambio</h3>
-                <p>¿Cómo fue tu experiencia?</p>
-                <div class="rating-stars" style="justify-content:center;margin-bottom:20px">
-                    ${[1,2,3,4,5].map(i => `<button class="rating-star" data-val="${i}"><i data-lucide="star"></i></button>`).join('')}
+            <div class="detail-header">
+                <button class="detail-back" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i></button>
+                <h3>Calificar intercambio</h3>
+            </div>
+            <div class="detail-body">
+                <p class="rating-prompt" id="rating-msg">Toca las estrellas para calificar</p>
+                <div class="rating-stars-row" id="rating-stars-row">
+                    ${[1,2,3,4,5].map(i => `
+                        <button class="rating-star-btn" data-val="${i}" onclick="App._selectRating(${i})">
+                            <i data-lucide="star"></i>
+                        </button>`).join('')}
                 </div>
-                <div class="confirm-actions">
-                    <button class="btn btn-outline btn-sm" onclick="this.closest('.confirm-overlay').remove()">Cancelar</button>
-                    <button class="btn btn-primary btn-sm" id="btn-rate">Enviar</button>
+                <div id="rating-label-badge"></div>
+                <div id="rating-tags-row" class="rating-tags-row"></div>
+                <div id="rating-comment-block" style="display:none;margin-top:16px">
+                    <label class="form-label" id="rating-comment-label">Tu reseña</label>
+                    <textarea id="rating-comment" class="form-input" rows="3" placeholder="Opcional — pero ayuda mucho a la comunidad" style="margin-top:6px"></textarea>
                 </div>
+            </div>
+            <div class="detail-actions" id="rating-submit-row" style="display:none">
+                <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()">Cancelar</button>
+                <button class="btn btn-primary btn-full btn-sm" onclick="App._submitRating(${agreementId})">
+                    <i data-lucide="send"></i> Enviar calificación
+                </button>
             </div>`;
-        document.body.appendChild(overlay);
+        overlay.style.display = 'block';
         lucide.createIcons({ nodes: [overlay] });
-        overlay.querySelectorAll('.rating-star').forEach(star => {
-            star.addEventListener('click', () => {
-                selected = parseInt(star.dataset.val);
-                overlay.querySelectorAll('.rating-star').forEach((s, i) => {
-                    s.classList.toggle('active', i < selected);
-                });
-            });
+    },
+
+    _selectRating(val) {
+        this._currentRating = val;
+        this._selectedTags = [];
+        const d = this._RATING_DATA[val];
+        const tags = this._RATING_TAGS[val] || [];
+        const tone = val <= 3 ? 'bad' : 'good';
+
+        document.getElementById('rating-msg').textContent = d.msg;
+        document.getElementById('rating-msg').className = `rating-prompt ${tone}`;
+        document.getElementById('rating-label-badge').innerHTML =
+            `<span class="rating-label-chip ${tone}">${d.emoji} ${d.label}</span>`;
+        document.getElementById('rating-comment-label').textContent = d.commentLabel;
+        document.getElementById('rating-comment-block').style.display = 'block';
+        document.getElementById('rating-submit-row').style.display = 'flex';
+
+        // Render tag chips
+        const tagsEl = document.getElementById('rating-tags-row');
+        if (tagsEl) {
+            tagsEl.innerHTML = tags.map((t, i) =>
+                `<button type="button" class="rating-tag-chip ${tone}" data-idx="${i}" onclick="App._toggleTag(${i}, '${t.emoji} ${t.label.replace(/'/g, '\\\'')}')" >
+                    ${t.emoji} ${t.label}
+                </button>`
+            ).join('');
+        }
+
+        document.querySelectorAll('.rating-star-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', i < val);
         });
-        overlay.querySelector('#btn-rate').addEventListener('click', async () => {
-            if (selected === 0) return;
-            try {
-                await API.rateAgreement(agreementId, selected);
-                overlay.remove();
-                this.showToast('Calificación enviada');
-                this.loadAgreements();
-            } catch (e) {
-                this.showToast(e.message, 'error');
-            }
-        });
+    },
+
+    _toggleTag(idx, label) {
+        const btn = document.querySelector(`.rating-tag-chip[data-idx="${idx}"]`);
+        if (!btn) return;
+        const pos = this._selectedTags.indexOf(label);
+        if (pos === -1) {
+            this._selectedTags.push(label);
+            btn.classList.add('selected');
+        } else {
+            this._selectedTags.splice(pos, 1);
+            btn.classList.remove('selected');
+        }
+    },
+
+    async _submitRating(agreementId) {
+        const rating = this._currentRating;
+        if (!rating) return;
+        const written = document.getElementById('rating-comment')?.value?.trim() || '';
+        const tagsPart = this._selectedTags.join(' · ');
+        const comment = [tagsPart, written].filter(Boolean).join('\n') || '';
+        try {
+            await API.rateAgreement(agreementId, rating, comment);
+            this.closeDetail();
+            this._selectedTags = [];
+            this.showToast('Calificación enviada ✓');
+            this.loadAgreements();
+        } catch (e) { this.showToast(e.message, 'error'); }
+    },
+
+    async showUserProfile(userId) {
+        const overlay = document.getElementById('detail-overlay');
+        overlay.innerHTML = `<div class="detail-body" style="padding:32px 16px;text-align:center">
+            <div class="skeleton-card skeleton" style="height:80px;border-radius:50%;width:80px;margin:0 auto 12px"></div>
+            <div class="skeleton-card skeleton" style="height:20px;max-width:200px;margin:0 auto 8px"></div>
+            <div class="skeleton-card skeleton" style="height:14px;max-width:140px;margin:0 auto"></div>
+        </div>`;
+        overlay.style.display = 'block';
+        try {
+            const u = await API.getUser(userId);
+            const initials = (u.nombre[0] + u.apellido[0]).toUpperCase();
+            const rep = (u.reputation_score || 5).toFixed(1);
+
+            const resourcesHtml = (u.resources || []).length === 0
+                ? `<p class="empty-mini">Sin publicaciones activas</p>`
+                : (u.resources || []).map(r => `
+                    <div class="market-item profile-resource-item" onclick="App.closeDetail();setTimeout(()=>App.showResourceDetail(${r.id}),120)">
+                        <div class="market-item-top">
+                            <div class="market-item-icon resource-card-icon ${r.tipo}">
+                                <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
+                            </div>
+                            <div class="market-item-info">
+                                <h4>${this.esc(r.titulo)}</h4>
+                                <span class="type-badge ${r.tipo}" style="font-size:0.65rem">${this.TYPE_LABELS[r.tipo]}</span>
+                            </div>
+                        </div>
+                    </div>`).join('');
+
+            const reviewsHtml = (u.reviews || []).length === 0
+                ? `<p class="empty-mini">Sin reseñas aún</p>`
+                : (u.reviews || []).map(r => {
+                    const rInt = Math.min(5, Math.max(1, Math.round(r.rating)));
+                    const d = this._RATING_DATA[rInt];
+                    const parts = (r.comment || '').split('\n');
+                    const tagsLine = parts[0] || '';
+                    const writtenLine = parts.slice(1).join('\n').trim();
+                    const tagsHtml = tagsLine
+                        ? tagsLine.split(' · ').map(t => `<span class="review-tag-pill">${this.esc(t)}</span>`).join('')
+                        : '';
+                    return `<div class="review-card">
+                        <div class="review-header">
+                            <span class="review-emoji">${d.emoji}</span>
+                            <div class="review-stars">${this._renderStarsHtml(r.rating)}</div>
+                            <span class="review-author-name">${this.esc(r.reviewer_nombre)}</span>
+                        </div>
+                        ${tagsHtml ? `<div class="review-tags-row">${tagsHtml}</div>` : ''}
+                        ${writtenLine ? `<p class="review-comment-text">${this.esc(writtenLine)}</p>` : ''}
+                    </div>`;
+                }).join('');
+
+            overlay.innerHTML = `
+                <div class="detail-header">
+                    <button class="detail-back" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i></button>
+                    <h3>Perfil</h3>
+                </div>
+                <div class="detail-body">
+                    <div class="user-profile-hero">
+                        <div class="user-profile-avatar">${initials}</div>
+                        <div class="user-profile-info">
+                            <h2 class="user-profile-name">${this.esc(u.nombre)} ${this.esc(u.apellido)}</h2>
+                            <p class="user-profile-tipo">${this.esc(u.tipo || '')}</p>
+                            ${u.municipio ? `<p class="user-profile-loc"><i data-lucide="map-pin"></i> ${this.esc(u.municipio)}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="user-reputation-block">
+                        <div class="user-rep-score">${rep}</div>
+                        <div>
+                            <div class="user-rep-stars">${this._renderStarsHtml(u.reputation_score || 5)}</div>
+                            <p class="user-rep-count">${u.total_ratings || 0} calificaciones</p>
+                        </div>
+                    </div>
+                    ${u.bio ? `<p class="user-bio-text">"${this.esc(u.bio)}"</p>` : ''}
+
+                    <div class="profile-section-label"><i data-lucide="package"></i> Publicaciones activas</div>
+                    ${resourcesHtml}
+
+                    <div class="profile-section-label" style="margin-top:20px"><i data-lucide="star"></i> Opiniones de la comunidad</div>
+                    ${reviewsHtml}
+                </div>
+                <div class="detail-actions">
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
+                </div>`;
+            lucide.createIcons({ nodes: [overlay] });
+        } catch (e) {
+            this.showToast('Error al cargar perfil', 'error');
+            this.closeDetail();
+        }
+    },
+
+    _renderStarsHtml(score) {
+        const val = Math.round(score || 5);
+        return [1,2,3,4,5].map(i =>
+            `<i data-lucide="star" class="rep-star ${i <= val ? 'filled' : ''}"></i>`
+        ).join('');
     },
 
     // ===== PROFILE =====
@@ -1308,10 +1855,21 @@ const App = {
         document.getElementById('set-nombre').value = u.nombre;
         document.getElementById('set-apellido').value = u.apellido;
         document.getElementById('set-email').value = u.email;
-        document.getElementById('set-municipio').value = u.municipio;
         document.getElementById('set-tipo').value = u.tipo;
         document.getElementById('set-telefono').value = u.telefono || '';
         document.getElementById('set-bio').value = u.bio || '';
+        // Pre-fill lat/lng for the location picker
+        if (u.latitude) document.getElementById('set-lat').value = u.latitude;
+        if (u.longitude) document.getElementById('set-lng').value = u.longitude;
+        if (u.municipio) document.getElementById('set-addr').value = u.municipio;
+        // Init picker (may already exist if settings opened before)
+        Geo.setupLocationPicker({
+            containerId: 'loc-settings',
+            latId: 'set-lat',
+            lngId: 'set-lng',
+            addrHiddenId: 'set-addr',
+            placeholder: 'Buscar tu municipio o vereda...'
+        });
     },
 
     async saveSettings() {
@@ -1321,10 +1879,12 @@ const App = {
             const data = {
                 nombre: document.getElementById('set-nombre').value.trim(),
                 apellido: document.getElementById('set-apellido').value.trim(),
-                municipio: document.getElementById('set-municipio').value,
+                municipio: document.getElementById('set-addr')?.value || '',
                 tipo: document.getElementById('set-tipo').value,
                 telefono: document.getElementById('set-telefono').value.trim(),
                 bio: document.getElementById('set-bio').value.trim(),
+                latitude: parseFloat(document.getElementById('set-lat')?.value) || null,
+                longitude: parseFloat(document.getElementById('set-lng')?.value) || null,
             };
             await API.updateProfile(data);
             this.showToast('Perfil actualizado');

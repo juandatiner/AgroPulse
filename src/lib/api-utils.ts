@@ -4,6 +4,16 @@ export function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
+export async function handleRoute(fn: () => Promise<NextResponse>): Promise<NextResponse> {
+  try {
+    return await fn()
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : 'Error del servidor'
+    console.error('[API]', msg)
+    return json({ error: msg }, 500)
+  }
+}
+
 export function parseParams(request: Request): Record<string, string> {
   const url = new URL(request.url)
   const params: Record<string, string> = {}

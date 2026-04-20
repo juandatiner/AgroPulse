@@ -2,19 +2,21 @@
   "name": "agropulse",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
+    "build": "next build && rm -rf .next/standalone/public .next/standalone/.next/static && cp -r public .next/standalone/public && cp -r .next/static .next/standalone/.next/static",
     "start": "node .next/standalone/server.js"
   },
   "dependencies": {
     "next": "^14.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "better-sqlite3": "^11.0.0"
+    "mongodb": "^6.0.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "typescript": "^5.4.0"

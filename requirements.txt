@@ -1,2 +1,0 @@
-# AgroPulse no requiere dependencias externas
-# Solo usa la librería estándar de Python 3

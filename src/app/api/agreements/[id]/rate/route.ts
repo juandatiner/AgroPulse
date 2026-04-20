@@ -1,46 +1,72 @@
-import { json, options } from '@/lib/api-utils'
-import { query, queryOne, execute } from '@/lib/db'
+import { json, options, handleRoute } from '@/lib/api-utils'
+import { getDb, ObjectId } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
 
 export function OPTIONS() { return options() }
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const { user } = getAuthUser(request)
-  if (!user) return json({ error: 'No autorizado' }, 401)
-  const aid = Number(params.id)
-  const a = queryOne<Record<string, unknown>>(
-    "SELECT * FROM agreements WHERE id = ? AND status = 'completed'", [aid]
-  )
-  if (!a) return json({ error: 'Acuerdo no encontrado o no completado' }, 404)
+  return handleRoute(async () => {
+    const { user } = await getAuthUser(request)
+    if (!user) return json({ error: 'No autorizado' }, 401)
 
-  const data = await request.json()
-  const rating = data.rating
-  if (!rating || rating < 1 || rating > 5)
-    return json({ error: 'Rating debe ser entre 1 y 5' }, 400)
+    let aid: ObjectId
+    try { aid = new ObjectId(params.id) } catch { return json({ error: 'No encontrado' }, 404) }
 
-  let targetId: number
-  if (user.id === a.requester_id) {
-    execute("UPDATE agreements SET rating_requester = ? WHERE id = ?", [rating, aid])
-    targetId = a.provider_id as number
-  } else if (user.id === a.provider_id) {
-    execute("UPDATE agreements SET rating_provider = ? WHERE id = ?", [rating, aid])
-    targetId = a.requester_id as number
-  } else {
-    return json({ error: 'No autorizado' }, 403)
-  }
+    const db = await getDb()
+    const uid = new ObjectId(user.id)
 
-  const ratings = query<{ r: number }>(
-    `SELECT rating_requester as r FROM agreements
-     WHERE provider_id = ? AND rating_requester IS NOT NULL
-     UNION ALL
-     SELECT rating_provider as r FROM agreements
-     WHERE requester_id = ? AND rating_provider IS NOT NULL`,
-    [targetId, targetId]
-  )
-  if (ratings.length) {
-    const avg = ratings.reduce((s, x) => s + x.r, 0) / ratings.length
-    execute("UPDATE users SET reputation_score = ?, total_ratings = ? WHERE id = ?",
-      [Math.round(avg * 10) / 10, ratings.length, targetId])
-  }
-  return json({ ok: true })
+    const a = await db.collection('agreements').findOne({ _id: aid, status: 'completed' })
+    if (!a) return json({ error: 'Acuerdo no encontrado o no completado' }, 404)
+
+    const data = await request.json()
+    const rating = data.rating
+    const comment = (data.comment || '').toString().trim().slice(0, 500)
+    if (!rating || rating < 1 || rating > 5)
+      return json({ error: 'Rating debe ser entre 1 y 5' }, 400)
+
+    let targetId: ObjectId
+    if (uid.equals(a.requester_id)) {
+      await db.collection('agreements').updateOne(
+        { _id: aid },
+        { $set: { rating_requester: rating, review_requester: comment || null } }
+      )
+      targetId = a.provider_id as ObjectId
+    } else if (uid.equals(a.provider_id)) {
+      await db.collection('agreements').updateOne(
+        { _id: aid },
+        { $set: { rating_provider: rating, review_provider: comment || null } }
+      )
+      targetId = a.requester_id as ObjectId
+    } else {
+      return json({ error: 'No autorizado' }, 403)
+    }
+
+    // Recalculate reputation for targetId
+    // Ratings given by requesters to the provider (provider is targetId)
+    const asProvider = await db.collection('agreements').find(
+      { provider_id: targetId, rating_requester: { $ne: null } },
+      { projection: { rating_requester: 1 } }
+    ).toArray()
+
+    // Ratings given by providers to the requester (requester is targetId)
+    const asRequester = await db.collection('agreements').find(
+      { requester_id: targetId, rating_provider: { $ne: null } },
+      { projection: { rating_provider: 1 } }
+    ).toArray()
+
+    const allRatings = [
+      ...asProvider.map(r => r.rating_requester as number),
+      ...asRequester.map(r => r.rating_provider as number),
+    ]
+
+    if (allRatings.length) {
+      const avg = allRatings.reduce((s, x) => s + x, 0) / allRatings.length
+      await db.collection('users').updateOne(
+        { _id: targetId },
+        { $set: { reputation_score: Math.round(avg * 10) / 10, total_ratings: allRatings.length } }
+      )
+    }
+
+    return json({ ok: true })
+  })
 }

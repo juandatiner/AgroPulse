@@ -1,157 +1,76 @@
-import Database from 'better-sqlite3'
-import path from 'path'
+import { MongoClient, Db, ObjectId } from 'mongodb'
 
-const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'agropulse.db')
+export { ObjectId }
 
-let _db: Database.Database | null = null
+const MONGO_URI = process.env.MONGO_URI!
+const DB_NAME = process.env.MONGO_DB || 'agropulse'
 
-export function getDb(): Database.Database {
-  if (!_db) {
-    _db = new Database(DB_PATH)
-    _db.pragma('journal_mode = WAL')
-    _db.pragma('foreign_keys = ON')
+let _client: MongoClient | null = null
+let _db: Db | null = null
+
+export async function getDb(): Promise<Db> {
+  if (_db) return _db
+  if (!MONGO_URI) throw new Error('MONGO_URI no está configurado')
+  if (!_client) {
+    _client = new MongoClient(MONGO_URI)
+    await _client.connect()
   }
+  _db = _client.db(DB_NAME)
+  await ensureIndexes(_db)
   return _db
 }
 
-export function query<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T[] {
-  const db = getDb()
-  const stmt = db.prepare(sql)
-  return stmt.all(...params) as T[]
+async function ensureIndexes(db: Db): Promise<void> {
+  // users
+  await db.collection('users').createIndex({ email: 1 }, { unique: true })
+
+  // sessions
+  await db.collection('sessions').createIndex({ token: 1 }, { unique: true })
+  await db.collection('sessions').createIndex(
+    { created_at: 1 },
+    { expireAfterSeconds: 60 * 60 * 24 * 30 }
+  )
+
+  // resources
+  await db.collection('resources').createIndex({ user_id: 1 })
+  await db.collection('resources').createIndex({ status: 1 })
+  await db.collection('resources').createIndex({ created_at: -1 })
+
+  // agreements
+  await db.collection('agreements').createIndex({ requester_id: 1 })
+  await db.collection('agreements').createIndex({ provider_id: 1 })
+  await db.collection('agreements').createIndex({ resource_id: 1 })
+  await db.collection('agreements').createIndex({ updated_at: -1 })
+
+  // messages
+  await db.collection('messages').createIndex({ agreement_id: 1 })
+  await db.collection('messages').createIndex({ created_at: 1 })
 }
 
-export function queryOne<T = Record<string, unknown>>(sql: string, params: unknown[] = []): T | undefined {
-  const db = getDb()
-  const stmt = db.prepare(sql)
-  return stmt.get(...params) as T | undefined
+/** Serialize a MongoDB document: _id → id (string), nested ObjectIds → string, Date → ISO */
+export function s(doc: Record<string, unknown> | null | undefined): Record<string, unknown> | null {
+  if (!doc) return null
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(doc)) {
+    if (k === '_id') {
+      out['id'] = v instanceof ObjectId ? v.toHexString() : String(v)
+    } else if (v instanceof ObjectId) {
+      out[k] = v.toHexString()
+    } else if (v instanceof Date) {
+      out[k] = v.toISOString()
+    } else {
+      out[k] = v
+    }
+  }
+  return out
 }
 
-export function execute(sql: string, params: unknown[] = []): number {
-  const db = getDb()
-  const stmt = db.prepare(sql)
-  const result = stmt.run(...params)
-  return Number(result.lastInsertRowid)
+/** Map s() over an array */
+export function sa(docs: Record<string, unknown>[]): Record<string, unknown>[] {
+  return docs.map(d => s(d) as Record<string, unknown>)
 }
 
-export function execScript(sql: string): void {
-  const db = getDb()
-  db.exec(sql)
+/** Parse an ObjectId string safely; throws if invalid */
+export function toId(str: string): ObjectId {
+  return new ObjectId(str)
 }
-
-export function initDb(): void {
-  execScript(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombre TEXT NOT NULL,
-      apellido TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      municipio TEXT NOT NULL,
-      tipo TEXT NOT NULL,
-      telefono TEXT DEFAULT '',
-      bio TEXT DEFAULT '',
-      latitude REAL,
-      longitude REAL,
-      reputation_score REAL DEFAULT 5.0,
-      total_ratings INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS sessions (
-      token TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS resources (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      tipo TEXT NOT NULL CHECK(tipo IN ('oferta','solicitud','prestamo','trueque')),
-      titulo TEXT NOT NULL,
-      descripcion TEXT NOT NULL,
-      categoria TEXT NOT NULL,
-      modalidad TEXT DEFAULT '',
-      municipio TEXT NOT NULL,
-      latitude REAL,
-      longitude REAL,
-      cantidad TEXT DEFAULT '',
-      unidad TEXT DEFAULT '',
-      condicion TEXT DEFAULT '',
-      disponibilidad TEXT DEFAULT '',
-      precio_referencia TEXT DEFAULT '',
-      duracion_prestamo TEXT DEFAULT '',
-      garantia TEXT DEFAULT '',
-      ofrece TEXT DEFAULT '',
-      recibe TEXT DEFAULT '',
-      image_data TEXT DEFAULT '',
-      status TEXT DEFAULT 'active' CHECK(status IN ('active','closed')),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS agreements (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      resource_id INTEGER,
-      requester_id INTEGER NOT NULL,
-      provider_id INTEGER NOT NULL,
-      status TEXT DEFAULT 'pending'
-        CHECK(status IN ('pending','active','completed','rejected','cancelled')),
-      message TEXT DEFAULT '',
-      rating_requester INTEGER,
-      rating_provider INTEGER,
-      complete_requester INTEGER DEFAULT 0,
-      complete_provider INTEGER DEFAULT 0,
-      resource_snapshot_titulo TEXT,
-      resource_snapshot_tipo TEXT,
-      resource_snapshot_cat TEXT,
-      resource_snapshot_desc TEXT,
-      resource_snapshot_image TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (resource_id) REFERENCES resources(id),
-      FOREIGN KEY (requester_id) REFERENCES users(id),
-      FOREIGN KEY (provider_id) REFERENCES users(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS messages (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      agreement_id INTEGER NOT NULL,
-      sender_id INTEGER NOT NULL,
-      content TEXT NOT NULL,
-      read_status INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (agreement_id) REFERENCES agreements(id),
-      FOREIGN KEY (sender_id) REFERENCES users(id)
-    );
-  `)
-
-  // Migrations for existing databases
-  const db = getDb()
-  const cols = db.prepare("PRAGMA table_info(agreements)").all() as { name: string }[]
-  const colNames = cols.map(c => c.name)
-  if (!colNames.includes('complete_requester'))
-    db.exec("ALTER TABLE agreements ADD COLUMN complete_requester INTEGER DEFAULT 0")
-  if (!colNames.includes('complete_provider'))
-    db.exec("ALTER TABLE agreements ADD COLUMN complete_provider INTEGER DEFAULT 0")
-  if (!colNames.includes('resource_snapshot_titulo'))
-    db.exec("ALTER TABLE agreements ADD COLUMN resource_snapshot_titulo TEXT")
-  if (!colNames.includes('resource_snapshot_tipo'))
-    db.exec("ALTER TABLE agreements ADD COLUMN resource_snapshot_tipo TEXT")
-  if (!colNames.includes('resource_snapshot_cat'))
-    db.exec("ALTER TABLE agreements ADD COLUMN resource_snapshot_cat TEXT")
-  if (!colNames.includes('resource_snapshot_desc'))
-    db.exec("ALTER TABLE agreements ADD COLUMN resource_snapshot_desc TEXT")
-  if (!colNames.includes('resource_snapshot_image'))
-    db.exec("ALTER TABLE agreements ADD COLUMN resource_snapshot_image TEXT")
-
-  db.exec(`UPDATE agreements SET resource_id = NULL
-    WHERE status IN ('completed','cancelled','rejected') AND resource_id IS NOT NULL`)
-  db.exec(`DELETE FROM resources WHERE id NOT IN (
-    SELECT DISTINCT resource_id FROM agreements
-    WHERE resource_id IS NOT NULL AND status IN ('pending','active')
-  ) AND status = 'closed'`)
-}
-
-// Initialize on first import
-initDb()

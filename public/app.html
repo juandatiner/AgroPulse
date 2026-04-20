@@ -18,7 +18,7 @@
     <div class="logo-mark"><i data-lucide="sprout"></i></div>
     <h1>Agro<span class="highlight">Pulse</span></h1>
     <p class="tagline">Conecta tu comunidad agrícola. Comparte recursos, fortalece la tierra.</p>
-    <div class="region-tag"><i data-lucide="map-pin"></i> Boyacá — Duitama · Sogamoso</div>
+    <div class="region-tag"><i data-lucide="map-pin"></i> Colombia — Conecta productores rurales</div>
     <div class="landing-ctas">
         <button class="btn btn-primary btn-full" onclick="App.showScreen('screen-register')">
             <i data-lucide="user-plus"></i> Crear cuenta gratuita
@@ -64,33 +64,26 @@
             <input type="tel" id="reg-telefono" class="form-input" placeholder="300 123 4567">
             <span class="form-hint">Opcional. Facilita la comunicación con otros productores</span>
         </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label">Municipio *</label>
-                <select id="reg-municipio" class="form-select">
-                    <option value="">Seleccionar...</option>
-                    <option>Duitama</option><option>Sogamoso</option>
-                </select>
-                <span class="form-hint">Donde vives o trabajas</span>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Tipo de productor *</label>
-                <select id="reg-tipo" class="form-select">
-                    <option value="">Seleccionar...</option>
-                    <option>Pequeño agricultor</option>
-                    <option>Mediano productor</option>
-                    <option>Cooperativa agrícola</option>
-                    <option>Proveedor de insumos</option>
-                    <option>Técnico agrícola</option>
-                    <option>Joven rural</option>
-                </select>
-                <span class="form-hint">Tu actividad agrícola principal</span>
-            </div>
+        <div class="form-group">
+            <label class="form-label">Tipo de productor *</label>
+            <select id="reg-tipo" class="form-select">
+                <option value="">Seleccionar...</option>
+                <option>Pequeño agricultor</option>
+                <option>Mediano productor</option>
+                <option>Cooperativa agrícola</option>
+                <option>Proveedor de insumos</option>
+                <option>Técnico agrícola</option>
+                <option>Joven rural</option>
+            </select>
+            <span class="form-hint">Tu actividad agrícola principal</span>
         </div>
-        <input type="hidden" id="reg-lat"><input type="hidden" id="reg-lng">
-        <button type="button" id="geo-reg" class="geo-btn"><i data-lucide="crosshair"></i> Detectar mi ubicación</button>
-        <span id="geo-reg-status" class="form-hint" style="display:block;margin-top:6px"></span>
-        <div id="geo-reg-map" class="geo-map-preview"></div>
+        <div class="form-group">
+            <label class="form-label">Ubicación</label>
+            <div id="loc-reg"></div>
+            <input type="hidden" id="reg-lat">
+            <input type="hidden" id="reg-lng">
+            <input type="hidden" id="reg-addr">
+        </div>
         <div class="form-group" style="margin-top:12px">
             <label class="form-label">Contraseña *</label>
             <input type="password" id="reg-pass" class="form-input" placeholder="Mínimo 6 caracteres">
@@ -132,7 +125,7 @@
 <div id="screen-app" class="screen">
     <!-- Nav -->
     <nav class="app-nav">
-        <div class="nav-left">
+        <div class="nav-left" onclick="App.switchTab('inicio')" style="cursor:pointer">
             <div class="nav-logo-icon"><i data-lucide="sprout"></i></div>
             <span class="nav-logo-text">AgroPulse</span>
         </div>
@@ -208,10 +201,7 @@
                             <option>Ganadería</option>
                             <option>Excedentes de producción</option>
                         </select>
-                        <select id="filter-mun" class="filter-select" onchange="App.setMunFilter(this.value)">
-                            <option value="">Municipio</option>
-                            <option>Duitama</option><option>Sogamoso</option>
-                        </select>
+                        <select id="filter-mun" class="filter-select" style="display:none"></select>
                     </div>
                     <div class="filter-row" style="grid-template-columns:1fr auto;margin-top:6px">
                         <select id="filter-sort" class="filter-select" onchange="App.setSortFilter(this.value)">
@@ -298,7 +288,7 @@
                 <div class="profile-section-title">Cuenta</div>
                 <button class="profile-menu-item" onclick="App.openSettings('cuenta')">
                     <div class="profile-menu-icon green"><i data-lucide="settings"></i></div>
-                    <div class="profile-menu-text"><h4>Configuración de cuenta</h4><p>Nombre, municipio, tipo de productor</p></div>
+                    <div class="profile-menu-text"><h4>Configuración de cuenta</h4><p>Nombre, ubicación, tipo de productor</p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
                 <button class="profile-menu-item" onclick="App.openSettings('stats')">
@@ -429,24 +419,23 @@
             <label class="form-label">Teléfono</label>
             <input type="tel" id="set-telefono" class="form-input" placeholder="300 123 4567">
         </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label class="form-label">Municipio</label>
-                <select id="set-municipio" class="form-select">
-                    <option>Duitama</option><option>Sogamoso</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Tipo de productor</label>
-                <select id="set-tipo" class="form-select">
-                    <option>Pequeño agricultor</option>
-                    <option>Mediano productor</option>
-                    <option>Cooperativa agrícola</option>
-                    <option>Proveedor de insumos</option>
-                    <option>Técnico agrícola</option>
-                    <option>Joven rural</option>
-                </select>
-            </div>
+        <div class="form-group">
+            <label class="form-label">Tipo de productor</label>
+            <select id="set-tipo" class="form-select">
+                <option>Pequeño agricultor</option>
+                <option>Mediano productor</option>
+                <option>Cooperativa agrícola</option>
+                <option>Proveedor de insumos</option>
+                <option>Técnico agrícola</option>
+                <option>Joven rural</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Ubicación</label>
+            <div id="loc-settings"></div>
+            <input type="hidden" id="set-lat">
+            <input type="hidden" id="set-lng">
+            <input type="hidden" id="set-addr">
         </div>
         <div class="form-group">
             <label class="form-label">Biografía</label>
@@ -470,6 +459,20 @@
     </div>
 </div>
 
+<!-- ===== DATE PICKER MODAL ===== -->
+<div id="datepicker-modal" class="confirm-modal-backdrop" style="display:none" onclick="App.datepickerCancel(event)">
+    <div class="confirm-modal">
+        <div class="confirm-modal-icon" id="datepicker-icon"></div>
+        <h3 id="datepicker-title"></h3>
+        <p id="datepicker-subtitle" style="margin-bottom:12px;font-size:0.85rem;color:var(--text-muted)"></p>
+        <input type="datetime-local" id="datepicker-input" class="form-input" style="margin-bottom:16px">
+        <div class="confirm-modal-actions">
+            <button class="btn btn-cancel" onclick="App.datepickerResolve(null)">Cancelar</button>
+            <button class="btn btn-primary" id="datepicker-ok" onclick="App.datepickerResolve(document.getElementById('datepicker-input').value)">Confirmar</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
@@ -480,7 +483,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
-    Geo.setupGeoButton('geo-reg', 'reg-lat', 'reg-lng', 'geo-reg-status');
+    Geo.setupLocationPicker({
+        containerId: 'loc-reg',
+        latId: 'reg-lat',
+        lngId: 'reg-lng',
+        addrHiddenId: 'reg-addr',
+        placeholder: 'Buscar tu municipio o vereda...'
+    });
 });
 </script>
 

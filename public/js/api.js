@@ -24,8 +24,9 @@ const API = {
         if (this.token) opts.headers['Authorization'] = 'Bearer ' + this.token;
         if (body) opts.body = JSON.stringify(body);
         const res = await fetch('/api' + path, opts);
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error del servidor');
+        let data;
+        try { data = await res.json(); } catch { throw new Error('Error del servidor — revisa la conexión'); }
+        if (!res.ok) throw new Error(data?.error || 'Error del servidor');
         return data;
     },
 
@@ -52,7 +53,7 @@ const API = {
     getAgreement(id) { return this.request('GET', '/agreements/' + id); },
     createAgreement(data) { return this.request('POST', '/agreements', data); },
     updateAgreement(id, data) { return this.request('PUT', '/agreements/' + id, data); },
-    rateAgreement(id, rating) { return this.request('POST', '/agreements/' + id + '/rate', { rating }); },
+    rateAgreement(id, rating, comment = '') { return this.request('POST', '/agreements/' + id + '/rate', { rating, comment }); },
 
     // Messages
     getMessages(agreementId) { return this.request('GET', '/agreements/' + agreementId + '/messages'); },

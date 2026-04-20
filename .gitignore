@@ -1,9 +1,19 @@
+# Database
 *.db
 *.db-shm
 *.db-wal
-__pycache__/
-*.pyc
-.DS_Store
+
+# Node
 node_modules/
 .next/
 next-env.d.ts
+*.tsbuildinfo
+
+# Env
+.env
+.env.local
+.env*.local
+
+# System
+.DS_Store
+Thumbs.db
