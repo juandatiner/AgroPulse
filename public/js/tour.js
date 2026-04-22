@@ -1,6 +1,6 @@
 // Guided tour overlay. Spotlight + tooltip + skip + restart.
 const Tour = {
-    STORAGE_KEY: 'agropulse_tour_completed_v1',
+    STORAGE_KEY: 'agropulse_tour_completed_v2',
     _idx: 0,
     _active: false,
     _prevTarget: null,
@@ -24,6 +24,12 @@ const Tour = {
             title: 'Tus publicaciones',
             body: 'Aquí ves tus publicaciones recientes y puedes acceder rápido al formulario de publicar.',
             target: '#section-mis-pub',
+            tab: 'inicio',
+        },
+        {
+            title: 'De la comunidad',
+            body: 'Las publicaciones más recientes de otros productores aparecen aquí. Toca cualquier tarjeta para ver el detalle, fotos y ubicación.',
+            target: '#section-comunidad',
             tab: 'inicio',
         },
         {
@@ -51,9 +57,39 @@ const Tour = {
             tab: 'publicar',
         },
         {
+            title: 'Cómo concretar un acuerdo',
+            body: '1) Abre una publicación de la comunidad. 2) Toca "Contactar" para enviar tu propuesta al dueño. 3) Se crea un acuerdo y se abre el chat para coordinar precio, cantidad, fecha y lugar.',
+            target: null,
+            tab: 'mercado',
+        },
+        {
             title: 'Servicios e intercambios',
-            body: 'Aquí gestionas tus acuerdos: pendientes, activos y completados. El indicador rojo avisa cuando hay algo por revisar.',
+            body: 'Aquí gestionas todos tus acuerdos. El indicador rojo avisa cuando hay algo por revisar.',
             target: '[data-tab="intercambios"]',
+            tab: 'intercambios',
+        },
+        {
+            title: 'Estados del acuerdo',
+            body: 'Pendientes: esperando respuesta. Activos: aceptados, en ejecución. Completados: ya cumplidos. Cancelados: rechazados o cancelados por alguna parte.',
+            target: '.status-tabs',
+            tab: 'intercambios',
+        },
+        {
+            title: 'Chat dentro del acuerdo',
+            body: 'Cada acuerdo tiene su chat privado. Allí puedes mandar mensajes, fotos y compartir tu ubicación para coordinar la entrega.',
+            target: null,
+            tab: 'intercambios',
+        },
+        {
+            title: 'Marcar como completado',
+            body: 'Cuando el intercambio se cumpla, ambas partes lo marcan como completado desde la tarjeta del acuerdo. Solo así pasa a estado "Completado".',
+            target: null,
+            tab: 'intercambios',
+        },
+        {
+            title: 'Calificar a la otra parte',
+            body: 'Tras completar el acuerdo, califica con estrellas y deja un comentario. Tu calificación construye la reputación de la comunidad y aparece en el perfil público.',
+            target: null,
             tab: 'intercambios',
         },
         {
