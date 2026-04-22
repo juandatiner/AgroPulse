@@ -43,6 +43,7 @@ const App = {
         Chat.startGlobalPolling();
         this.updateNavAvatar();
         this.refreshAgreementCounts();
+        if (typeof Tour !== 'undefined') Tour.maybeStart();
     },
 
     handlePopState(e) {

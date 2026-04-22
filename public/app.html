@@ -250,6 +250,9 @@
             <span class="nav-logo-text">AgroPulse</span>
         </div>
         <div class="nav-right">
+            <button class="nav-btn" id="nav-tour-btn" onclick="Tour.start()" title="Reiniciar tutorial" aria-label="Reiniciar tutorial">
+                <i data-lucide="help-circle"></i>
+            </button>
             <div class="nav-avatar" id="nav-avatar" onclick="App.switchTab('perfil')">
                 <span class="badge hidden" id="nav-badge"></span>
             </div>
@@ -623,10 +626,28 @@
 <!-- ===== TOAST ===== -->
 <div class="toast" id="toast"></div>
 
+<!-- ===== TOUR / TUTORIAL ===== -->
+<div id="tour-root" class="tour-root" style="display:none" aria-hidden="true">
+    <div class="tour-spotlight" id="tour-spotlight"></div>
+    <div class="tour-tooltip" id="tour-tooltip" role="dialog" aria-labelledby="tour-title">
+        <div class="tour-progress"><span id="tour-step-num"></span></div>
+        <h4 id="tour-title"></h4>
+        <p id="tour-body"></p>
+        <div class="tour-actions">
+            <button class="tour-skip" id="tour-skip" onclick="Tour.skip()">Omitir</button>
+            <div class="tour-nav">
+                <button class="tour-prev" id="tour-prev" onclick="Tour.prev()">Atrás</button>
+                <button class="tour-next" id="tour-next" onclick="Tour.next()">Siguiente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="/js/api.js?v=2"></script>
 <script src="/js/geo.js?v=2"></script>
 <script src="/js/chat.js?v=2"></script>
 <script src="/js/app.js?v=2"></script>
+<script src="/js/tour.js?v=1"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
