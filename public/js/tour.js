@@ -131,24 +131,24 @@ const Tour = {
             html: `
                 <div class="tour-flow">
                     <div class="tour-flow-step">
-                        <div class="tour-flow-num">1</div>
+                        <div class="tour-flow-icon"><i data-lucide="user-cog"></i></div>
                         <div class="tour-flow-body">
-                            <div class="tour-flow-title"><i data-lucide="check"></i> Tú confirmas</div>
-                            <div class="tour-flow-desc">Toca "Completar" en la tarjeta del acuerdo.</div>
+                            <div class="tour-flow-title">Solo el dueño de la publicación</div>
+                            <div class="tour-flow-desc">Quien publicó el recurso es quien cierra el acuerdo.</div>
                         </div>
                     </div>
                     <div class="tour-flow-step">
-                        <div class="tour-flow-num">2</div>
+                        <div class="tour-flow-icon"><i data-lucide="check-circle"></i></div>
                         <div class="tour-flow-body">
-                            <div class="tour-flow-title"><i data-lucide="user-check"></i> La otra parte confirma</div>
-                            <div class="tour-flow-desc">Debe marcarlo también desde su lado.</div>
+                            <div class="tour-flow-title">Botón "Completar"</div>
+                            <div class="tour-flow-desc">Aparece en la tarjeta del acuerdo activo y dentro del chat.</div>
                         </div>
                     </div>
                     <div class="tour-flow-step">
-                        <div class="tour-flow-num">3</div>
+                        <div class="tour-flow-icon"><i data-lucide="lock"></i></div>
                         <div class="tour-flow-body">
-                            <div class="tour-flow-title"><i data-lucide="check-circle"></i> Acuerdo cerrado</div>
-                            <div class="tour-flow-desc">Pasa al estado <strong>Completado</strong>.</div>
+                            <div class="tour-flow-title">Acuerdo cerrado</div>
+                            <div class="tour-flow-desc">Pasa al estado <strong>Completado</strong> y se habilita la calificación para ambas partes.</div>
                         </div>
                     </div>
                 </div>`,
