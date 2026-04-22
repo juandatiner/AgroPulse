@@ -32,8 +32,8 @@ const Chat = {
         if (a.status === 'pending' && isProvider) {
             html = `<div class="csb-info"><i data-lucide="bell"></i> <span>${otherFirst} quiere conectar contigo</span></div>
                     <div class="csb-actions">
-                        <button class="btn btn-success btn-xs" onclick="App.updateAgreement(${a.id},'active')"><i data-lucide="check"></i> Aceptar e iniciar</button>
-                        <button class="btn btn-danger btn-xs" onclick="App.updateAgreement(${a.id},'rejected')"><i data-lucide="x"></i> Rechazar</button>
+                        <button class="btn btn-success btn-xs" onclick="App.updateAgreement('${a.id}','active')"><i data-lucide="check"></i> Aceptar e iniciar</button>
+                        <button class="btn btn-danger btn-xs" onclick="App.updateAgreement('${a.id}','rejected')"><i data-lucide="x"></i> Rechazar</button>
                     </div>`;
         } else if (a.status === 'pending' && !isProvider) {
             html = `<div class="csb-info"><i data-lucide="clock"></i> <span>Esperando que ${otherFirst} acepte tu solicitud</span></div>`;
@@ -41,8 +41,8 @@ const Chat = {
             if (isProvider) {
                 html = `<div class="csb-info"><i data-lucide="handshake"></i> <span>Servicio en curso</span></div>
                         <div class="csb-actions">
-                            <button class="btn btn-success btn-xs" onclick="App.markComplete(${a.id})"><i data-lucide="check-circle"></i> Completar</button>
-                            <button class="btn btn-cancel btn-xs" onclick="App.updateAgreement(${a.id},'cancelled')"><i data-lucide="x"></i> Cancelar</button>
+                            <button class="btn btn-success btn-xs" onclick="App.markComplete('${a.id}')"><i data-lucide="check-circle"></i> Completar</button>
+                            <button class="btn btn-cancel btn-xs" onclick="App.updateAgreement('${a.id}','cancelled')"><i data-lucide="x"></i> Cancelar</button>
                         </div>`;
             } else {
                 html = `<div class="csb-info"><i data-lucide="handshake"></i> <span>Servicio en curso — el dueño confirmará al terminar</span></div>`;
@@ -51,7 +51,7 @@ const Chat = {
             const rated = isProvider ? a.rating_provider : a.rating_requester;
             const rateBtn = rated
                 ? `<span style="font-size:0.78rem;color:var(--text-muted)"><i data-lucide="star"></i> Calificado ${rated}/5</span>`
-                : `<button class="btn btn-earth btn-xs" onclick="App.showRating(${a.id})"><i data-lucide="star"></i> Calificar</button>`;
+                : `<button class="btn btn-earth btn-xs" onclick="App.showRating('${a.id}')"><i data-lucide="star"></i> Calificar</button>`;
             html = `<div class="csb-info csb-done"><i data-lucide="check-circle"></i> <span>¡Servicio completado!</span></div>
                     <div class="csb-actions">${rateBtn}</div>`;
         } else if (a.status === 'cancelled' || a.status === 'rejected') {
@@ -207,8 +207,8 @@ const Chat = {
     previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-        if (file.size > 500000) {
-            App.showToast('Imagen muy grande (máx 500KB)', 'error');
+        if (file.size > 5 * 1024 * 1024) {
+            App.showToast('Imagen muy grande (máx 5MB)', 'error');
             return;
         }
         const reader = new FileReader();

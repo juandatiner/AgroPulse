@@ -69,6 +69,9 @@ const App = {
     },
 
     switchTab(tab) {
+        if (this.currentTab === 'publicar' && tab !== 'publicar' && this._editingResourceId) {
+            this._editingResourceId = null;
+        }
         this.currentTab = tab;
         if (!this._skipHistory) history.pushState({ type: 'tab', tab }, '');
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -77,7 +80,7 @@ const App = {
         document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
         if (tab === 'inicio') this.loadHome();
         if (tab === 'mercado') this.loadMarket();
-        if (tab === 'publicar') this.initPublishForm();
+        if (tab === 'publicar' && !this._editingResourceId) this.initPublishForm();
         if (tab === 'intercambios') this.loadAgreements();
         if (tab === 'perfil') this.loadProfile();
     },
@@ -701,8 +704,11 @@ const App = {
         const isScheduled = scheduledAt && scheduledAt > now;
         const hasDeactivSched = deactivAt && deactivAt > now;
 
+        const editBtn = `<button class="btn btn-outline btn-full btn-sm" onclick="App.editResource('${r.id}')"><i data-lucide="edit-3"></i> Editar publicación</button>`;
+
         if (isScheduled) {
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate('${r.id}')"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
+            return `${editBtn}
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate('${r.id}')"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
                     <button class="btn btn-primary btn-full btn-sm" onclick="App.publishNow('${r.id}')"><i data-lucide="send"></i> Publicar ya</button>
                     <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
@@ -717,7 +723,8 @@ const App = {
         }
 
         if (r.status === 'active') {
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource('${r.id}', 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
+            return `${editBtn}
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource('${r.id}', 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
                     ${deactivBtns}
                     <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
@@ -726,12 +733,14 @@ const App = {
         const hasActivSched = r.scheduled_at && new Date(r.scheduled_at.replace(' ', 'T') + 'Z') > now;
         if (hasActivSched) {
             const date = this.formatDate(r.scheduled_at);
-            return `<button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate('${r.id}')"><i data-lucide="calendar"></i> Editar activación (${date})</button>
+            return `${editBtn}
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate('${r.id}')"><i data-lucide="calendar"></i> Editar activación (${date})</button>
                     <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ya</button>
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelActivationSchedule('${r.id}')"><i data-lucide="x-circle"></i> Cancelar activación programada</button>
                     <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
         }
-        return `<button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ahora</button>
+        return `${editBtn}
+                <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ahora</button>
                 <button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleActivation('${r.id}')"><i data-lucide="calendar"></i> Programar activación</button>
                 <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
     },
@@ -1243,7 +1252,7 @@ const App = {
                     <div class="image-upload-area" id="pub-image-area" onclick="document.getElementById('pub-image-input').click()">
                         <i data-lucide="image-plus"></i>
                         <p>Toca para agregar una foto</p>
-                        <span class="form-hint">Ayuda a que otros vean el recurso (máx 500KB)</span>
+                        <span class="form-hint">Ayuda a que otros vean el recurso (máx 5MB)</span>
                     </div>
                     <input type="file" id="pub-image-input" accept="image/*" style="display:none" onchange="App.previewPublishImage(event)">
                     <input type="hidden" id="pub-image-data">
@@ -1521,8 +1530,8 @@ const App = {
     previewPublishImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-        if (file.size > 500000) {
-            this.showToast('Imagen muy grande (máx 500KB)', 'error');
+        if (file.size > 5 * 1024 * 1024) {
+            this.showToast('Imagen muy grande (máx 5MB)', 'error');
             return;
         }
         const reader = new FileReader();
@@ -1555,6 +1564,131 @@ const App = {
             el.addEventListener('click', clear);
         }
         this.showToast(msg, 'error');
+    },
+
+    _editingResourceId: null,
+
+    async editResource(id) {
+        try {
+            const r = await API.getResource(id);
+            this.closeDetail();
+            this._editingResourceId = id;
+            this.switchTab('publicar');
+            // Render form for the resource's tipo, then populate
+            this.setPublishType(r.tipo);
+            setTimeout(() => this._populatePublishForm(r), 80);
+        } catch (e) {
+            this.showToast('Error al cargar publicación', 'error');
+        }
+    },
+
+    cancelEditResource() {
+        this._editingResourceId = null;
+        this.initPublishForm();
+        this.showToast('Edición cancelada');
+    },
+
+    _setVal(id, val) {
+        const el = document.getElementById(id);
+        if (!el || val == null) return;
+        el.value = val;
+    },
+
+    _populatePublishForm(r) {
+        // Set tipo selector tab if exists
+        document.querySelectorAll('.type-selector .type-opt').forEach(b => {
+            b.classList.toggle('active', b.dataset.tipo === r.tipo);
+        });
+
+        this._setVal('pub-titulo', r.titulo);
+        this._setVal('pub-desc', r.descripcion);
+        this._setVal('pub-cat', r.categoria);
+        this.refreshCondicionOptions();
+        this._setVal('pub-condicion', r.condicion);
+        this._setVal('pub-cantidad', r.cantidad);
+        this._setVal('pub-disponibilidad', r.disponibilidad);
+        this._setVal('pub-duracion', r.duracion_prestamo);
+        this._setVal('pub-garantia', r.garantia);
+        this._setVal('pub-ofrece', r.ofrece);
+        this._setVal('pub-recibe', r.recibe);
+        this._setVal('pub-loc-notes', r.location_notes);
+
+        // Unidad: handle "No aplica"
+        const unidadActive = document.getElementById('toggle-unidad-active');
+        const unidadInput = document.getElementById('pub-unidad');
+        if (unidadActive && unidadInput) {
+            if (r.unidad === 'No aplica') {
+                unidadActive.checked = false;
+                unidadActive.dispatchEvent(new Event('change'));
+            } else {
+                unidadActive.checked = true;
+                unidadInput.value = r.unidad || '';
+            }
+        }
+
+        // Precio: parse value and periodo
+        const precioToggle = document.getElementById('toggle-precio');
+        const modalidadEl = document.getElementById('pub-modalidad');
+        if (r.precio_referencia && precioToggle) {
+            precioToggle.checked = true;
+            precioToggle.dispatchEvent(new Event('change'));
+            const periodoMatch = (r.precio_referencia || '').match(/^(.*?)\s+(por\s+\w+|por\s+\w+\s+\w+|en\s+total|a\s+convenir)$/i);
+            const precioVal = periodoMatch ? periodoMatch[1].trim() : r.precio_referencia;
+            const precioPer = periodoMatch ? periodoMatch[2].toLowerCase() : '';
+            this._setVal('pub-precio', precioVal);
+            this._setVal('pub-precio-periodo', precioPer);
+        }
+        if (modalidadEl && r.modalidad) {
+            modalidadEl.value = r.modalidad;
+            ['#oferta-pago-tipo', '#prestamo-pago-tipo', '#solicitud-pago-tipo', '#trueque-tipo'].forEach(sel => {
+                document.querySelectorAll(`${sel} .seg-opt`).forEach(b => {
+                    b.classList.toggle('active', b.dataset.val === r.modalidad);
+                });
+            });
+        }
+
+        // Image preview
+        if (r.image_data) {
+            const area = document.getElementById('pub-image-area');
+            const hidden = document.getElementById('pub-image-data');
+            if (hidden) hidden.value = r.image_data;
+            if (area) area.innerHTML = `<img src="${r.image_data}" alt="Preview"><p style="margin-top:8px">Toca para cambiar la foto</p>`;
+        }
+
+        // Location
+        this._setVal('pub-lat', r.latitude);
+        this._setVal('pub-lng', r.longitude);
+        this._setVal('pub-addr', r.municipio);
+        if (r.latitude != null && r.longitude != null && Geo._pickerSetLocation && Geo._pickerSetLocation['loc-pub']) {
+            try { Geo._pickerSetLocation['loc-pub'](r.latitude, r.longitude); } catch (_) {}
+        }
+
+        // Replace publish/schedule buttons with save/cancel
+        const actionRow = document.querySelector('.publish-action-row');
+        if (actionRow) {
+            actionRow.innerHTML = `
+                <button class="btn btn-primary" onclick="App.doPublish()" id="btn-publish">
+                    <i data-lucide="save"></i> Guardar cambios
+                </button>
+                <button class="btn btn-outline" onclick="App.cancelEditResource()">
+                    <i data-lucide="x"></i> Cancelar
+                </button>`;
+            lucide.createIcons({ nodes: [actionRow] });
+        }
+
+        // Banner indicating edit mode
+        const formContainer = document.getElementById('publish-form-fields');
+        if (formContainer && !document.getElementById('edit-banner')) {
+            const banner = document.createElement('div');
+            banner.id = 'edit-banner';
+            banner.className = 'publish-form-section';
+            banner.style.cssText = 'background:var(--cream);border-left:4px solid var(--field);padding:10px 14px;margin-bottom:12px';
+            banner.innerHTML = `<div style="display:flex;align-items:center;gap:8px;font-size:0.88rem;color:var(--earth)"><i data-lucide="edit-3" style="width:16px;height:16px"></i> <strong>Editando publicación</strong></div>`;
+            formContainer.insertBefore(banner, formContainer.firstChild);
+            lucide.createIcons({ nodes: [banner] });
+        }
+
+        this.showToast('Editando publicación');
     },
 
     async doPublish(scheduledAt = null) {
@@ -1613,8 +1747,15 @@ const App = {
             if (recibeEl && !data.recibe) return this.fieldError('pub-recibe', 'Describe lo que deseas recibir a cambio');
             if (!data.image_data) return this.fieldError('pub-image-area', 'Agrega una foto del recurso');
             if (!data.municipio) return this.fieldError('loc-pub', 'La ubicación es obligatoria');
-            await API.createResource(data);
-            this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
+            if (this._editingResourceId) {
+                const editId = this._editingResourceId;
+                this._editingResourceId = null;
+                await API.updateResource(editId, data);
+                this.showToast('Publicación actualizada');
+            } else {
+                await API.createResource(data);
+                this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
+            }
             this.switchTab('inicio');
         } catch (e) {
             this.showToast(e.message, 'error');
