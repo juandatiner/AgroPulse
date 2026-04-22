@@ -22,14 +22,14 @@ const Tour = {
         },
         {
             title: 'Tus publicaciones',
-            body: 'Aquí ves tus publicaciones recientes y puedes acceder rápido al formulario de publicar.',
-            target: '#section-mis-pub',
+            body: 'Aquí ves tus publicaciones recientes y puedes acceder rápido al formulario de publicar. Si aún no tienes ninguna, verás el mensaje vacío con un botón directo para crear la primera.',
+            target: '#block-mis-pub',
             tab: 'inicio',
         },
         {
             title: 'De la comunidad',
-            body: 'Las publicaciones más recientes de otros productores aparecen aquí. Toca cualquier tarjeta para ver el detalle, fotos y ubicación.',
-            target: '#section-comunidad',
+            body: 'Las publicaciones más recientes de otros productores aparecen aquí. Desliza horizontalmente para verlas todas y toca cualquier tarjeta para abrir el detalle, fotos, ubicación y datos del dueño.',
+            target: '#block-comunidad',
             tab: 'inicio',
         },
         {
@@ -58,7 +58,30 @@ const Tour = {
         },
         {
             title: 'Cómo concretar un acuerdo',
-            body: '1) Abre una publicación de la comunidad. 2) Toca "Contactar" para enviar tu propuesta al dueño. 3) Se crea un acuerdo y se abre el chat para coordinar precio, cantidad, fecha y lugar.',
+            html: `
+                <div class="tour-flow">
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">1</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="search"></i> Abre una publicación</div>
+                            <div class="tour-flow-desc">Explora el mercado y toca la tarjeta que te interese para ver fotos, ubicación y dueño.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">2</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="hand"></i> Toca "Contactar"</div>
+                            <div class="tour-flow-desc">Envía tu propuesta al dueño. Se crea automáticamente un acuerdo y se abre el chat.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">3</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="message-circle"></i> Coordinen por chat</div>
+                            <div class="tour-flow-desc">Acuerden <strong>precio</strong>, <strong>cantidad</strong>, <strong>fecha</strong> y <strong>lugar</strong> de entrega.</div>
+                        </div>
+                    </div>
+                </div>`,
             target: null,
             tab: 'mercado',
         },
@@ -76,19 +99,88 @@ const Tour = {
         },
         {
             title: 'Chat dentro del acuerdo',
-            body: 'Cada acuerdo tiene su chat privado. Allí puedes mandar mensajes, fotos y compartir tu ubicación para coordinar la entrega.',
+            html: `
+                <div class="tour-flow">
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon"><i data-lucide="message-square"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Mensajes privados</div>
+                            <div class="tour-flow-desc">Conversa solo con la otra parte del acuerdo.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon"><i data-lucide="image"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Fotos</div>
+                            <div class="tour-flow-desc">Envía imágenes del recurso o de la entrega.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon"><i data-lucide="map-pin"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Ubicación</div>
+                            <div class="tour-flow-desc">Comparte el punto exacto del encuentro.</div>
+                        </div>
+                    </div>
+                </div>`,
             target: null,
             tab: 'intercambios',
         },
         {
             title: 'Marcar como completado',
-            body: 'Cuando el intercambio se cumpla, ambas partes lo marcan como completado desde la tarjeta del acuerdo. Solo así pasa a estado "Completado".',
+            html: `
+                <div class="tour-flow">
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">1</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="check"></i> Tú confirmas</div>
+                            <div class="tour-flow-desc">Toca "Completar" en la tarjeta del acuerdo.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">2</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="user-check"></i> La otra parte confirma</div>
+                            <div class="tour-flow-desc">Debe marcarlo también desde su lado.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-num">3</div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title"><i data-lucide="check-circle"></i> Acuerdo cerrado</div>
+                            <div class="tour-flow-desc">Pasa al estado <strong>Completado</strong>.</div>
+                        </div>
+                    </div>
+                </div>`,
             target: null,
             tab: 'intercambios',
         },
         {
             title: 'Calificar a la otra parte',
-            body: 'Tras completar el acuerdo, califica con estrellas y deja un comentario. Tu calificación construye la reputación de la comunidad y aparece en el perfil público.',
+            html: `
+                <div class="tour-flow">
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon tour-flow-icon-star"><i data-lucide="star"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Estrellas 1 a 5</div>
+                            <div class="tour-flow-desc">Toca las estrellas para puntuar la experiencia.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon"><i data-lucide="message-square-text"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Comentario y etiquetas</div>
+                            <div class="tour-flow-desc">Selecciona etiquetas y deja una reseña corta.</div>
+                        </div>
+                    </div>
+                    <div class="tour-flow-step">
+                        <div class="tour-flow-icon"><i data-lucide="trophy"></i></div>
+                        <div class="tour-flow-body">
+                            <div class="tour-flow-title">Reputación pública</div>
+                            <div class="tour-flow-desc">Tu nota suma al perfil de la otra persona.</div>
+                        </div>
+                    </div>
+                </div>`,
             target: null,
             tab: 'intercambios',
         },
@@ -175,7 +267,13 @@ const Tour = {
         }
 
         document.getElementById('tour-title').textContent = step.title;
-        document.getElementById('tour-body').textContent = step.body;
+        const bodyEl = document.getElementById('tour-body');
+        if (step.html) {
+            bodyEl.innerHTML = step.html;
+            if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [bodyEl] });
+        } else {
+            bodyEl.textContent = step.body || '';
+        }
         document.getElementById('tour-step-num').textContent =
             `Paso ${this._idx + 1} de ${this.steps.length}`;
 

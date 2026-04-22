@@ -288,17 +288,21 @@
                     </div>
                 </div>
             </div>
-            <div class="section-header" id="section-mis-pub">
-                <h3 class="section-title">Mis publicaciones</h3>
-                <button class="section-more" onclick="App.switchTab('publicar')">Publicar <i data-lucide="plus"></i></button>
+            <div id="block-mis-pub">
+                <div class="section-header" id="section-mis-pub">
+                    <h3 class="section-title">Mis publicaciones</h3>
+                    <button class="section-more" onclick="App.switchTab('publicar')">Publicar <i data-lucide="plus"></i></button>
+                </div>
+                <div class="my-resources-list" id="my-resources"></div>
             </div>
-            <div class="my-resources-list" id="my-resources"></div>
 
-            <div class="section-header" id="section-comunidad">
-                <h3 class="section-title">De la comunidad</h3>
-                <button class="section-more" onclick="App.switchTab('mercado')">Ver todo <i data-lucide="chevron-right"></i></button>
+            <div id="block-comunidad">
+                <div class="section-header" id="section-comunidad">
+                    <h3 class="section-title">De la comunidad</h3>
+                    <button class="section-more" onclick="App.switchTab('mercado')">Ver todo <i data-lucide="chevron-right"></i></button>
+                </div>
+                <div class="resource-scroll" id="recent-resources"></div>
             </div>
-            <div class="resource-scroll" id="recent-resources"></div>
         </div>
 
         <!-- MARKETPLACE -->
@@ -647,7 +651,7 @@
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=3"></script>
 <script src="/js/app.js?v=3"></script>
-<script src="/js/tour.js?v=2"></script>
+<script src="/js/tour.js?v=4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();

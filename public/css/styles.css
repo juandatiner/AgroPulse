@@ -2605,3 +2605,65 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .tour-spotlight:not(.tour-centered) { animation: tourPulse 2s ease-out infinite; }
 
 #nav-tour-btn { color: var(--cream); }
+
+/* Tour: pretty flow card for multi-step explanations */
+.tour-flow { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.tour-flow-step {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px;
+    background: var(--cream, #f5f0e8);
+    border-radius: 10px;
+    border-left: 3px solid var(--field, #6b8e4e);
+    animation: tourFlowIn 0.32s ease-out both;
+}
+.tour-flow-step:nth-child(1) { animation-delay: 0.05s; }
+.tour-flow-step:nth-child(2) { animation-delay: 0.15s; }
+.tour-flow-step:nth-child(3) { animation-delay: 0.25s; }
+.tour-flow-num {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--field, #6b8e4e), var(--earth, #2d3a2e));
+    color: var(--cream, #fff);
+    font-size: 0.82rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.tour-flow-body { flex: 1; min-width: 0; }
+.tour-flow-title {
+    display: flex; align-items: center; gap: 6px;
+    font-weight: 600;
+    font-size: 0.86rem;
+    color: var(--earth, #2d3a2e);
+    margin-bottom: 3px;
+}
+.tour-flow-title svg { width: 14px; height: 14px; color: var(--field, #6b8e4e); flex-shrink: 0; }
+.tour-flow-desc {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--text-muted, #555);
+}
+.tour-flow-desc strong { color: var(--earth, #2d3a2e); }
+
+@keyframes tourFlowIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+.tour-flow-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--field, #6b8e4e), var(--earth, #2d3a2e));
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.tour-flow-icon svg { width: 16px; height: 16px; color: var(--cream, #fff); }
+.tour-flow-icon-star {
+    background: linear-gradient(135deg, #f5b840, #d68a1c);
+}
+.tour-flow-step:nth-child(4) { animation-delay: 0.35s; }
+.tour-flow-step:nth-child(5) { animation-delay: 0.45s; }
