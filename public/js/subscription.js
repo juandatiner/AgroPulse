@@ -241,22 +241,31 @@ const Subscription = {
                 else host.insertBefore(slot, host.firstChild);
             }
 
-            const pick = this._ADS[(this._adRotationIdx + idx) % this._ADS.length];
             const vertical = position === 'right';
-            slot.innerHTML = `
-                <div class="ad-slot ad-slot-compact ${vertical ? 'ad-slot-vertical' : ''}" onclick="Subscription.openAdCard('${pick.id}')">
-                    <span class="ad-sponsored">Publicidad</span>
-                    <div class="ad-body">
-                        <span class="ad-icon">${pick.icon}</span>
-                        <div class="ad-text">
-                            <strong>${this._esc(pick.title)}</strong>
-                            <span>${this._esc(pick.text)}</span>
-                        </div>
-                        <button class="ad-cta" onclick="event.stopPropagation(); Subscription.openAdCard('${pick.id}')">${this._esc(pick.cta)}</button>
+            const count = vertical ? 4 : 3;
+            const picks = [];
+            for (let k = 0; k < count; k++) {
+                picks.push(this._ADS[(this._adRotationIdx + idx + k) % this._ADS.length]);
+            }
+            const cardsHtml = picks.map(pick => `
+                <div class="ad-tile ${vertical ? 'ad-tile-v' : 'ad-tile-h'}" onclick="Subscription.openAdCard('${pick.id}')">
+                    <div class="ad-tile-icon">${pick.icon}</div>
+                    <div class="ad-tile-text">
+                        <strong>${this._esc(pick.title)}</strong>
+                        <span>${this._esc(pick.text)}</span>
                     </div>
+                    <button class="ad-tile-cta" onclick="event.stopPropagation(); Subscription.openAdCard('${pick.id}')">${this._esc(pick.cta)}</button>
+                </div>
+            `).join('');
+            slot.innerHTML = `
+                <div class="ad-slot-header">
+                    <span class="ad-sponsored">Publicidad</span>
                     <button class="ad-remove" onclick="event.stopPropagation(); Subscription.openPlans()" title="Quitar anuncios con Pro">
                         <i data-lucide="x"></i>
                     </button>
+                </div>
+                <div class="ad-tiles ${vertical ? 'ad-tiles-v' : 'ad-tiles-h'}">
+                    ${cardsHtml}
                 </div>
             `;
         });
