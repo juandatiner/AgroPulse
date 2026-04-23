@@ -191,9 +191,6 @@ const App = {
                 <button class="btn btn-primary btn-full" onclick="Subscription._closeOverlay('welcome-overlay'); Tour.start();">
                     <i data-lucide="play"></i> Iniciar tutorial
                 </button>
-                <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="Subscription._closeOverlay('welcome-overlay'); Subscription.openPlans();">
-                    <i data-lucide="crown"></i> Ver suscripción
-                </button>
                 <button class="btn btn-cancel btn-full" style="margin-top:8px" onclick="Subscription._closeOverlay('welcome-overlay')">
                     Explorar solo
                 </button>

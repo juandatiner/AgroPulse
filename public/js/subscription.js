@@ -60,7 +60,7 @@ const Subscription = {
         el.innerHTML = `
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown}${promoText}</span>
-                <button class="promo-banner-cta">Ver planes <i data-lucide="chevron-right"></i></button>
+                <button class="promo-banner-cta">Ver suscripción <i data-lucide="chevron-right"></i></button>
             </div>
         `;
         if (window.lucide) lucide.createIcons();
@@ -217,6 +217,13 @@ const Subscription = {
         const s = this.state || {};
         const priceReg = this.formatPrice(s.price_regular || 15800);
         const pricePromo = this.formatPrice(s.price_promo || 7900);
+        const alreadyActive = !!s.is_premium;
+        const activeReason = s.status === 'active'
+            ? 'Suscripción Pro activa'
+            : (s.status === 'trial' ? 'Prueba gratuita activa' : '');
+        const activeSubtitle = s.status === 'active' && s.subscription_end
+            ? `Renueva el ${new Date(s.subscription_end).toLocaleDateString()}`
+            : (s.status === 'trial' && s.trial_end ? `Termina el ${new Date(s.trial_end).toLocaleDateString()}` : '');
         const features = [
             { icon: 'infinity', title: 'Publicaciones ilimitadas', desc: 'Publica sin el tope de 3 al mes' },
             { icon: 'bell', title: 'Alertas de match inteligente', desc: 'Te avisamos cuando alguien busca lo que ofreces' },
@@ -242,9 +249,22 @@ const Subscription = {
                         </div>
                         ${s.promo_active && s.promo_days_left > 0 ? `<p class="plans-price-promo-hint">🔥 Promo termina en ${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</p>` : ''}
                     </div>
-                    <button class="btn btn-primary btn-full plans-cta" onclick="Subscription.openCheckout()">
-                        <i data-lucide="credit-card"></i> Suscribirme ahora
-                    </button>
+                    ${alreadyActive ? `
+                        <div class="plans-active-notice">
+                            <i data-lucide="check-circle-2"></i>
+                            <div>
+                                <strong>${activeReason}</strong>
+                                ${activeSubtitle ? `<small>${activeSubtitle}</small>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-outline btn-full plans-cta" disabled style="opacity:0.6;cursor:not-allowed">
+                            Ya tienes todo desbloqueado
+                        </button>
+                    ` : `
+                        <button class="btn btn-primary btn-full plans-cta" onclick="Subscription.openCheckout()">
+                            <i data-lucide="credit-card"></i> Suscribirme ahora
+                        </button>
+                    `}
                     <p class="plans-legal">Pago mensual · Cancela cuando quieras · Simulación de pago (demo)</p>
                 </div>
                 <div class="plans-features">
@@ -316,6 +336,10 @@ const Subscription = {
     // ========== Pasarela de pago simulada ==========
     openCheckout() {
         const s = this.state || {};
+        if (s.is_premium) {
+            App.showToast(s.status === 'trial' ? 'Ya tienes tu prueba gratuita activa' : 'Ya tienes una suscripción activa', 'info');
+            return;
+        }
         const pricePromo = this.formatPrice(s.price_promo || 7900);
         const html = `
             <div class="checkout-overlay-inner">

@@ -3350,3 +3350,16 @@ body.no-scroll { overflow: hidden; }
     color: var(--earth);
 }
 .welcome-features svg { width: 18px; height: 18px; color: var(--success); flex-shrink: 0; }
+
+.plans-active-notice {
+    display: flex; align-items: center; gap: 10px;
+    background: #e0f5e5;
+    border: 1px solid #b7e0c2;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin: 8px 0 10px;
+    text-align: left;
+}
+.plans-active-notice svg { width: 24px; height: 24px; color: var(--success); flex-shrink: 0; }
+.plans-active-notice strong { display: block; color: var(--earth); font-size: 0.92rem; }
+.plans-active-notice small { color: var(--text-muted); font-size: 0.78rem; }

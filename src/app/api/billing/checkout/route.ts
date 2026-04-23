@@ -11,6 +11,16 @@ export async function POST(request: Request) {
     const { user } = await getAuthUser(request)
     if (!user) return json({ error: 'No autorizado' }, 401)
 
+    const existing = await computeSubscriptionState(user.id)
+    if (existing.is_premium) {
+      return json({
+        error: 'already_active',
+        message: existing.status === 'trial'
+          ? 'Ya tienes tu prueba gratuita activa — no necesitas pagar todavía'
+          : 'Ya tienes una suscripción activa',
+      }, 400)
+    }
+
     const body = await request.json()
     const card = String(body.card_number || '').replace(/\s+/g, '')
     const cvv = String(body.cvv || '')
