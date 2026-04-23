@@ -2818,8 +2818,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     width: 160px;
     margin: 0;
     padding: 8px;
-    background: linear-gradient(180deg, var(--cream,#fdf8f0), var(--white));
-    border-left: 1px solid var(--cream-dark, #e8dfc8);
+    background: transparent;
+    border-left: none;
     overflow-y: auto;
     z-index: 25;
     display: flex;
@@ -2895,9 +2895,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
         bottom: auto;
         top: auto;
         margin: 10px 16px;
-        border-left: none;
-        border-top: 1px solid var(--cream-dark,#e8dfc8);
-        border-bottom: 1px solid var(--cream-dark,#e8dfc8);
+        border: none;
+        background: transparent;
     }
     .ad-tiles-v { flex-direction: row; overflow-x: auto; }
     .ad-tile-v { min-width: 140px; flex: 0 0 auto; }

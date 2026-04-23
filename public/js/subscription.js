@@ -206,9 +206,9 @@ const Subscription = {
 
     _slotPositions: {
         inicio: 'right',
-        mercado: 'top',
-        publicar: 'top',
-        intercambios: 'top',
+        mercado: 'right',
+        publicar: 'right',
+        intercambios: 'right',
         perfil: 'right',
     },
     _adRotationIdx: 0,
