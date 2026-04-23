@@ -176,12 +176,14 @@ const Subscription = {
     ],
 
     _slotPositions: {
-        inicio: 'top',
+        inicio: 'right',
         mercado: 'top',
-        publicar: 'bottom',
+        publicar: 'top',
         intercambios: 'top',
-        perfil: 'bottom',
+        perfil: 'right',
     },
+    _adRotationIdx: 0,
+    _adRotationTimer: null,
 
     renderAds() {
         const panels = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
@@ -192,6 +194,7 @@ const Subscription = {
             });
             const legacy = document.getElementById('sub-ads-bar');
             if (legacy) legacy.remove();
+            if (this._adRotationTimer) { clearInterval(this._adRotationTimer); this._adRotationTimer = null; }
             return;
         }
         const legacy = document.getElementById('sub-ads-bar');
@@ -201,20 +204,21 @@ const Subscription = {
             const host = document.getElementById('panel-' + panelName);
             if (!host) return;
             const slotId = 'sub-ads-slot-' + panelName;
+            const position = this._slotPositions[panelName] || 'top';
             let slot = document.getElementById(slotId);
             if (!slot) {
                 slot = document.createElement('div');
                 slot.id = slotId;
-                slot.className = 'sub-ads-slot sub-ads-slot-' + (this._slotPositions[panelName] || 'top');
             }
+            slot.className = 'sub-ads-slot sub-ads-slot-' + position;
             if (slot.parentNode) slot.parentNode.removeChild(slot);
-            if (this._slotPositions[panelName] === 'bottom') host.appendChild(slot);
+            if (position === 'bottom') host.appendChild(slot);
             else host.insertBefore(slot, host.firstChild);
 
-            // Rotación diferente por panel
-            const pick = this._ADS[(Math.floor(Date.now() / 60000) + idx) % this._ADS.length];
+            const pick = this._ADS[(this._adRotationIdx + idx) % this._ADS.length];
+            const vertical = position === 'right';
             slot.innerHTML = `
-                <div class="ad-slot ad-slot-compact" onclick="Subscription.openAdCard('${pick.id}')">
+                <div class="ad-slot ad-slot-compact ${vertical ? 'ad-slot-vertical' : ''}" onclick="Subscription.openAdCard('${pick.id}')">
                     <span class="ad-sponsored">Publicidad</span>
                     <div class="ad-body">
                         <span class="ad-icon">${pick.icon}</span>
@@ -231,6 +235,13 @@ const Subscription = {
             `;
         });
         if (window.lucide) lucide.createIcons();
+
+        if (!this._adRotationTimer) {
+            this._adRotationTimer = setInterval(() => {
+                this._adRotationIdx = (this._adRotationIdx + 1) % this._ADS.length;
+                if (!this.isPremium()) this.renderAds();
+            }, 10000);
+        }
     },
 
     openAdCard(id) {

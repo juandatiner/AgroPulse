@@ -2786,6 +2786,28 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .sub-ads-slot { margin: 10px 16px; cursor: pointer; }
 .sub-ads-slot-top { margin-top: 8px; }
 .sub-ads-slot-bottom { margin-bottom: 80px; }
+.sub-ads-slot-right {
+    position: fixed;
+    right: 10px;
+    top: 72px;
+    width: 160px;
+    z-index: 40;
+    margin: 0;
+}
+.sub-ads-slot-right .ad-slot { padding: 8px; }
+@media (max-width: 480px) {
+    .sub-ads-slot-right {
+        position: static;
+        width: auto;
+        margin: 10px 16px;
+    }
+}
+.ad-slot-vertical .ad-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+.ad-slot-vertical .ad-body .ad-cta { align-self: stretch; text-align: center; }
 .ad-slot-compact { padding: 8px 10px; }
 .ad-slot-compact .ad-icon { font-size: 1.4rem; }
 .ad-slot-compact .ad-text strong { font-size: 0.85rem; }
