@@ -26,6 +26,13 @@ const API = {
         const res = await fetch('/api' + path, opts);
         let data;
         try { data = await res.json(); } catch { throw new Error('Error del servidor — revisa la conexión'); }
+        if (res.status === 401 && this.token && path !== '/login' && path !== '/register' && path !== '/logout') {
+            this.handleSessionInvalidated();
+            const err = new Error('Tu sesión fue cerrada');
+            err.status = 401;
+            err.code = 'session_invalid';
+            throw err;
+        }
         if (!res.ok) {
             const err = new Error(data?.message || data?.error || 'Error del servidor');
             err.status = res.status;
@@ -34,6 +41,28 @@ const API = {
             throw err;
         }
         return data;
+    },
+
+    handleSessionInvalidated() {
+        if (this._sessionKilled) return;
+        this._sessionKilled = true;
+        this.clearSession();
+        try { if (typeof Chat !== 'undefined' && Chat.stopGlobalPolling) Chat.stopGlobalPolling(); } catch {}
+        try { if (typeof Chat !== 'undefined' && Chat.stopPolling) Chat.stopPolling(); } catch {}
+        try { if (typeof Subscription !== 'undefined') Subscription.state = null; } catch {}
+        document.querySelectorAll('.sub-overlay').forEach(el => el.classList.remove('visible'));
+        document.body.classList.remove('no-scroll');
+        const overlay = document.getElementById('detail-overlay');
+        if (overlay) overlay.style.display = 'none';
+        const chatO = document.getElementById('chat-overlay');
+        if (chatO) chatO.style.display = 'none';
+        if (typeof App !== 'undefined' && App.showScreen) {
+            App.showScreen('screen-login');
+            if (App.showToast) App.showToast('Tu sesión finalizó. Inicia sesión de nuevo.', 'error');
+        } else {
+            location.reload();
+        }
+        setTimeout(() => { this._sessionKilled = false; }, 5000);
     },
 
     // Auth
