@@ -2814,10 +2814,10 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     position: fixed;
     top: 64px;
     right: 0;
-    bottom: 80px; /* respeto sobre tab-bar */
+    bottom: 100px; /* respeto adicional sobre tab-bar */
     width: 160px;
     margin: 0;
-    padding: 8px;
+    padding: 8px 8px 16px;
     background: transparent;
     border-left: none;
     overflow: hidden;

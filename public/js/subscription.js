@@ -263,7 +263,7 @@ const Subscription = {
             const GAP = 8;
             if (vertical) {
                 // Altura disponible real = viewport - top(64) - bottom(80) - padding slot
-                const avail = Math.max(180, window.innerHeight - 64 - 80 - PAD - HEADER_H);
+                const avail = Math.max(180, window.innerHeight - 64 - 100 - 24 - HEADER_H);
                 // Cuántos tiles de mínimo 110 caben? tope por MAX_TILE también
                 const maxByMin = Math.floor((avail + GAP) / (MIN_TILE + GAP));
                 const minByMax = Math.ceil((avail + GAP) / (MAX_TILE + GAP));
