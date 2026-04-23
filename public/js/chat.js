@@ -207,6 +207,11 @@ const Chat = {
     previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
+        if (typeof Subscription !== 'undefined' && !Subscription.isPremium()) {
+            event.target.value = '';
+            Subscription.openPaywall('Enviar fotos en el chat requiere suscripción activa. Los usuarios gratuitos sólo pueden enviar texto.');
+            return;
+        }
         if (file.size > 5 * 1024 * 1024) {
             App.showToast('Imagen muy grande (máx 5MB)', 'error');
             return;
@@ -232,6 +237,10 @@ const Chat = {
     // Location sharing
     async sendLocation() {
         if (!this.currentAgreementId) return;
+        if (typeof Subscription !== 'undefined' && !Subscription.isPremium()) {
+            Subscription.openPaywall('Compartir ubicación en el chat requiere suscripción activa.');
+            return;
+        }
         App.showToast('Detectando ubicación...');
         const pos = await Geo.getCurrentPosition();
         if (!pos) {

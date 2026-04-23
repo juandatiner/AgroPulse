@@ -26,7 +26,13 @@ const API = {
         const res = await fetch('/api' + path, opts);
         let data;
         try { data = await res.json(); } catch { throw new Error('Error del servidor — revisa la conexión'); }
-        if (!res.ok) throw new Error(data?.error || 'Error del servidor');
+        if (!res.ok) {
+            const err = new Error(data?.message || data?.error || 'Error del servidor');
+            err.status = res.status;
+            err.code = data?.error || '';
+            err.data = data;
+            throw err;
+        }
         return data;
     },
 
@@ -66,4 +72,18 @@ const API = {
     getProfile() { return this.request('GET', '/users/me'); },
     updateProfile(data) { return this.request('PUT', '/users/me', data).then(u => { this.user = u; localStorage.setItem('agropulse_user', JSON.stringify(u)); return u; }); },
     getUser(id) { return this.request('GET', '/users/' + id); },
+
+    // Subscription & billing
+    getSubscription() { return this.request('GET', '/subscription'); },
+    checkout(data) { return this.request('POST', '/billing/checkout', data); },
+    getInvoices() { return this.request('GET', '/billing/invoices'); },
+
+    // Matches (pro)
+    getMatches() { return this.request('GET', '/matches'); },
+
+    // Support
+    getSupportTickets() { return this.request('GET', '/support'); },
+    getSupportTicket(id) { return this.request('GET', '/support/' + id); },
+    createSupportTicket(data) { return this.request('POST', '/support', data); },
+    replySupport(id, message) { return this.request('POST', '/support/' + id, { message }); },
 };

@@ -43,6 +43,7 @@ const App = {
         Chat.startGlobalPolling();
         this.updateNavAvatar();
         this.refreshAgreementCounts();
+        if (typeof Subscription !== 'undefined') Subscription.refresh();
         if (typeof Tour !== 'undefined') Tour.maybeStart();
     },
 
@@ -83,6 +84,7 @@ const App = {
         if (tab === 'publicar' && !this._editingResourceId) this.initPublishForm();
         if (tab === 'intercambios') this.loadAgreements();
         if (tab === 'perfil') this.loadProfile();
+        if (typeof Subscription !== 'undefined') Subscription.refresh();
     },
 
     updateNavAvatar() {
@@ -1757,8 +1759,14 @@ const App = {
                 this.showToast(scheduledAt ? 'Publicación programada exitosamente' : 'Publicación creada exitosamente');
             }
             this.switchTab('inicio');
+            Subscription.refresh();
         } catch (e) {
-            this.showToast(e.message, 'error');
+            if (e.code === 'subscription_required') {
+                if (e.data && e.data.subscription) Subscription.lastState = e.data.subscription;
+                Subscription.openPaywall(e.data && e.data.message);
+            } else {
+                this.showToast(e.message, 'error');
+            }
         } finally {
             if (btn) btn.classList.remove('loading');
             if (schedBtn) schedBtn.disabled = false;
@@ -2246,6 +2254,32 @@ const App = {
             document.getElementById('profile-stat-publicaciones').textContent = u.stats.total_resources;
             const repPercent = ((u.reputation_score || 5) / 5) * 100;
             document.getElementById('reputation-fill').style.width = repPercent + '%';
+
+            const nameEl = document.getElementById('profile-name');
+            const oldTick = nameEl.querySelector('.verified-inline');
+            if (oldTick) oldTick.remove();
+            if (u.verified) {
+                nameEl.insertAdjacentHTML('beforeend', ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>');
+            }
+
+            if (typeof Subscription !== 'undefined') {
+                const sub = Subscription.state || await Subscription.refresh();
+                const planTitle = document.getElementById('profile-plan-title');
+                const planSub = document.getElementById('profile-plan-sub');
+                if (sub && planTitle && planSub) {
+                    if (sub.is_premium) {
+                        planTitle.textContent = 'Plan Pro activo';
+                        planSub.textContent = 'Renueva el ' + new Date(sub.subscription_end).toLocaleDateString();
+                    } else if (sub.status === 'trial' && sub.trial_days_left > 0) {
+                        planTitle.textContent = `Prueba gratuita (${sub.trial_days_left} ${sub.trial_days_left === 1 ? 'día' : 'días'})`;
+                        planSub.textContent = 'Ver planes y mejorar';
+                    } else {
+                        planTitle.textContent = 'Mejorar a Pro';
+                        planSub.textContent = 'Publicaciones ilimitadas + matches';
+                    }
+                }
+            }
+
             lucide.createIcons({ nodes: [document.getElementById('panel-perfil')] });
         } catch (e) {
             console.error('Error loading profile:', e);

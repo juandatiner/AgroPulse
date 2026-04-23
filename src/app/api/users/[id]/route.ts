@@ -122,6 +122,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       latitude: userDoc.latitude ?? null,
       longitude: userDoc.longitude ?? null,
       created_at: userDoc.created_at instanceof Date ? userDoc.created_at.toISOString() : userDoc.created_at,
+      verified: !!userDoc.verified,
       resources: resources.map(r => ({
         id: r._id instanceof ObjectId ? r._id.toHexString() : String(r._id),
         tipo: r.tipo,

@@ -43,6 +43,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       is_online: lastSeen ? lastSeen >= fiveMinAgo : false,
       resources_count: resourcesCount,
       agreements_count: agrReqCount + agrProvCount,
+      verified: !!u.verified,
+      subscription_status: u.subscription_status || 'trial',
+      trial_end: toIso(u.trial_end),
+      subscription_end: toIso(u.subscription_end),
+      monthly_post_count: u.monthly_post_count ?? 0,
+      monthly_post_reset: toIso(u.monthly_post_reset),
     })
   })
 }

@@ -1,6 +1,7 @@
 import { json, parseParams, options, handleRoute } from '@/lib/api-utils'
 import { getDb, ObjectId, sa } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
+import { computeSubscriptionState, incrementPostCount } from '@/lib/subscription'
 
 export function OPTIONS() { return options() }
 
@@ -202,6 +203,15 @@ export async function POST(request: Request) {
       if (!(data[f] || '').trim()) return json({ error: `Campo ${f} es requerido` }, 400)
     }
 
+    const sub = await computeSubscriptionState(user.id)
+    if (!sub.can_post) {
+      return json({
+        error: 'subscription_required',
+        message: `Alcanzaste el límite de ${sub.free_posts_per_month} publicaciones este mes. Suscríbete para publicar sin límite.`,
+        subscription: sub,
+      }, 402)
+    }
+
     const db = await getDb()
     const now = new Date()
     const doc = {
@@ -233,6 +243,7 @@ export async function POST(request: Request) {
       created_at: now,
     }
     const result = await db.collection('resources').insertOne(doc)
+    await incrementPostCount(user.id)
     return json({
       id: result.insertedId.toHexString(),
       ...doc,

@@ -62,6 +62,11 @@ export async function GET(request: Request) {
         is_online: lastSeen ? lastSeen >= fiveMinAgo : false,
         resources_count: resourceMap.get(uid) || 0,
         agreements_count: agrMap.get(uid) || 0,
+        verified: !!u.verified,
+        subscription_status: u.subscription_status || 'trial',
+        trial_end: toIso(u.trial_end),
+        subscription_end: toIso(u.subscription_end),
+        monthly_post_count: u.monthly_post_count ?? 0,
       }
     }))
   })

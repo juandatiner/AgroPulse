@@ -1,6 +1,7 @@
 import { json, options, handleRoute } from '@/lib/api-utils'
 import { getDb, s } from '@/lib/db'
 import { hashPassword, createSession } from '@/lib/auth'
+import { initTrialForNewUser } from '@/lib/subscription'
 
 export function OPTIONS() { return options() }
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     })
 
     const uid = result.insertedId.toHexString()
+    await initTrialForNewUser(uid)
     const token = await createSession(uid)
     const userDoc = await db.collection('users').findOne({ _id: result.insertedId })
     const user = s(userDoc as Record<string, unknown>)

@@ -47,9 +47,15 @@ export async function PUT(request: Request) {
 
     const allowed = ['nombre', 'apellido', 'municipio', 'tipo', 'telefono', 'bio', 'latitude', 'longitude']
     const updates: Record<string, unknown> = {}
+    const verificationAffecting = ['nombre', 'apellido', 'municipio', 'tipo', 'telefono', 'bio']
+    let invalidatesVerification = false
     for (const f of allowed) {
-      if (f in data) updates[f] = data[f]
+      if (f in data) {
+        updates[f] = data[f]
+        if (verificationAffecting.includes(f)) invalidatesVerification = true
+      }
     }
+    if (invalidatesVerification) updates.verified = false
     if (Object.keys(updates).length) {
       await db.collection('users').updateOne({ _id: uid }, { $set: updates })
     }
@@ -71,6 +77,10 @@ export async function PUT(request: Request) {
       reputation_score: updated.reputation_score ?? 5.0,
       total_ratings: updated.total_ratings ?? 0,
       created_at: updated.created_at instanceof Date ? updated.created_at.toISOString() : updated.created_at,
+      verified: !!updated.verified,
+      subscription_status: updated.subscription_status || 'trial',
+      trial_end: updated.trial_end instanceof Date ? updated.trial_end.toISOString() : (updated.trial_end ?? null),
+      subscription_end: updated.subscription_end instanceof Date ? updated.subscription_end.toISOString() : (updated.subscription_end ?? null),
     }
     return json(out)
   })

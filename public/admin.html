@@ -310,6 +310,31 @@
 
     .stat-card.highlight { border-left: 4px solid var(--field); }
     .stat-card.amber-card { border-left: 4px solid var(--harvest); }
+    .sub-pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px; }
+    .sub-pill-trial { background:#e8f1ff; color:var(--blue); }
+    .sub-pill-active { background:#dcfce7; color:var(--green); }
+    .sub-pill-expired { background:#fee2e2; color:var(--red); }
+    .sub-pill-cancelled { background:#f3f4f6; color:var(--gray500); }
+    .verified-yes { color:var(--blue); }
+    .verified-no { color:var(--gray400); }
+    .quick-btn {
+        background:var(--gray100); color:var(--gray700);
+        border:1px solid var(--gray200);
+        padding:4px 8px; border-radius:6px;
+        font-size:11px; font-weight:500;
+        cursor:pointer; margin-right:4px; margin-bottom:4px;
+        transition: all 0.15s;
+    }
+    .quick-btn:hover { background:var(--earth); color:var(--white); border-color:var(--earth); }
+    .quick-btn.danger:hover { background:var(--red); border-color:var(--red); }
+    .quick-btn.success:hover { background:var(--green); border-color:var(--green); }
+    .quick-btn.warn:hover { background:var(--amber); border-color:var(--amber); }
+    .support-badge {
+        display:inline-block; background:var(--red); color:var(--white);
+        border-radius:999px; font-size:10px; font-weight:700;
+        padding:2px 6px; margin-left:4px;
+    }
+    .priority-cell { color:var(--harvest); font-weight:700; }
     .stat-card.blue-card { border-left: 4px solid var(--blue); }
 
     /* ── Recent lists ── */
@@ -1029,6 +1054,16 @@
     <button class="tab-btn" data-tab="agreements" onclick="Admin.switchTab('agreements')">
       <i data-lucide="handshake"></i> Acuerdos
     </button>
+    <button class="tab-btn" data-tab="subscriptions" onclick="Admin.switchTab('subscriptions')">
+      <i data-lucide="crown"></i> Suscripciones
+    </button>
+    <button class="tab-btn" data-tab="support" onclick="Admin.switchTab('support')">
+      <i data-lucide="life-buoy"></i> Soporte
+      <span id="support-badge" class="support-badge" style="display:none"></span>
+    </button>
+    <button class="tab-btn" data-tab="config" onclick="Admin.switchTab('config')">
+      <i data-lucide="settings"></i> Configuración
+    </button>
   </nav>
 
   <!-- Content area -->
@@ -1109,11 +1144,13 @@
                 <th class="td-center">Pub.</th>
                 <th class="td-center">Acuerdos</th>
                 <th>Registro</th>
+                <th class="td-center">Verif.</th>
+                <th class="td-center">Plan</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="users-tbody">
-              <tr><td colspan="9" class="loading-cell">Cargando…</td></tr>
+              <tr><td colspan="11" class="loading-cell">Cargando…</td></tr>
             </tbody>
           </table>
         </div>
@@ -1172,6 +1209,112 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- ═══ Subscriptions Panel ═══ -->
+    <div class="tab-panel" id="panel-subscriptions">
+      <div class="page-title">
+        <i data-lucide="crown" style="width:22px;height:22px;"></i>
+        Suscripciones de usuarios
+      </div>
+      <div class="stats-grid" id="sub-stats-grid"></div>
+      <div class="table-card">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--gray200);font-size:13px;color:var(--gray500)">
+          Filtra y administra el estado de suscripción de cada usuario. Usa los botones rápidos para probar el flujo.
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Estado</th>
+                <th class="td-center">Posts mes</th>
+                <th>Trial termina</th>
+                <th>Sub termina</th>
+                <th style="min-width:340px">Acciones rápidas</th>
+              </tr>
+            </thead>
+            <tbody id="subs-tbody">
+              <tr><td colspan="7" class="loading-cell">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Support Panel ═══ -->
+    <div class="tab-panel" id="panel-support">
+      <div class="page-title">
+        <i data-lucide="life-buoy" style="width:22px;height:22px;"></i>
+        Soporte
+      </div>
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Prioridad</th>
+                <th>Asunto</th>
+                <th>Usuario</th>
+                <th>Plan</th>
+                <th>Estado</th>
+                <th>Último</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="support-tbody">
+              <tr><td colspan="7" class="loading-cell">Cargando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Config Panel ═══ -->
+    <div class="tab-panel" id="panel-config">
+      <div class="page-title">
+        <i data-lucide="settings" style="width:22px;height:22px;"></i>
+        Configuración global
+      </div>
+      <div class="section-card" style="padding:20px">
+        <form id="config-form" onsubmit="event.preventDefault(); Admin.saveConfig()">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Días de prueba gratuita</label>
+              <input type="number" id="cfg-trial-days" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <small style="color:var(--gray500);font-size:11px">Por defecto 60 (2 meses)</small>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Precio suscripción (COP)</label>
+              <input type="number" id="cfg-price" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <small style="color:var(--gray500);font-size:11px">Precio mensual real que cobrarás</small>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Publicaciones gratis / mes</label>
+              <input type="number" id="cfg-free-posts" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <small style="color:var(--gray500);font-size:11px">Límite antes del paywall</small>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">% descuento promo</label>
+              <input type="number" id="cfg-promo-discount" min="0" max="99" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <small style="color:var(--gray500);font-size:11px">Se muestra como "X% OFF". Precio tachado = precio / (1 - X/100)</small>
+            </div>
+            <div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray700);margin-top:20px">
+                <input type="checkbox" id="cfg-promo-active"> Promoción activa
+              </label>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Fin de promoción</label>
+              <input type="datetime-local" id="cfg-promo-end" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+            </div>
+          </div>
+          <button type="submit" style="margin-top:20px;background:var(--earth);color:var(--white);border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600">
+            Guardar configuración
+          </button>
+        </form>
       </div>
     </div>
 

@@ -16,6 +16,10 @@ export interface User {
   reputation_score: number
   total_ratings: number
   created_at: string
+  verified: boolean
+  subscription_status: string
+  trial_end: string | null
+  subscription_end: string | null
 }
 
 export function hashPassword(password: string): string {
@@ -65,6 +69,10 @@ export async function getUserFromToken(token: string | null): Promise<User | nul
     reputation_score: user.reputation_score ?? 5.0,
     total_ratings: user.total_ratings ?? 0,
     created_at: user.created_at instanceof Date ? user.created_at.toISOString() : String(user.created_at),
+    verified: !!user.verified,
+    subscription_status: user.subscription_status || 'trial',
+    trial_end: user.trial_end instanceof Date ? user.trial_end.toISOString() : (user.trial_end ?? null),
+    subscription_end: user.subscription_end instanceof Date ? user.subscription_end.toISOString() : (user.subscription_end ?? null),
   }
 }
 
