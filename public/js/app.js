@@ -35,7 +35,7 @@ const App = {
         document.getElementById(id).classList.add('active');
     },
 
-    showApp() {
+    showApp(opts = {}) {
         this.showScreen('screen-app');
         history.replaceState({ type: 'tab', tab: 'inicio' }, '');
         window.addEventListener('popstate', e => this.handlePopState(e));
@@ -44,7 +44,7 @@ const App = {
         this.updateNavAvatar();
         this.refreshAgreementCounts();
         if (typeof Subscription !== 'undefined') Subscription.refresh();
-        if (typeof Tour !== 'undefined') Tour.maybeStart();
+        if (!opts.skipTour && typeof Tour !== 'undefined') Tour.maybeStart();
     },
 
     handlePopState(e) {
@@ -162,13 +162,44 @@ const App = {
                 throw new Error('Las contraseñas no coinciden');
             }
             await API.register(data);
-            this.showToast('Cuenta creada exitosamente');
-            this.showApp();
+            this.showApp({ skipTour: true });
+            setTimeout(() => this.showWelcomeTrial(), 200);
         } catch (e) {
             this.showToast(e.message, 'error');
         } finally {
             btn.classList.remove('loading');
         }
+    },
+
+    showWelcomeTrial() {
+        try { localStorage.setItem('agropulse_tour_completed_v2', '1'); } catch {}
+        const sub = (typeof Subscription !== 'undefined' && Subscription.state) || null;
+        const days = sub && sub.trial_days_left ? sub.trial_days_left : 60;
+        const html = `
+            <div class="welcome-overlay-inner">
+                <button class="plans-close" onclick="Subscription._closeOverlay('welcome-overlay')"><i data-lucide="x"></i></button>
+                <div class="welcome-gift"><i data-lucide="gift"></i></div>
+                <h2>¡Iniciaste tu prueba gratuita!</h2>
+                <p class="welcome-sub">Tienes <strong>${days} días</strong> de acceso completo a AgroPulse Pro sin pagar nada.</p>
+                <ul class="welcome-features">
+                    <li><i data-lucide="check-circle-2"></i> Publicaciones ilimitadas</li>
+                    <li><i data-lucide="check-circle-2"></i> Alertas de match inteligente</li>
+                    <li><i data-lucide="check-circle-2"></i> Chat con fotos y ubicación</li>
+                    <li><i data-lucide="check-circle-2"></i> Soporte prioritario</li>
+                    <li><i data-lucide="check-circle-2"></i> Sin anuncios</li>
+                </ul>
+                <button class="btn btn-primary btn-full" onclick="Subscription._closeOverlay('welcome-overlay'); Tour.start();">
+                    <i data-lucide="play"></i> Iniciar tutorial
+                </button>
+                <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="Subscription._closeOverlay('welcome-overlay'); Subscription.openPlans();">
+                    <i data-lucide="crown"></i> Ver suscripción
+                </button>
+                <button class="btn btn-cancel btn-full" style="margin-top:8px" onclick="Subscription._closeOverlay('welcome-overlay')">
+                    Explorar solo
+                </button>
+            </div>
+        `;
+        Subscription._openOverlay('welcome-overlay', html);
     },
 
     async doLogin() {

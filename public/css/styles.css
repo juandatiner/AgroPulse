@@ -2687,12 +2687,15 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .promo-banner-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 12px;
     max-width: 900px;
     margin: 0 auto;
     font-size: 0.88rem;
+    text-align: center;
+    flex-wrap: wrap;
 }
+.promo-banner-text { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .promo-banner-text s { opacity: 0.55; margin-right: 4px; }
 .promo-banner-text strong { font-weight: 700; }
 .promo-tag {
@@ -3315,3 +3318,35 @@ body.no-scroll { overflow: hidden; }
 .sub-badge-active { background: #e0f5e5; color: var(--success); }
 .sub-badge-expired { background: #ffe4e0; color: var(--danger); }
 .sub-badge-cancelled { background: #f0f0f0; color: var(--text-muted); }
+
+/* Welcome trial modal */
+.welcome-overlay-inner { text-align: center; }
+.welcome-gift {
+    width: 84px; height: 84px;
+    margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--field), var(--harvest));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 30px rgba(200,150,42,0.35);
+    animation: fadeIn 0.4s;
+}
+.welcome-gift svg { width: 42px; height: 42px; color: var(--white); }
+.welcome-overlay-inner h2 { color: var(--earth); margin-bottom: 8px; }
+.welcome-sub { color: var(--text-muted); margin-bottom: 18px; font-size: 0.95rem; }
+.welcome-sub strong { color: var(--earth); font-size: 1.1rem; }
+.welcome-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    text-align: left;
+    background: var(--cream);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+}
+.welcome-features li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 0;
+    font-size: 0.9rem;
+    color: var(--earth);
+}
+.welcome-features svg { width: 18px; height: 18px; color: var(--success); flex-shrink: 0; }
