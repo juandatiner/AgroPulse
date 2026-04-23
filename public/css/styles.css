@@ -2674,7 +2674,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .promo-banner {
     background: linear-gradient(90deg, var(--harvest) 0%, var(--harvest-light) 100%);
     color: var(--earth);
-    padding: 10px 16px;
+    padding: 10px 48px 10px 16px;
     cursor: pointer;
     position: sticky;
     top: 0;
@@ -2694,8 +2694,6 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     font-size: 0.88rem;
     text-align: center;
     flex-wrap: wrap;
-    position: relative;
-    padding-right: 36px;
 }
 .promo-banner-text { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .promo-banner-text s { opacity: 0.55; margin-right: 4px; }
@@ -2724,10 +2722,10 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .promo-banner-cta:hover { background: var(--earth-mid); }
 .promo-banner-cta svg { width: 14px; height: 14px; }
 .promo-banner-close {
-    background: rgba(0,0,0,0.15);
+    background: rgba(0,0,0,0.2);
     border: none;
     color: inherit;
-    width: 26px; height: 26px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -2736,9 +2734,10 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     padding: 0;
     flex-shrink: 0;
     position: absolute;
-    right: 4px;
+    right: 10px;
     top: 50%;
     transform: translateY(-50%);
+    z-index: 2;
 }
 .promo-banner-close:hover { background: rgba(0,0,0,0.3); }
 .promo-banner-close svg { width: 14px; height: 14px; }
@@ -2807,26 +2806,48 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .sub-ads-slot { margin: 10px 16px; cursor: pointer; }
 .sub-ads-slot-top { margin-top: 8px; }
 .sub-ads-slot-bottom { margin-bottom: 80px; }
-.panel-with-right-ad::after {
-    content: '';
-    display: block;
-    clear: both;
+/* Panel con ad lateral derecha reserva espacio a la derecha */
+.panel-with-right-ad {
+    padding-right: 160px;
 }
 .sub-ads-slot-right {
-    float: right;
-    width: 38%;
-    max-width: 280px;
-    min-height: 180px;
-    margin: 10px 16px 10px 12px;
-    clear: right;
+    position: fixed;
+    top: 56px;
+    right: 0;
+    bottom: 64px; /* por encima de tab-bar */
+    width: 150px;
+    margin: 0;
+    padding: 8px;
+    background: linear-gradient(180deg, var(--cream,#fdf8f0), var(--white));
+    border-left: 1px solid var(--cream-dark, #e8dfc8);
+    overflow-y: auto;
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-.sub-ads-slot-right .ad-slot { padding: 12px; height: 100%; }
+.sub-ads-slot-right .ad-slot {
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.sub-ads-slot-right .ad-slot-vertical .ad-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.sub-ads-slot-right .ad-text strong { font-size: 0.85rem; }
+.sub-ads-slot-right .ad-text span { font-size: 0.72rem; }
 @media (max-width: 520px) {
+    .panel-with-right-ad { padding-right: 0; }
     .sub-ads-slot-right {
-        float: none;
+        position: static;
         width: auto;
-        max-width: none;
-        min-height: 0;
         margin: 10px 16px;
     }
 }
