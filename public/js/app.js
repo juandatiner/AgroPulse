@@ -2441,7 +2441,33 @@ const App = {
         return div.innerHTML;
     },
 
+    initPasswordEyes() {
+        const inputs = document.querySelectorAll('input[type="password"]:not([data-eye-bound])');
+        inputs.forEach(input => {
+            input.setAttribute('data-eye-bound', '1');
+            const wrap = document.createElement('div');
+            wrap.className = 'pw-wrap';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'pw-eye';
+            btn.setAttribute('aria-label', 'Mostrar contraseña');
+            btn.innerHTML = '<i data-lucide="eye"></i>';
+            btn.onclick = () => {
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                btn.innerHTML = showing ? '<i data-lucide="eye"></i>' : '<i data-lucide="eye-off"></i>';
+                btn.setAttribute('aria-label', showing ? 'Mostrar contraseña' : 'Ocultar contraseña');
+                if (window.lucide) lucide.createIcons({ nodes: [btn] });
+            };
+            wrap.appendChild(btn);
+        });
+        if (inputs.length && window.lucide) lucide.createIcons();
+    },
+
     bindEvents() {
+        this.initPasswordEyes();
         // Search debounce
         let searchTimeout;
         const searchInput = document.getElementById('market-search-input');

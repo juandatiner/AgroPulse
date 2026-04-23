@@ -267,7 +267,7 @@ const Admin = (() => {
         return;
       }
       tbody.innerHTML = users.map(u => {
-        const promoBadge = u.promo_applied ? ' <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>' : '';
+        const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>` : '';
         return `
         <tr>
           <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>

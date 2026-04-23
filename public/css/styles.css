@@ -3363,3 +3363,54 @@ body.no-scroll { overflow: hidden; }
 .plans-active-notice svg { width: 24px; height: 24px; color: var(--success); flex-shrink: 0; }
 .plans-active-notice strong { display: block; color: var(--earth); font-size: 0.92rem; }
 .plans-active-notice small { color: var(--text-muted); font-size: 0.78rem; }
+
+/* Password visibility toggle */
+.pw-wrap { position: relative; width: 100%; }
+.pw-wrap input.form-input { padding-right: 42px; width: 100%; }
+.pw-eye {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+.pw-eye:hover { background: var(--cream); color: var(--earth); }
+.pw-eye:focus { outline: 2px solid var(--field); outline-offset: 2px; }
+.pw-eye svg { width: 18px; height: 18px; }
+
+/* Promo banner — mobile compact */
+@media (max-width: 640px) {
+    .promo-banner {
+        padding: 6px 10px;
+    }
+    .promo-banner-inner {
+        font-size: 0.72rem;
+        gap: 6px;
+    }
+    .promo-banner-text { gap: 3px; }
+    .promo-banner-text strong { font-weight: 600; }
+    .promo-tag {
+        font-size: 0.62rem;
+        padding: 1px 5px;
+        margin-right: 4px;
+    }
+    .promo-banner-cta {
+        padding: 4px 8px;
+        font-size: 0.72rem;
+        border-radius: 6px;
+    }
+    .promo-banner-cta svg { width: 12px; height: 12px; }
+}
+@media (max-width: 380px) {
+    .promo-banner-inner { font-size: 0.66rem; }
+    .promo-banner-cta { padding: 3px 7px; font-size: 0.66rem; }
+}
