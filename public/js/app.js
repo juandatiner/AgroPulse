@@ -132,6 +132,31 @@ const App = {
         document.getElementById(passId)?.addEventListener('input', check);
     },
 
+    // ===== VALIDATION HELPERS =====
+    isValidEmail(email) {
+        if (!email || typeof email !== 'string') return false;
+        const e = email.trim().toLowerCase();
+        if (e.length < 6 || e.length > 254) return false;
+        // Strict format: local@domain.tld
+        const re = /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/;
+        if (!re.test(e)) return false;
+        // No consecutive dots, no starting/ending dot in local
+        const [local, domain] = e.split('@');
+        if (local.includes('..') || domain.includes('..')) return false;
+        if (/^\.|\.$/.test(local)) return false;
+        // TLD at least 2 chars
+        const tld = domain.split('.').pop();
+        if (!tld || tld.length < 2) return false;
+        // Block common disposable domains
+        const disposable = ['mailinator.com','tempmail.com','10minutemail.com','guerrillamail.com','yopmail.com','trashmail.com','throwaway.email','fakemail.net'];
+        if (disposable.includes(domain)) return false;
+        return true;
+    },
+    isValidPhoneCo(tel) {
+        const digits = String(tel || '').replace(/\D/g, '');
+        return digits.length === 10 && /^3\d{9}$/.test(digits);
+    },
+
     // ===== AUTH =====
     async doRegister() {
         const btn = document.getElementById('btn-register');
@@ -151,6 +176,15 @@ const App = {
             if (!data.nombre || !data.apellido || !data.email || !data.password || !data.tipo) {
                 throw new Error('Completa todos los campos obligatorios');
             }
+            if (!this.isValidEmail(data.email)) {
+                throw new Error('Ingresa un correo electrónico válido (ej: tu@correo.com)');
+            }
+            if (!data.telefono) {
+                throw new Error('El teléfono es obligatorio');
+            }
+            if (!this.isValidPhoneCo(data.telefono)) {
+                throw new Error('El teléfono debe tener 10 dígitos y empezar con 3 (ej: 3001234567)');
+            }
             if (!data.latitude || !data.longitude) {
                 throw new Error('La ubicación es obligatoria — usa el GPS o elige en el mapa');
             }
@@ -161,6 +195,7 @@ const App = {
             if (data.password !== confirm) {
                 throw new Error('Las contraseñas no coinciden');
             }
+            if (data.telefono) data.telefono = data.telefono.replace(/\D/g, '');
             await API.register(data);
             this.showApp({ skipTour: true });
             setTimeout(() => this.showWelcomeTrial(), 200);
@@ -2364,6 +2399,10 @@ const App = {
                 latitude: parseFloat(document.getElementById('set-lat')?.value) || null,
                 longitude: parseFloat(document.getElementById('set-lng')?.value) || null,
             };
+            if (data.telefono && !this.isValidPhoneCo(data.telefono)) {
+                throw new Error('El teléfono debe tener 10 dígitos (ej: 3001234567)');
+            }
+            if (data.telefono) data.telefono = data.telefono.replace(/\D/g, '');
             await API.updateProfile(data);
             this.showToast('Perfil actualizado');
             this.closeSettings('cuenta');

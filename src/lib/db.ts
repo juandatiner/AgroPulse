@@ -23,6 +23,10 @@ export async function getDb(): Promise<Db> {
 async function ensureIndexes(db: Db): Promise<void> {
   // users
   await db.collection('users').createIndex({ email: 1 }, { unique: true })
+  await db.collection('users').createIndex(
+    { telefono: 1 },
+    { unique: true, partialFilterExpression: { telefono: { $type: 'string', $ne: '' } } }
+  )
   await db.collection('users').createIndex({ last_seen: -1 })
 
   // sessions

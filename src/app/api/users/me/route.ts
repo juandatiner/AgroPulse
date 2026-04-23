@@ -55,6 +55,21 @@ export async function PUT(request: Request) {
         if (verificationAffecting.includes(f)) invalidatesVerification = true
       }
     }
+    if ('telefono' in updates) {
+      const raw = String(updates.telefono || '').trim()
+      if (!raw) {
+        return json({ error: 'El teléfono es obligatorio' }, 400)
+      }
+      const tel = raw.replace(/\D/g, '')
+      if (!/^3\d{9}$/.test(tel)) {
+        return json({ error: 'El teléfono debe tener 10 dígitos y empezar con 3' }, 400)
+      }
+      const conflict = await db.collection('users').findOne({ telefono: tel, _id: { $ne: uid } })
+      if (conflict) {
+        return json({ error: 'Este teléfono ya está registrado en otra cuenta' }, 400)
+      }
+      updates.telefono = tel
+    }
     if (invalidatesVerification) updates.verified = false
     if (Object.keys(updates).length) {
       await db.collection('users').updateOne({ _id: uid }, { $set: updates })
