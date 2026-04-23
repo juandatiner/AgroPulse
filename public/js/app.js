@@ -2431,6 +2431,14 @@ const App = {
                 if (e.key === 'Enter') Chat.sendMessage();
             });
         }
+
+        // Enter submits login
+        ['login-email', 'login-pass'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); App.doLogin(); }
+            });
+        });
     },
 
     // Quick actions
