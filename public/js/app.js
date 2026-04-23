@@ -248,6 +248,7 @@ const App = {
             const password = document.getElementById('login-pass').value;
             if (!email || !password) throw new Error('Ingresa correo y contraseña');
             await API.login({ email, password });
+            try { sessionStorage.removeItem('agropulse_promo_banner_closed'); } catch {}
             this.showToast('Bienvenido de vuelta');
             this.showApp();
         } catch (e) {

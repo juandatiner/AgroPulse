@@ -43,6 +43,13 @@ const Subscription = {
         if (s.status !== 'trial' && (!s.trial_days_granted || s.trial_days_granted <= 0) && !s.trial_end) {
             el.classList.add('hidden'); return;
         }
+        // Si el user lo cerró en esta sesión, mantener oculto hasta próximo login
+        try {
+            if (sessionStorage.getItem('agropulse_promo_banner_closed') === '1') {
+                el.classList.add('hidden');
+                return;
+            }
+        } catch {}
         el.classList.remove('hidden');
         const priceReg = this.formatPrice(s.price_regular);
         const pricePromo = this.formatPrice(s.price_promo);
@@ -65,9 +72,18 @@ const Subscription = {
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown}${promoText}</span>
                 <button class="promo-banner-cta">Ver suscripción <i data-lucide="chevron-right"></i></button>
+                <button class="promo-banner-close" onclick="event.stopPropagation(); Subscription.closeBanner()" aria-label="Cerrar banner">
+                    <i data-lucide="x"></i>
+                </button>
             </div>
         `;
         if (window.lucide) lucide.createIcons();
+    },
+
+    closeBanner() {
+        const el = document.getElementById('promo-banner');
+        if (el) el.classList.add('hidden');
+        try { sessionStorage.setItem('agropulse_promo_banner_closed', '1'); } catch {}
     },
 
     // ========== Home cards: trial progreso + posts remaining ==========

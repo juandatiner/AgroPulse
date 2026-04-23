@@ -2721,6 +2721,22 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 }
 .promo-banner-cta:hover { background: var(--earth-mid); }
 .promo-banner-cta svg { width: 14px; height: 14px; }
+.promo-banner-close {
+    background: rgba(0,0,0,0.15);
+    border: none;
+    color: inherit;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 6px;
+    padding: 0;
+    flex-shrink: 0;
+}
+.promo-banner-close:hover { background: rgba(0,0,0,0.3); }
+.promo-banner-close svg { width: 14px; height: 14px; }
 
 /* Home card */
 .sub-home-card {
