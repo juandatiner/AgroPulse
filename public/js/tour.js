@@ -355,7 +355,12 @@ const Tour = {
         const vh = window.innerHeight;
         // Restar altura barra inferior fija si está visible para no montar el tooltip sobre los botones
         const tabBar = document.querySelector('.tab-bar');
-        const bottomReserved = (tabBar && tabBar.offsetParent !== null) ? (tabBar.offsetHeight + 8) : 0;
+        let bottomReserved = 0;
+        if (tabBar) {
+            const cs = getComputedStyle(tabBar);
+            const visible = cs.display !== 'none' && cs.visibility !== 'hidden';
+            if (visible) bottomReserved = tabBar.getBoundingClientRect().height + 12;
+        }
         const usableBottom = vh - bottomReserved;
 
         let top, left;
