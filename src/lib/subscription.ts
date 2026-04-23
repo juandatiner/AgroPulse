@@ -129,7 +129,9 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   if (status === 'active' && subEnd && now >= subEnd) status = 'expired'
   if (status === 'trial' && trialEnd && now >= trialEnd) status = 'expired'
 
-  const isPremium = status === 'active' && !!subEnd && now < subEnd
+  const inTrial = status === 'trial' && !!trialEnd && now < trialEnd
+  const activePaid = status === 'active' && !!subEnd && now < subEnd
+  const isPremium = activePaid || inTrial
 
   const trialDaysLeft = trialEnd ? daysBetween(now, trialEnd) : 0
   const subDaysLeft = subEnd ? daysBetween(now, subEnd) : 0
@@ -138,8 +140,7 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   const postReset = u?.monthly_post_reset instanceof Date ? u.monthly_post_reset : null
   const postsRemaining = Math.max(0, cfg.free_posts_per_month - postCount)
 
-  const inTrial = status === 'trial' && trialEnd && now < trialEnd
-  const canPost = isPremium || inTrial || postsRemaining > 0
+  const canPost = isPremium || postsRemaining > 0
   const needsPayment = !canPost
 
   const priceRegular = cfg.promo_active
@@ -191,12 +192,19 @@ export async function initTrialForNewUser(userId: string): Promise<void> {
       $set: {
         trial_start: now,
         trial_end: trialEnd,
+        trial_days_granted: cfg.trial_days,
         subscription_status: 'trial',
         subscription_end: null,
         monthly_post_count: 0,
         monthly_post_reset: now,
         verified: false,
         promo_applied: cfg.promo_active,
+        promo_snapshot: cfg.promo_active ? {
+          discount_percent: cfg.promo_discount_percent,
+          price_at_signup: cfg.subscription_price,
+          trial_days: cfg.trial_days,
+          registered_at: now,
+        } : null,
       },
     }
   )

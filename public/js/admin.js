@@ -266,13 +266,15 @@ const Admin = (() => {
         tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">Sin usuarios</td></tr>';
         return;
       }
-      tbody.innerHTML = users.map(u => `
+      tbody.innerHTML = users.map(u => {
+        const promoBadge = u.promo_applied ? ' <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>' : '';
+        return `
         <tr>
-          <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong></td>
+          <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>
           <td class="td-small">${esc(u.email)}</td>
           <td><span class="sub-pill sub-pill-${u.subscription_status || 'trial'}">${u.subscription_status || 'trial'}</span></td>
           <td class="td-center">${u.monthly_post_count || 0}</td>
-          <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}</td>
+          <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
           <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
           <td>
             <button class="quick-btn warn" title="Pone trial a 2 minutos — ideal para probar el bloqueo" onclick="Admin.subAction('${esc(u.id)}', 'trial2min')">Trial 2min</button>
@@ -280,10 +282,12 @@ const Admin = (() => {
             <button class="quick-btn danger" title="Forzar expiración inmediata" onclick="Admin.subAction('${esc(u.id)}', 'expire')">Expirar ya</button>
             <button class="quick-btn success" title="Activar suscripción 30 días sin pago" onclick="Admin.subAction('${esc(u.id)}', 'activate')">Activar 30d</button>
             <button class="quick-btn" title="Reiniciar contador mensual" onclick="Admin.subAction('${esc(u.id)}', 'resetPosts')">Reset posts</button>
+            <button class="quick-btn success" title="Restaurar el trial prometido al usuario al momento del registro" onclick="Admin.subAction('${esc(u.id)}', 'restorePromise')">Restaurar promesa</button>
             <button class="quick-btn" title="Cancelar suscripción" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">Cancelar</button>
           </td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch (e) {
       tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${esc(e.message)}</td></tr>`;
     }
@@ -297,6 +301,7 @@ const Admin = (() => {
     else if (action === 'expire') { body = { subscription_status: 'expired' }; msg = 'Forzado a expirado'; }
     else if (action === 'activate') { body = { subscription_status: 'active', subscription_end_offset_minutes: 30 * 24 * 60 }; msg = 'Suscripción activada 30 días'; }
     else if (action === 'resetPosts') { body = { reset_posts: true }; msg = 'Contador reiniciado'; }
+    else if (action === 'restorePromise') { body = { restore_promised_trial: true }; msg = 'Trial restaurado al prometido al registrarse'; }
     else if (action === 'cancel') { body = { subscription_status: 'cancelled' }; msg = 'Suscripción cancelada'; }
     try {
       await apiFetch(`/api/admin/users/${userId}/subscription`, {

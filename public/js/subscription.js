@@ -38,7 +38,7 @@ const Subscription = {
         const el = document.getElementById('promo-banner');
         if (!el || !this.state) return;
         const s = this.state;
-        if (s.is_premium) { el.classList.add('hidden'); return; }
+        if (s.status === 'active') { el.classList.add('hidden'); return; }
         el.classList.remove('hidden');
         const priceReg = this.formatPrice(s.price_regular);
         const pricePromo = this.formatPrice(s.price_promo);
@@ -73,7 +73,7 @@ const Subscription = {
         let card = document.getElementById('sub-home-card');
         if (!this.state) return;
         const s = this.state;
-        if (s.is_premium) { if (card) card.remove(); return; }
+        if (s.status === 'active') { if (card) card.remove(); return; }
 
         if (!card) {
             card = document.createElement('div');
@@ -84,34 +84,35 @@ const Subscription = {
             else host.insertBefore(card, host.firstChild);
         }
 
-        const remaining = s.posts_remaining;
-        const used = s.monthly_post_count;
-        const total = s.free_posts_per_month;
-        const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
-
+        const inTrial = s.status === 'trial' && s.trial_days_left > 0;
         let statusText = '';
         let statusClass = '';
-        if (s.status === 'trial' && s.trial_days_left > 0) {
-            statusText = `<strong>${s.trial_days_left}</strong> ${s.trial_days_left === 1 ? 'día' : 'días'} de prueba`;
-            statusClass = 'sub-card-trial';
-        } else if (s.status === 'expired') {
-            statusText = `Tu período de prueba terminó`;
-            statusClass = 'sub-card-expired';
-        } else {
-            statusText = `Plan gratuito`;
-            statusClass = 'sub-card-free';
-        }
+        let bodyHtml = '';
 
-        card.className = 'sub-home-card ' + statusClass;
-        card.innerHTML = `
-            <div class="sub-home-card-head">
-                <div class="sub-home-card-title">
-                    <i data-lucide="sparkles"></i>
-                    <span>${statusText}</span>
-                </div>
-                <button class="sub-home-card-action" onclick="Subscription.openPlans()">Mejorar plan</button>
-            </div>
-            <div class="sub-home-card-body">
+        if (inTrial) {
+            statusText = `<strong>${s.trial_days_left}</strong> ${s.trial_days_left === 1 ? 'día' : 'días'} de prueba Pro`;
+            statusClass = 'sub-card-trial';
+            const trialTotal = s.trial_end && s.trial_days_left
+                ? Math.max(1, Math.round((new Date(s.trial_end) - new Date()) / 86400000) + (60 - s.trial_days_left))
+                : 60;
+            const trialPct = Math.max(2, Math.round(((60 - s.trial_days_left) / 60) * 100));
+            bodyHtml = `
+                <p class="sub-home-card-hint" style="margin-bottom:8px">
+                    Acceso <strong>ilimitado</strong> a todas las funciones Pro durante tu prueba
+                </p>
+                <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${trialPct}%"></div></div>
+                <p class="sub-home-card-hint" style="margin-top:6px">
+                    Suscríbete antes de que termine y mantén todos los beneficios
+                </p>
+            `;
+        } else if (s.status === 'expired') {
+            statusText = `Tu prueba gratuita terminó`;
+            statusClass = 'sub-card-expired';
+            const remaining = s.posts_remaining;
+            const used = s.monthly_post_count;
+            const total = s.free_posts_per_month;
+            const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
+            bodyHtml = `
                 <div class="sub-posts-line">
                     <span>Publicaciones de este mes</span>
                     <span class="sub-posts-count"><strong>${used}</strong> / ${total}</span>
@@ -122,7 +123,38 @@ const Subscription = {
                         ? `Te quedan <strong>${remaining}</strong> ${remaining === 1 ? 'publicación' : 'publicaciones'} gratuitas este mes`
                         : `Alcanzaste el límite mensual. Suscríbete para publicar sin límite`}
                 </p>
+            `;
+        } else {
+            statusText = `Plan gratuito`;
+            statusClass = 'sub-card-free';
+            const remaining = s.posts_remaining;
+            const used = s.monthly_post_count;
+            const total = s.free_posts_per_month;
+            const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
+            bodyHtml = `
+                <div class="sub-posts-line">
+                    <span>Publicaciones de este mes</span>
+                    <span class="sub-posts-count"><strong>${used}</strong> / ${total}</span>
+                </div>
+                <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${pct}%"></div></div>
+                <p class="sub-home-card-hint">
+                    ${remaining > 0
+                        ? `Te quedan <strong>${remaining}</strong> ${remaining === 1 ? 'publicación' : 'publicaciones'} gratuitas este mes`
+                        : `Alcanzaste el límite mensual. Suscríbete para publicar sin límite`}
+                </p>
+            `;
+        }
+
+        card.className = 'sub-home-card ' + statusClass;
+        card.innerHTML = `
+            <div class="sub-home-card-head">
+                <div class="sub-home-card-title">
+                    <i data-lucide="sparkles"></i>
+                    <span>${statusText}</span>
+                </div>
+                <button class="sub-home-card-action" onclick="Subscription.openPlans()">${inTrial ? 'Suscribirme' : 'Mejorar plan'}</button>
             </div>
+            <div class="sub-home-card-body">${bodyHtml}</div>
         `;
         if (window.lucide) lucide.createIcons();
     },

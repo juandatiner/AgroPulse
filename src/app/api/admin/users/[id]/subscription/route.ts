@@ -56,6 +56,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       update.monthly_post_count = 0
       update.monthly_post_reset = now
     }
+    if (body.restore_promised_trial === true) {
+      const db0 = await getDb()
+      const u = await db0.collection('users').findOne({ _id: uid })
+      if (u && u.trial_start instanceof Date && typeof u.trial_days_granted === 'number') {
+        const restored = new Date(u.trial_start.getTime() + u.trial_days_granted * 24 * 60 * 60 * 1000)
+        update.trial_end = restored
+        update.subscription_status = restored > now ? 'trial' : 'expired'
+      }
+    }
     if (typeof body.monthly_post_count === 'number') {
       update.monthly_post_count = Math.max(0, Math.floor(body.monthly_post_count))
     }
