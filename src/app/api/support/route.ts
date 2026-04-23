@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     if (!message) return json({ error: 'El mensaje es requerido' }, 400)
 
     const sub = await computeSubscriptionState(user.id)
-    const priority = sub.is_premium ? 'priority' : 'normal'
+    const priority = sub.is_pro ? 'priority' : 'normal'
     const db = await getDb()
     const now = new Date()
     const ticket = await db.collection('support_tickets').insertOne({

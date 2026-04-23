@@ -3,6 +3,8 @@ import { getDb, ObjectId } from './db'
 export interface AppConfig {
   trial_days: number
   subscription_price: number
+  price_basic: number
+  price_pro: number
   free_posts_per_month: number
   promo_active: boolean
   promo_discount_percent: number
@@ -12,7 +14,9 @@ export interface AppConfig {
 
 const DEFAULT_CONFIG: AppConfig = {
   trial_days: 60,
-  subscription_price: 7900,
+  subscription_price: 12900,
+  price_basic: 7900,
+  price_pro: 12900,
   free_posts_per_month: 3,
   promo_active: true,
   promo_discount_percent: 50,
@@ -24,9 +28,13 @@ export async function getAppConfig(): Promise<AppConfig> {
   const db = await getDb()
   const doc = await db.collection('app_config').findOne({ _id: 'main' as unknown as ObjectId })
   if (!doc) return { ...DEFAULT_CONFIG }
+  const priceBasic = doc.price_basic ?? doc.subscription_price ?? DEFAULT_CONFIG.price_basic
+  const pricePro = doc.price_pro ?? DEFAULT_CONFIG.price_pro
   return {
     trial_days: doc.trial_days ?? DEFAULT_CONFIG.trial_days,
-    subscription_price: doc.subscription_price ?? DEFAULT_CONFIG.subscription_price,
+    subscription_price: doc.subscription_price ?? pricePro,
+    price_basic: priceBasic,
+    price_pro: pricePro,
     free_posts_per_month: doc.free_posts_per_month ?? DEFAULT_CONFIG.free_posts_per_month,
     promo_active: doc.promo_active ?? DEFAULT_CONFIG.promo_active,
     promo_discount_percent: doc.promo_discount_percent ?? DEFAULT_CONFIG.promo_discount_percent,
@@ -56,6 +64,8 @@ export async function setAppConfig(patch: Partial<AppConfig>): Promise<AppConfig
 
 export type SubStatus = 'trial' | 'active' | 'expired' | 'cancelled'
 
+export type PlanTier = 'none' | 'trial' | 'basic' | 'pro'
+
 export interface UserSubFields {
   trial_start?: Date | null
   trial_end?: Date | null
@@ -65,11 +75,14 @@ export interface UserSubFields {
   monthly_post_reset?: Date | null
   verified?: boolean
   promo_applied?: boolean
+  plan_tier?: PlanTier
 }
 
 export interface SubscriptionState {
   status: SubStatus
   is_premium: boolean
+  is_pro: boolean
+  plan_tier: PlanTier
   trial_end: string | null
   trial_days_left: number
   trial_days_granted: number
@@ -83,6 +96,10 @@ export interface SubscriptionState {
   needs_payment: boolean
   price_regular: number
   price_promo: number
+  price_basic: number
+  price_basic_regular: number
+  price_pro: number
+  price_pro_regular: number
   promo_active: boolean
   promo_end_date: string | null
   promo_days_left: number
@@ -134,6 +151,10 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   const activePaid = status === 'active' && !!subEnd && now < subEnd
   const isPremium = activePaid || inTrial
 
+  const rawTier: PlanTier = (u?.plan_tier as PlanTier) || (inTrial ? 'trial' : (activePaid ? 'basic' : 'none'))
+  const planTier: PlanTier = isPremium ? (rawTier === 'none' ? (inTrial ? 'trial' : 'basic') : rawTier) : 'none'
+  const isPro = planTier === 'trial' || planTier === 'pro'
+
   const trialDaysLeft = trialEnd ? daysBetween(now, trialEnd) : 0
   const subDaysLeft = subEnd ? daysBetween(now, subEnd) : 0
 
@@ -144,10 +165,12 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   const canPost = isPremium || postsRemaining > 0
   const needsPayment = !canPost
 
-  const priceRegular = cfg.promo_active
-    ? Math.round(cfg.subscription_price / (1 - cfg.promo_discount_percent / 100))
-    : cfg.subscription_price
-  const pricePromo = cfg.subscription_price
+  const discountFactor = cfg.promo_active ? (1 - cfg.promo_discount_percent / 100) : 1
+  const priceBasicRegular = cfg.promo_active ? Math.round(cfg.price_basic / discountFactor) : cfg.price_basic
+  const priceProRegular = cfg.promo_active ? Math.round(cfg.price_pro / discountFactor) : cfg.price_pro
+  // Legacy fields based on basic price (used by older banner copy)
+  const pricePromo = cfg.price_basic
+  const priceRegular = priceBasicRegular
 
   const promoEnd: Date | null = cfg.promo_end_date ? new Date(cfg.promo_end_date) : null
   const promoDaysLeft = cfg.promo_active && promoEnd ? daysBetween(now, promoEnd) : 0
@@ -158,6 +181,8 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   return {
     status,
     is_premium: isPremium,
+    is_pro: isPro,
+    plan_tier: planTier,
     trial_end: trialEnd ? trialEnd.toISOString() : null,
     trial_days_left: trialDaysLeft,
     trial_days_granted: trialGranted,
@@ -171,6 +196,10 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
     needs_payment: needsPayment,
     price_regular: priceRegular,
     price_promo: pricePromo,
+    price_basic: cfg.price_basic,
+    price_basic_regular: priceBasicRegular,
+    price_pro: cfg.price_pro,
+    price_pro_regular: priceProRegular,
     promo_active: promoActiveResolved,
     promo_end_date: cfg.promo_end_date,
     promo_days_left: promoDaysLeft,
@@ -199,13 +228,14 @@ export async function initTrialForNewUser(userId: string): Promise<void> {
         trial_days_granted: cfg.trial_days,
         subscription_status: 'trial',
         subscription_end: null,
+        plan_tier: 'trial',
         monthly_post_count: 0,
         monthly_post_reset: now,
         verified: false,
         promo_applied: cfg.promo_active,
         promo_snapshot: cfg.promo_active ? {
           discount_percent: cfg.promo_discount_percent,
-          price_at_signup: cfg.subscription_price,
+          price_at_signup: cfg.price_pro,
           trial_days: cfg.trial_days,
           registered_at: now,
         } : null,

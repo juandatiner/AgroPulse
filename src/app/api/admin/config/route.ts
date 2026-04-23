@@ -18,6 +18,8 @@ export async function PATCH(request: Request) {
     const patch: Partial<AppConfig> = {}
     if (typeof body.trial_days === 'number') patch.trial_days = Math.min(90, Math.max(1, Math.floor(body.trial_days)))
     if (typeof body.subscription_price === 'number') patch.subscription_price = Math.max(0, Math.floor(body.subscription_price))
+    if (typeof body.price_basic === 'number') patch.price_basic = Math.max(0, Math.floor(body.price_basic))
+    if (typeof body.price_pro === 'number') patch.price_pro = Math.max(0, Math.floor(body.price_pro))
     if (typeof body.free_posts_per_month === 'number') patch.free_posts_per_month = Math.max(0, Math.floor(body.free_posts_per_month))
     if (typeof body.promo_active === 'boolean') patch.promo_active = body.promo_active
     if (typeof body.promo_discount_percent === 'number') patch.promo_discount_percent = Math.min(99, Math.max(0, body.promo_discount_percent))

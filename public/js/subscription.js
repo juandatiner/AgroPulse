@@ -3,6 +3,7 @@ const Subscription = {
     lastState: null,
 
     isPremium() { return !!(this.state && this.state.is_premium); },
+    isPro() { return !!(this.state && this.state.is_pro); },
     isBlocked() { return !!(this.state && this.state.needs_payment); },
 
     async refresh() {
@@ -180,15 +181,27 @@ const Subscription = {
     // ========== Ads simulados (free only) ==========
     _ADS: [
         { id: 'tractores', icon: '🚜', title: 'Tractores Boyacá', text: 'Renta diaria desde $80.000', cta: 'Ver más',
-          long: 'Tractores modernos con operador incluido. Servicio puerta a puerta en Boyacá, Cundinamarca y Santander. Tarifas por jornada, semana o temporada. Contáctanos para cotización.', phone: '300 123 4567' },
+          long: 'Tractores modernos con operador incluido. Servicio puerta a puerta en Boyacá, Cundinamarca y Santander. Tarifas por jornada, semana o temporada.', phone: '300 123 4567' },
         { id: 'semillas', icon: '🌱', title: 'Semillas certificadas', text: 'Variedades resistentes a plagas', cta: 'Comprar',
-          long: 'Semillas certificadas por el ICA, variedades de papa, maíz, frijol y hortalizas resistentes a plagas y enfermedades comunes de clima frío. Entregamos en finca.', phone: '310 555 7890' },
+          long: 'Semillas certificadas por el ICA: papa, maíz, frijol y hortalizas resistentes a plagas. Entrega en finca con asesoría técnica incluida.', phone: '310 555 7890' },
         { id: 'suelos', icon: '🧪', title: 'Análisis de suelos', text: 'Laboratorio con 24h de entrega', cta: 'Cotizar',
-          long: 'Análisis completo de suelos: pH, nutrientes mayores y menores, textura y materia orgánica. Informe con recomendaciones técnicas personalizadas en 24 horas.', phone: '320 741 8520' },
+          long: 'Análisis completo: pH, nutrientes mayores y menores, textura y materia orgánica. Informe con recomendaciones técnicas en 24 horas.', phone: '320 741 8520' },
         { id: 'feria', icon: '🐄', title: 'Feria ganadera', text: 'Tunja · 15 de octubre', cta: 'Info',
-          long: 'Gran feria ganadera de Boyacá. Subastas de razas lecheras y de carne, remate de sementales, charlas técnicas y maquinaria agrícola. Entrada gratuita.', phone: '301 234 5678' },
+          long: 'Gran feria ganadera de Boyacá: subastas lecheras y de carne, remate de sementales, charlas técnicas y maquinaria. Entrada gratuita.', phone: '301 234 5678' },
         { id: 'credito', icon: '💰', title: 'Crédito rural', text: 'Tasa preferencial 1.2% mensual', cta: 'Aplicar',
-          long: 'Créditos agropecuarios con periodo de gracia y tasa preferencial. Desde $2.000.000 hasta $100.000.000. Aprobación en 48h. Requiere cédula y certificado predial.', phone: '018000-AGRO' },
+          long: 'Créditos agropecuarios con periodo de gracia. Desde $2M hasta $100M. Aprobación en 48h. Requiere cédula y certificado predial.', phone: '018000-AGRO' },
+        { id: 'riego', icon: '💧', title: 'Riego por goteo', text: 'Ahorra 60% de agua', cta: 'Cotizar',
+          long: 'Sistemas de riego por goteo diseñados para tu cultivo y terreno. Kits completos con instalación incluida. Financiación hasta 12 meses sin intereses.', phone: '311 456 7890' },
+        { id: 'capacitacion', icon: '🎓', title: 'Curso SENA gratis', text: 'Buenas prácticas agrícolas', cta: 'Inscribirme',
+          long: 'Curso virtual certificado por el SENA en buenas prácticas agrícolas (BPA). 40 horas, inicio cada mes. Certificado válido para comercialización.', phone: '800-SENA' },
+        { id: 'veterinario', icon: '🐑', title: 'Veterinario rural', text: 'Visita a finca $50.000', cta: 'Agendar',
+          long: 'Servicio veterinario a domicilio para ganado, ovinos, caprinos y aves. Vacunación, desparasitación y diagnóstico. Disponible fines de semana.', phone: '315 222 3344' },
+        { id: 'abono', icon: '🌾', title: 'Abono orgánico Certificado', text: 'Bulto 50kg desde $38.000', cta: 'Comprar',
+          long: 'Abono orgánico certificado para cultivos orgánicos y convencionales. Fabricado con residuos vegetales compostados y enriquecido con micorrizas.', phone: '320 111 2233' },
+        { id: 'maquila', icon: '⚙️', title: 'Servicio de maquila', text: 'Molienda y empaque', cta: 'Info',
+          long: 'Maquila de granos: molienda, selección, tostado y empaque al vacío. Planta con registro INVIMA. Ideal para pequeños productores sin infraestructura.', phone: '310 999 8877' },
+        { id: 'seguro', icon: '🛡️', title: 'Seguro de cosecha', text: 'Protege tu inversión', cta: 'Cotizar',
+          long: 'Seguro agrícola subsidiado hasta 80% por FINAGRO. Cubre granizo, inundación, sequía y plagas. Para todos los cultivos transitorios y permanentes.', phone: '018000-FNGR' },
     ],
 
     _slotPositions: {
@@ -203,7 +216,7 @@ const Subscription = {
 
     renderAds() {
         const panels = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
-        if (this.isPremium()) {
+        if (this.isPro()) {
             panels.forEach(p => {
                 const host = document.getElementById('panel-' + p);
                 const old = document.getElementById('sub-ads-slot-' + p);
@@ -274,7 +287,7 @@ const Subscription = {
         if (!this._adRotationTimer) {
             this._adRotationTimer = setInterval(() => {
                 this._adRotationIdx = (this._adRotationIdx + 1) % this._ADS.length;
-                if (!this.isPremium()) this.renderAds();
+                if (!this.isPro()) this.renderAds();
             }, 10000);
         }
     },
@@ -323,85 +336,97 @@ const Subscription = {
     // ========== Pantalla de planes (overlay) ==========
     openPlans() {
         const s = this.state || {};
-        const priceReg = this.formatPrice(s.price_regular || 15800);
-        const pricePromo = this.formatPrice(s.price_promo || 7900);
+        const priceBasic = this.formatPrice(s.price_basic || 7900);
+        const priceBasicReg = this.formatPrice(s.price_basic_regular || s.price_basic || 7900);
+        const pricePro = this.formatPrice(s.price_pro || 12900);
+        const priceProReg = this.formatPrice(s.price_pro_regular || s.price_pro || 12900);
         const alreadyActive = !!s.is_premium;
-        const activeReason = s.status === 'active'
-            ? 'Suscripción Pro activa'
-            : (s.status === 'trial' ? 'Prueba gratuita activa' : '');
-        const activeSubtitle = s.status === 'active' && s.subscription_end
-            ? `Renueva el ${new Date(s.subscription_end).toLocaleDateString()}`
-            : (s.status === 'trial' && s.trial_end ? `Termina el ${new Date(s.trial_end).toLocaleDateString()}` : '');
-        const features = [
-            { icon: 'infinity', title: 'Publicaciones ilimitadas', desc: 'Publica sin el tope de 3 al mes' },
-            { icon: 'bell', title: 'Alertas de match inteligente', desc: 'Te avisamos cuando alguien busca lo que ofreces' },
-            { icon: 'image', title: 'Chat con fotos y ubicación', desc: 'Envía imágenes y comparte coordenadas' },
-            { icon: 'download', title: 'Exportar acuerdos a CSV', desc: 'Descarga tu historial para contabilidad' },
-            { icon: 'life-buoy', title: 'Soporte prioritario', desc: 'Tus tickets se atienden primero' },
-            { icon: 'shield-off', title: 'Sin anuncios', desc: 'Experiencia limpia sin publicidad' },
+        const currentTier = s.plan_tier || 'none';
+        const promo = !!s.promo_active;
+        const discountLabel = s.promo_discount_percent ? `-${s.promo_discount_percent}%` : '-50%';
+
+        const basicFeatures = [
+            { text: 'Publicaciones ilimitadas', ok: true },
+            { text: 'Sin anuncios', ok: false },
+            { text: 'Alertas de match inteligente', ok: false },
+            { text: 'Chat con fotos y ubicación', ok: false },
+            { text: 'Exportar acuerdos a CSV', ok: false },
+            { text: 'Soporte prioritario', ok: false },
         ];
+        const proFeatures = [
+            { text: 'Publicaciones ilimitadas', ok: true },
+            { text: 'Sin anuncios', ok: true },
+            { text: 'Alertas de match inteligente', ok: true },
+            { text: 'Chat con fotos y ubicación', ok: true },
+            { text: 'Exportar acuerdos a CSV', ok: true },
+            { text: 'Soporte prioritario', ok: true },
+        ];
+
+        const renderFeatures = (arr) => arr.map(f => `
+            <li class="${f.ok ? 'plan-feat-ok' : 'plan-feat-no'}">
+                <i data-lucide="${f.ok ? 'check-circle-2' : 'x-circle'}"></i>
+                <span>${this._esc(f.text)}</span>
+            </li>
+        `).join('');
+
+        const ctaBasic = (alreadyActive && currentTier === 'basic')
+            ? `<button class="btn btn-outline btn-full" disabled>Tu plan actual</button>`
+            : (alreadyActive && currentTier === 'pro'
+                ? `<button class="btn btn-outline btn-full" disabled>Ya tienes Pro</button>`
+                : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('basic')">
+                     <i data-lucide="credit-card"></i> Suscribirme al Básico
+                   </button>`);
+
+        const ctaPro = (alreadyActive && currentTier === 'pro')
+            ? `<button class="btn btn-outline btn-full" disabled>Tu plan actual</button>`
+            : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('pro')">
+                 <i data-lucide="credit-card"></i> Suscribirme al Pro
+               </button>`;
 
         const html = `
             <div class="plans-overlay-inner">
                 <button class="plans-close" onclick="Subscription.closePlans()"><i data-lucide="x"></i></button>
-                <div class="plans-hero">
+                <div class="plans-hero plans-hero-compact">
                     <div class="plans-crown"><i data-lucide="crown"></i></div>
-                    <h2>AgroPulse Pro</h2>
-                    <p>Potencia tu actividad agrícola sin límites</p>
-                    <div class="plans-price-box">
-                        ${s.promo_active ? `<span class="plans-discount-badge">-${s.promo_discount_percent || 50}%</span>` : ''}
-                        ${s.promo_active ? `<s class="plans-price-old">${priceReg}</s>` : ''}
-                        <div class="plans-price-now">
-                            <span class="plans-price-amount">${pricePromo}</span>
-                            <span class="plans-price-per">/mes</span>
+                    <h2>Elige tu plan</h2>
+                    <p>Dos opciones pensadas para tu actividad</p>
+                    ${promo && s.promo_days_left > 0 ? `<p class="plans-price-promo-hint">🔥 Promo ${discountLabel} termina en ${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</p>` : ''}
+                </div>
+
+                <div class="plan-cards">
+                    <div class="plan-card plan-card-basic">
+                        <div class="plan-card-head">
+                            <div class="plan-card-icon"><i data-lucide="sprout"></i></div>
+                            <h3>Básico</h3>
+                            <p class="plan-card-tag">Publica sin límite</p>
                         </div>
-                        ${s.promo_active && s.promo_days_left > 0 ? `<p class="plans-price-promo-hint">🔥 Promo termina en ${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</p>` : ''}
+                        <div class="plan-card-price">
+                            ${promo ? `<s>${priceBasicReg}</s>` : ''}
+                            <strong>${priceBasic}</strong><span>/mes</span>
+                            ${promo ? `<span class="plan-card-disc">${discountLabel}</span>` : ''}
+                        </div>
+                        <ul class="plan-card-features">${renderFeatures(basicFeatures)}</ul>
+                        ${ctaBasic}
                     </div>
-                    ${alreadyActive ? `
-                        <div class="plans-active-notice">
-                            <i data-lucide="check-circle-2"></i>
-                            <div>
-                                <strong>${activeReason}</strong>
-                                ${activeSubtitle ? `<small>${activeSubtitle}</small>` : ''}
-                            </div>
+
+                    <div class="plan-card plan-card-pro plan-card-highlight">
+                        <span class="plan-card-ribbon">⭐ Recomendado</span>
+                        <div class="plan-card-head">
+                            <div class="plan-card-icon"><i data-lucide="crown"></i></div>
+                            <h3>Pro</h3>
+                            <p class="plan-card-tag">Todos los beneficios</p>
                         </div>
-                        <button class="btn btn-outline btn-full plans-cta" disabled style="opacity:0.6;cursor:not-allowed">
-                            Ya tienes todo desbloqueado
-                        </button>
-                    ` : `
-                        <button class="btn btn-primary btn-full plans-cta" onclick="Subscription.openCheckout()">
-                            <i data-lucide="credit-card"></i> Suscribirme ahora
-                        </button>
-                    `}
-                    <p class="plans-legal">Pago mensual · Cancela cuando quieras · Simulación de pago (demo)</p>
-                </div>
-                <div class="plans-features">
-                    <h3>Qué incluye</h3>
-                    ${features.map(f => `
-                        <div class="plans-feature">
-                            <div class="plans-feature-icon"><i data-lucide="${f.icon}"></i></div>
-                            <div class="plans-feature-text">
-                                <strong>${f.title}</strong>
-                                <span>${f.desc}</span>
-                            </div>
-                            <i data-lucide="check-circle-2" class="plans-feature-check"></i>
+                        <div class="plan-card-price">
+                            ${promo ? `<s>${priceProReg}</s>` : ''}
+                            <strong>${pricePro}</strong><span>/mes</span>
+                            ${promo ? `<span class="plan-card-disc">${discountLabel}</span>` : ''}
                         </div>
-                    `).join('')}
+                        <ul class="plan-card-features">${renderFeatures(proFeatures)}</ul>
+                        ${ctaPro}
+                    </div>
                 </div>
-                <div class="plans-comparison">
-                    <h3>Free vs Pro</h3>
-                    <table>
-                        <thead><tr><th>Beneficio</th><th>Free</th><th>Pro</th></tr></thead>
-                        <tbody>
-                            <tr><td>Publicaciones / mes</td><td>${s.free_posts_per_month || 3}</td><td>∞</td></tr>
-                            <tr><td>Alertas de match</td><td>—</td><td>✓</td></tr>
-                            <tr><td>Chat con imágenes</td><td>—</td><td>✓</td></tr>
-                            <tr><td>Exportar datos</td><td>—</td><td>✓</td></tr>
-                            <tr><td>Sin anuncios</td><td>—</td><td>✓</td></tr>
-                            <tr><td>Soporte</td><td>Normal</td><td>Prioritario</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+
+                <p class="plans-legal">Pago mensual · Cancela cuando quieras · Simulación de pago (demo)</p>
                 <button class="btn btn-outline btn-full" onclick="Subscription.closePlans()">Volver</button>
             </div>
         `;
@@ -442,13 +467,21 @@ const Subscription = {
     closePaywall() { this._closeOverlay('paywall-overlay'); },
 
     // ========== Pasarela de pago simulada ==========
-    openCheckout() {
+    openCheckout(plan) {
         const s = this.state || {};
-        if (s.is_premium) {
-            App.showToast(s.status === 'trial' ? 'Ya tienes tu prueba gratuita activa' : 'Ya tienes una suscripción activa', 'info');
+        if (s.is_premium && s.plan_tier === 'pro') {
+            App.showToast('Ya tienes el plan Pro activo', 'info');
             return;
         }
-        const pricePromo = this.formatPrice(s.price_promo || 7900);
+        if (s.is_premium && s.status === 'trial') {
+            App.showToast('Ya tienes tu prueba gratuita activa', 'info');
+            return;
+        }
+        const selectedPlan = plan === 'pro' ? 'pro' : (plan === 'basic' ? 'basic' : 'basic');
+        this._selectedPlan = selectedPlan;
+        const planLabel = selectedPlan === 'pro' ? 'Pro' : 'Básico';
+        const priceAmount = selectedPlan === 'pro' ? (s.price_pro || 12900) : (s.price_basic || 7900);
+        const pricePromo = this.formatPrice(priceAmount);
         const html = `
             <div class="checkout-overlay-inner">
                 <button class="plans-close" onclick="Subscription.closeCheckout()"><i data-lucide="x"></i></button>
@@ -459,9 +492,9 @@ const Subscription = {
                         <span>VISA</span><span>MC</span><span>AMEX</span>
                     </div>
                 </div>
-                <h2>Suscripción AgroPulse Pro</h2>
+                <h2>Suscripción AgroPulse ${planLabel}</h2>
                 <div class="checkout-summary">
-                    <div><span>Plan mensual</span><strong>${pricePromo}</strong></div>
+                    <div><span>Plan ${planLabel} (mensual)</span><strong>${pricePromo}</strong></div>
                     <div><span>IVA (19%)</span><strong>Incluido</strong></div>
                     <div class="checkout-total"><span>Total hoy</span><strong>${pricePromo}</strong></div>
                 </div>
@@ -553,6 +586,7 @@ const Subscription = {
 
         try {
             const result = await API.checkout({
+                plan: this._selectedPlan || 'basic',
                 card_number: card,
                 cvv,
                 exp_month: parseInt(mm, 10),
@@ -590,8 +624,8 @@ const Subscription = {
 
     // ========== Matches (pro) ==========
     async openMatches() {
-        if (!this.isPremium()) {
-            this.openPaywall('Las alertas inteligentes cruzan tus publicaciones con las de otros productores. Disponibles con AgroPulse Pro.');
+        if (!this.isPro()) {
+            this.openPaywall('Las alertas inteligentes cruzan tus publicaciones con las de otros productores. Disponibles solo en el plan Pro.');
             return;
         }
         this._openOverlay('matches-overlay', `
@@ -641,7 +675,7 @@ const Subscription = {
             <div class="support-overlay-inner">
                 <button class="plans-close" onclick="Subscription._closeOverlay('support-overlay')"><i data-lucide="x"></i></button>
                 <h2><i data-lucide="life-buoy"></i> Soporte</h2>
-                ${this.isPremium() ? `<p class="support-priority-note"><i data-lucide="zap"></i> Tus tickets se atienden con prioridad</p>` : `<p class="support-normal-note">Tus tickets se atienden en orden normal. <a onclick="Subscription._closeOverlay('support-overlay'); Subscription.openPlans()">Mejora a Pro</a> para prioridad.</p>`}
+                ${this.isPro() ? `<p class="support-priority-note"><i data-lucide="zap"></i> Tus tickets se atienden con prioridad</p>` : `<p class="support-normal-note">Tus tickets se atienden en orden normal. <a onclick="Subscription._closeOverlay('support-overlay'); Subscription.openPlans()">Mejora a Pro</a> para prioridad.</p>`}
                 <button class="btn btn-primary btn-full" onclick="Subscription.openNewTicket()">
                     <i data-lucide="plus"></i> Nuevo ticket
                 </button>
@@ -809,8 +843,8 @@ const Subscription = {
     },
 
     async downloadCsv() {
-        if (!this.isPremium()) {
-            this.openPaywall('La exportación a CSV requiere suscripción activa.');
+        if (!this.isPro()) {
+            this.openPaywall('La exportación a CSV está disponible solo en el plan Pro.');
             return;
         }
         try {

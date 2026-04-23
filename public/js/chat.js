@@ -215,9 +215,9 @@ const Chat = {
     previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-        if (typeof Subscription !== 'undefined' && !Subscription.isPremium()) {
+        if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
             event.target.value = '';
-            Subscription.openPaywall('Enviar fotos en el chat requiere suscripción activa. Los usuarios gratuitos sólo pueden enviar texto.');
+            Subscription.openPaywall('Enviar fotos en el chat está disponible solo en el plan Pro.');
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
@@ -245,8 +245,8 @@ const Chat = {
     // Location sharing
     async sendLocation() {
         if (!this.currentAgreementId) return;
-        if (typeof Subscription !== 'undefined' && !Subscription.isPremium()) {
-            Subscription.openPaywall('Compartir ubicación en el chat requiere suscripción activa.');
+        if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
+            Subscription.openPaywall('Compartir ubicación en el chat está disponible solo en el plan Pro.');
             return;
         }
         App.showToast('Detectando ubicación...');

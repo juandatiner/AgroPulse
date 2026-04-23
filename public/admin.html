@@ -990,6 +990,157 @@
       .modal-stat { border-right: none; border-bottom: 1px solid var(--gray100); }
       .modal-stat:last-child { border-bottom: none; }
     }
+
+    /* === Config Panel === */
+    .cfg-form { display: flex; flex-direction: column; gap: 18px; padding-bottom: 20px; }
+    .cfg-card {
+      background: var(--white);
+      border: 1px solid var(--gray200);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .cfg-card-head {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--gray100);
+      background: linear-gradient(90deg, #fefcf6, #fff);
+    }
+    .cfg-card-head i[data-lucide] {
+      width: 26px; height: 26px;
+      color: var(--harvest);
+      background: #fff6e1;
+      padding: 5px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cfg-card-head h3 { font-family: var(--font-serif); font-size: 17px; color: var(--earth); margin: 0; }
+    .cfg-card-head small { color: var(--gray500); font-size: 12px; }
+    .cfg-card-body {
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .cfg-card-body.cfg-grid-2 {
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 720px) {
+      .cfg-card-body.cfg-grid-2 { grid-template-columns: 1fr; }
+    }
+    .cfg-field { display: flex; flex-direction: column; gap: 4px; }
+    .cfg-field-full { grid-column: 1 / -1; }
+    .cfg-field label { font-size: 12px; font-weight: 600; color: var(--gray700); }
+    .cfg-field small { color: var(--gray500); font-size: 11px; }
+    .cfg-field input[type="number"], .cfg-field input[type="datetime-local"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--gray300);
+      border-radius: 8px;
+      font: inherit;
+      font-size: 14px;
+      background: var(--white);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .cfg-field input:focus {
+      outline: none;
+      border-color: var(--harvest);
+      box-shadow: 0 0 0 3px rgba(200,150,42,0.2);
+    }
+    .cfg-input-wrap {
+      display: flex; align-items: stretch;
+      border: 1px solid var(--gray300);
+      border-radius: 8px;
+      background: var(--white);
+      overflow: hidden;
+    }
+    .cfg-input-wrap:focus-within {
+      border-color: var(--harvest);
+      box-shadow: 0 0 0 3px rgba(200,150,42,0.2);
+    }
+    .cfg-input-wrap input {
+      border: none !important;
+      flex: 1;
+      box-shadow: none !important;
+    }
+    .cfg-input-prefix, .cfg-input-suffix {
+      display: flex; align-items: center;
+      padding: 0 10px;
+      background: var(--gray50);
+      color: var(--gray500);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .cfg-input-prefix { border-right: 1px solid var(--gray200); }
+    .cfg-input-suffix { border-left: 1px solid var(--gray200); }
+
+    .cfg-plan-card {
+      border: 2px solid var(--gray200);
+      border-radius: var(--radius);
+      padding: 14px;
+      background: var(--gray50);
+    }
+    .cfg-plan-pro { border-color: var(--harvest); background: #fffdf5; }
+    .cfg-plan-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .cfg-plan-head small { color: var(--gray500); font-size: 11px; }
+    .cfg-plan-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .cfg-plan-badge.basic { background: #e0f2fe; color: #075985; }
+    .cfg-plan-badge.pro { background: var(--harvest); color: #fff; }
+
+    .cfg-toggle-field { align-self: center; }
+    .cfg-toggle {
+      display: inline-flex; align-items: center; gap: 10px;
+      cursor: pointer; user-select: none;
+      font-size: 13px;
+    }
+    .cfg-toggle input { display: none; }
+    .cfg-toggle-slider {
+      width: 42px; height: 24px;
+      background: var(--gray300);
+      border-radius: 999px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .cfg-toggle-slider::after {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      background: var(--white);
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .cfg-toggle input:checked + .cfg-toggle-slider { background: var(--green); }
+    .cfg-toggle input:checked + .cfg-toggle-slider::after { transform: translateX(18px); }
+
+    .cfg-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding-top: 4px;
+    }
+    .cfg-actions .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px;
+      background: var(--earth);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.15s;
+    }
+    .cfg-actions .btn-primary:hover { background: var(--earth2); }
   </style>
 </head>
 <body>
@@ -1304,44 +1455,113 @@
         <i data-lucide="settings" style="width:22px;height:22px;"></i>
         Configuración global
       </div>
-      <div class="section-card" style="padding:20px">
-        <form id="config-form" onsubmit="event.preventDefault(); Admin.saveConfig()">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <form id="config-form" onsubmit="event.preventDefault(); Admin.saveConfig()" class="cfg-form">
+
+        <div class="cfg-card">
+          <div class="cfg-card-head">
+            <i data-lucide="gift"></i>
             <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Días de prueba gratuita</label>
-              <input type="number" id="cfg-trial-days" min="1" max="90" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
-              <small style="color:var(--gray500);font-size:11px">Mínimo 1, máximo 90 (3 meses). Por defecto 60 (2 meses)</small>
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Precio suscripción (COP)</label>
-              <input type="number" id="cfg-price" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
-              <small style="color:var(--gray500);font-size:11px">Precio mensual real que cobrarás</small>
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Publicaciones gratis / mes</label>
-              <input type="number" id="cfg-free-posts" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
-              <small style="color:var(--gray500);font-size:11px">Límite antes del paywall</small>
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">% descuento promo</label>
-              <input type="number" id="cfg-promo-discount" min="0" max="99" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
-              <small style="color:var(--gray500);font-size:11px">Se muestra como "X% OFF". Precio tachado = precio / (1 - X/100)</small>
-            </div>
-            <div>
-              <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--gray700);margin-top:20px">
-                <input type="checkbox" id="cfg-promo-active"> Promoción activa
-              </label>
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Fin de promoción</label>
-              <input type="datetime-local" id="cfg-promo-end" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <h3>Prueba gratuita</h3>
+              <small>Tiempo que los nuevos usuarios acceden a todas las funciones Pro</small>
             </div>
           </div>
-          <button type="submit" style="margin-top:20px;background:var(--earth);color:var(--white);border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600">
-            Guardar configuración
+          <div class="cfg-card-body">
+            <div class="cfg-field">
+              <label>Días de prueba</label>
+              <div class="cfg-input-wrap">
+                <input type="number" id="cfg-trial-days" min="1" max="90" />
+                <span class="cfg-input-suffix">días</span>
+              </div>
+              <small>Mín 1 · máx 90 (3 meses). Por defecto 60.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <div class="cfg-card-head">
+            <i data-lucide="crown"></i>
+            <div>
+              <h3>Planes y precios</h3>
+              <small>Configura los dos planes de suscripción mensual</small>
+            </div>
+          </div>
+          <div class="cfg-card-body cfg-grid-2">
+            <div class="cfg-plan-card">
+              <div class="cfg-plan-head"><span class="cfg-plan-badge basic">Básico</span> <small>Solo publicaciones ilimitadas</small></div>
+              <div class="cfg-field">
+                <label>Precio mensual</label>
+                <div class="cfg-input-wrap">
+                  <span class="cfg-input-prefix">$</span>
+                  <input type="number" id="cfg-price-basic" min="0" />
+                  <span class="cfg-input-suffix">COP</span>
+                </div>
+                <small>Por defecto $7.900</small>
+              </div>
+            </div>
+            <div class="cfg-plan-card cfg-plan-pro">
+              <div class="cfg-plan-head"><span class="cfg-plan-badge pro">⭐ Pro</span> <small>Todos los beneficios</small></div>
+              <div class="cfg-field">
+                <label>Precio mensual</label>
+                <div class="cfg-input-wrap">
+                  <span class="cfg-input-prefix">$</span>
+                  <input type="number" id="cfg-price-pro" min="0" />
+                  <span class="cfg-input-suffix">COP</span>
+                </div>
+                <small>Por defecto $12.900</small>
+              </div>
+            </div>
+          </div>
+          <div class="cfg-card-body">
+            <div class="cfg-field">
+              <label>Publicaciones gratis / mes (plan Free)</label>
+              <div class="cfg-input-wrap">
+                <input type="number" id="cfg-free-posts" min="0" />
+                <span class="cfg-input-suffix">pubs / mes</span>
+              </div>
+              <small>Límite antes del paywall para usuarios Free.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-card">
+          <div class="cfg-card-head">
+            <i data-lucide="flame"></i>
+            <div>
+              <h3>Promoción</h3>
+              <small>Descuento temporal visible en banner y pantalla de planes</small>
+            </div>
+          </div>
+          <div class="cfg-card-body cfg-grid-2">
+            <div class="cfg-field cfg-toggle-field">
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfg-promo-active">
+                <span class="cfg-toggle-slider"></span>
+                <span>Promoción activa</span>
+              </label>
+              <small>Activa para mostrar el descuento en toda la app.</small>
+            </div>
+            <div class="cfg-field">
+              <label>Descuento</label>
+              <div class="cfg-input-wrap">
+                <input type="number" id="cfg-promo-discount" min="0" max="99" />
+                <span class="cfg-input-suffix">%</span>
+              </div>
+              <small>Se muestra como "X% OFF". Precio tachado = precio / (1 - X/100)</small>
+            </div>
+            <div class="cfg-field cfg-field-full">
+              <label>Fin de promoción</label>
+              <input type="datetime-local" id="cfg-promo-end" />
+              <small>Déjalo vacío para promoción sin fecha límite.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="cfg-actions">
+          <button type="submit" class="btn-primary">
+            <i data-lucide="save" style="width:14px;height:14px"></i> Guardar configuración
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
 
   </div><!-- /content -->

@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const planTier: 'basic' | 'pro' = body.plan === 'pro' ? 'pro' : 'basic'
     const card = String(body.card_number || '').replace(/\s+/g, '')
     const cvv = String(body.cvv || '')
     const expMonth = parseInt(String(body.exp_month || '0'), 10)
@@ -46,11 +47,13 @@ export async function POST(request: Request) {
     const db = await getDb()
     const now = new Date()
     const uid = new ObjectId(user.id)
+    const planAmount = planTier === 'pro' ? cfg.price_pro : cfg.price_basic
 
     if (willDecline) {
       await db.collection('invoices').insertOne({
         user_id: uid,
-        amount: cfg.subscription_price,
+        amount: planAmount,
+        plan_tier: planTier,
         status: 'declined',
         card_brand: brand,
         card_last4: last4,
@@ -70,7 +73,8 @@ export async function POST(request: Request) {
 
     await db.collection('invoices').insertOne({
       user_id: uid,
-      amount: cfg.subscription_price,
+      amount: planAmount,
+      plan_tier: planTier,
       status: 'paid',
       card_brand: brand,
       card_last4: last4,
@@ -87,6 +91,7 @@ export async function POST(request: Request) {
         $set: {
           subscription_status: 'active',
           subscription_end: subEnd,
+          plan_tier: planTier,
           monthly_post_count: 0,
           monthly_post_reset: now,
         },

@@ -567,29 +567,38 @@ const Admin = (() => {
     try {
       const c = await apiFetch('/api/admin/config');
       markRefreshed();
-      document.getElementById('cfg-trial-days').value = c.trial_days;
-      document.getElementById('cfg-price').value = c.subscription_price;
-      document.getElementById('cfg-free-posts').value = c.free_posts_per_month;
-      document.getElementById('cfg-promo-discount').value = c.promo_discount_percent;
-      document.getElementById('cfg-promo-active').checked = !!c.promo_active;
-      if (c.promo_end_date) {
-        const d = new Date(c.promo_end_date);
-        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-        document.getElementById('cfg-promo-end').value = local.toISOString().slice(0, 16);
-      } else {
-        document.getElementById('cfg-promo-end').value = '';
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      set('cfg-trial-days', c.trial_days);
+      set('cfg-price-basic', c.price_basic ?? c.subscription_price);
+      set('cfg-price-pro', c.price_pro ?? 12900);
+      set('cfg-free-posts', c.free_posts_per_month);
+      set('cfg-promo-discount', c.promo_discount_percent);
+      const promoActive = document.getElementById('cfg-promo-active');
+      if (promoActive) promoActive.checked = !!c.promo_active;
+      const promoEnd = document.getElementById('cfg-promo-end');
+      if (promoEnd) {
+        if (c.promo_end_date) {
+          const d = new Date(c.promo_end_date);
+          const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+          promoEnd.value = local.toISOString().slice(0, 16);
+        } else {
+          promoEnd.value = '';
+        }
       }
     } catch (e) { showToast(e.message, 'error'); }
   }
 
   async function saveConfig() {
-    const promoEndVal = document.getElementById('cfg-promo-end').value;
+    const getNum = (id) => parseInt((document.getElementById(id) || {}).value || '0', 10);
+    const promoEndVal = (document.getElementById('cfg-promo-end') || {}).value || '';
     const payload = {
-      trial_days: parseInt(document.getElementById('cfg-trial-days').value || '0', 10),
-      subscription_price: parseInt(document.getElementById('cfg-price').value || '0', 10),
-      free_posts_per_month: parseInt(document.getElementById('cfg-free-posts').value || '0', 10),
-      promo_discount_percent: parseInt(document.getElementById('cfg-promo-discount').value || '0', 10),
-      promo_active: document.getElementById('cfg-promo-active').checked,
+      trial_days: getNum('cfg-trial-days'),
+      price_basic: getNum('cfg-price-basic'),
+      price_pro: getNum('cfg-price-pro'),
+      subscription_price: getNum('cfg-price-basic'),
+      free_posts_per_month: getNum('cfg-free-posts'),
+      promo_discount_percent: getNum('cfg-promo-discount'),
+      promo_active: !!(document.getElementById('cfg-promo-active') || {}).checked,
       promo_end_date: promoEndVal ? new Date(promoEndVal).toISOString() : null,
     };
     try {
