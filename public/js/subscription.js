@@ -256,10 +256,21 @@ const Subscription = {
 
             const vertical = position === 'right';
             let count;
+            const MIN_TILE = 110;
+            const MAX_TILE = 180;
+            const HEADER_H = 30;
+            const PAD = 16;
+            const GAP = 8;
             if (vertical) {
-                const avail = Math.max(200, window.innerHeight - 56 - 80 - 40); // top nav + tab-bar + respeto + header slot
-                const perTile = 120; // altura aprox por tile compacto
-                count = Math.max(1, Math.min(this._ADS.length, Math.floor(avail / perTile)));
+                // Altura disponible real = viewport - top(64) - bottom(80) - padding slot
+                const avail = Math.max(180, window.innerHeight - 64 - 80 - PAD - HEADER_H);
+                // Cuántos tiles de mínimo 110 caben? tope por MAX_TILE también
+                const maxByMin = Math.floor((avail + GAP) / (MIN_TILE + GAP));
+                const minByMax = Math.ceil((avail + GAP) / (MAX_TILE + GAP));
+                // Rango entre minByMax y maxByMin: usar el mayor que quepa sin pasar MAX
+                count = Math.max(1, Math.min(this._ADS.length, maxByMin));
+                // Garantizar que no sea menor que el mínimo necesario para no exceder MAX_TILE
+                count = Math.max(count, Math.min(this._ADS.length, minByMax));
             } else {
                 count = 3;
             }
