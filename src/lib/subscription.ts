@@ -72,6 +72,7 @@ export interface SubscriptionState {
   is_premium: boolean
   trial_end: string | null
   trial_days_left: number
+  trial_days_granted: number
   subscription_end: string | null
   subscription_days_left: number
   monthly_post_count: number
@@ -152,11 +153,14 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   const promoDaysLeft = cfg.promo_active && promoEnd ? daysBetween(now, promoEnd) : 0
   const promoActiveResolved = cfg.promo_active && (!promoEnd || now < promoEnd)
 
+  const trialGranted = typeof u?.trial_days_granted === 'number' ? u.trial_days_granted : cfg.trial_days
+
   return {
     status,
     is_premium: isPremium,
     trial_end: trialEnd ? trialEnd.toISOString() : null,
     trial_days_left: trialDaysLeft,
+    trial_days_granted: trialGranted,
     subscription_end: subEnd ? subEnd.toISOString() : null,
     subscription_days_left: subDaysLeft,
     monthly_post_count: postCount,

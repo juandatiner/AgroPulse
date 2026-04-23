@@ -56,7 +56,15 @@ const Chat = {
                     <div class="csb-actions">${rateBtn}</div>`;
         } else if (a.status === 'cancelled' || a.status === 'rejected') {
             const label = a.status === 'cancelled' ? 'Servicio cancelado' : 'Solicitud rechazada';
-            html = `<div class="csb-info csb-cancelled"><i data-lucide="circle-slash-2"></i> <span>${label}</span></div>`;
+            const reasonBlock = a.cancel_reason
+                ? `<div class="csb-reason" style="display:block;font-size:0.8rem;margin-top:4px;opacity:0.9">
+                       <strong>Motivo${a.cancelled_by_nombre ? ' (' + this._esc(a.cancelled_by_nombre) + ')' : ''}:</strong>
+                       ${this._esc(a.cancel_reason)}
+                   </div>` : '';
+            html = `<div class="csb-info csb-cancelled" style="flex-direction:column;align-items:flex-start">
+                      <div><i data-lucide="circle-slash-2"></i> <span>${label}</span></div>
+                      ${reasonBlock}
+                    </div>`;
         }
         if (html) {
             bar.innerHTML = html;
@@ -325,5 +333,6 @@ const Chat = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
-    }
+    },
+    _esc(s) { return this.escapeHtml(String(s == null ? '' : s)); }
 };

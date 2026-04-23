@@ -76,6 +76,7 @@ export async function GET(request: Request) {
             user_apellido: '$_user.apellido',
             user_municipio: '$_user.municipio',
             user_reputation: '$_user.reputation_score',
+            user_verified: '$_user.verified',
             agr_id: '$_agr._id',
             agr_status: '$_agr.status',
             agr_req_nombre: '$_agr._req.nombre',
@@ -106,6 +107,7 @@ export async function GET(request: Request) {
           user_apellido: d.user_apellido,
           user_municipio: d.user_municipio,
           user_reputation: d.user_reputation,
+      user_verified: !!d.user_verified,
         }
         if (d.agr_id) {
           out.agr_id = d.agr_id instanceof ObjectId ? d.agr_id.toHexString() : String(d.agr_id)
@@ -189,6 +191,7 @@ export async function GET(request: Request) {
       user_apellido: d.user_apellido,
       user_municipio: d.user_municipio,
       user_reputation: d.user_reputation,
+      user_verified: !!d.user_verified,
     })))
   })
 }

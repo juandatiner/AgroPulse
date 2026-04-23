@@ -277,13 +277,9 @@ const Admin = (() => {
           <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
           <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
           <td>
-            <button class="quick-btn warn" title="Pone trial a 2 minutos — ideal para probar el bloqueo" onclick="Admin.subAction('${esc(u.id)}', 'trial2min')">Trial 2min</button>
-            <button class="quick-btn warn" title="Pone trial a 30 segundos" onclick="Admin.subAction('${esc(u.id)}', 'trial30s')">Trial 30s</button>
-            <button class="quick-btn danger" title="Forzar expiración inmediata" onclick="Admin.subAction('${esc(u.id)}', 'expire')">Expirar ya</button>
-            <button class="quick-btn success" title="Activar suscripción 30 días sin pago" onclick="Admin.subAction('${esc(u.id)}', 'activate')">Activar 30d</button>
-            <button class="quick-btn" title="Reiniciar contador mensual" onclick="Admin.subAction('${esc(u.id)}', 'resetPosts')">Reset posts</button>
-            <button class="quick-btn success" title="Restaurar el trial prometido al usuario al momento del registro" onclick="Admin.subAction('${esc(u.id)}', 'restorePromise')">Restaurar promesa</button>
-            <button class="quick-btn" title="Cancelar suscripción" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">Cancelar</button>
+            <button class="quick-btn" title="Ver suscripción y editar" onclick="Admin.openSubModal('${esc(u.id)}')">👁 Ver</button>
+            <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(u.subscription_status || 'trial')}')">📅 Cambiar días</button>
+            <button class="quick-btn danger" title="Quitar suscripción (cancelar)" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">🗑 Quitar</button>
           </td>
         </tr>
       `;
@@ -302,7 +298,11 @@ const Admin = (() => {
     else if (action === 'activate') { body = { subscription_status: 'active', subscription_end_offset_minutes: 30 * 24 * 60 }; msg = 'Suscripción activada 30 días'; }
     else if (action === 'resetPosts') { body = { reset_posts: true }; msg = 'Contador reiniciado'; }
     else if (action === 'restorePromise') { body = { restore_promised_trial: true }; msg = 'Trial restaurado al prometido al registrarse'; }
-    else if (action === 'cancel') { body = { subscription_status: 'cancelled' }; msg = 'Suscripción cancelada'; }
+    else if (action === 'cancel') {
+      if (!confirm('¿Quitar la suscripción de este usuario? Pasará a estado cancelado.')) return;
+      body = { subscription_status: 'cancelled' };
+      msg = 'Suscripción cancelada';
+    }
     try {
       await apiFetch(`/api/admin/users/${userId}/subscription`, {
         method: 'PATCH',
@@ -310,41 +310,153 @@ const Admin = (() => {
       });
       showToast(msg, 'success');
       loadSubscriptions();
+      closeModalDirect();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function openSubModal(userId) {
+    const card = document.getElementById('modal-card');
+    card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
+    openModal();
+    if (window.lucide) lucide.createIcons();
+    try {
+      const sub = await apiFetch(`/api/admin/users/${userId}/subscription`);
+      const trialEndStr = sub.trial_end ? formatDate(sub.trial_end) : '—';
+      const subEndStr = sub.subscription_end ? formatDate(sub.subscription_end) : '—';
+      card.innerHTML = `
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Suscripción</div>
+            <div class="modal-subtitle">Estado: <strong>${sub.status}</strong> · ${sub.is_premium ? 'Premium activo' : 'Sin premium'}</div>
+          </div>
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-stats-row">
+            <div class="modal-stat"><span class="modal-stat-label">Trial termina</span><span class="modal-stat-value">${trialEndStr}</span></div>
+            <div class="modal-stat"><span class="modal-stat-label">Días restantes</span><span class="modal-stat-value">${sub.trial_days_left}</span></div>
+            <div class="modal-stat"><span class="modal-stat-label">Sub termina</span><span class="modal-stat-value">${subEndStr}</span></div>
+            <div class="modal-stat"><span class="modal-stat-label">Posts mes</span><span class="modal-stat-value">${sub.monthly_post_count} / ${sub.free_posts_per_month}</span></div>
+          </div>
+
+          <div class="modal-section-title">Editar días restantes</div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Días (1 a 90)</label>
+              <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))}">
+              <small style="color:var(--gray500);font-size:11px">Máximo 3 meses (90 días).</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cerrar</button>
+          <button class="quick-btn danger" onclick="Admin.subAction('${esc(userId)}', 'cancel')">🗑 Quitar suscripción</button>
+          <button class="btn-primary" onclick="Admin.saveSubDays('${esc(userId)}')"><i data-lucide="save" style="width:14px;height:14px"></i> Guardar días</button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
+    }
+  }
+
+  function openEditDaysModal(userId, name, status) {
+    const card = document.getElementById('modal-card');
+    openModal();
+    card.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">Cambiar días</div>
+          <div class="modal-subtitle">${esc(name)} · estado actual: <strong>${esc(status)}</strong></div>
+        </div>
+        <button class="btn-modal-close" onclick="Admin.closeModalDirect()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-field-group">
+          <div class="modal-field">
+            <label>Días (1 a 90)</label>
+            <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="30">
+            <small style="color:var(--gray500);font-size:11px">Mayor a 0 y máximo 3 meses (90 días). Aplica al trial si estado es trial, o a la suscripción si es activa.</small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cancelar</button>
+        <button class="btn-primary" onclick="Admin.saveSubDays('${esc(userId)}')"><i data-lucide="save" style="width:14px;height:14px"></i> Guardar</button>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  async function saveSubDays(userId) {
+    const input = document.getElementById('sub-edit-days');
+    if (!input) return;
+    let days = parseInt(input.value || '0', 10);
+    if (!Number.isFinite(days) || days < 1 || days > 90) {
+      showToast('Los días deben estar entre 1 y 90', 'error');
+      return;
+    }
+    // Determinar si aplicar a trial o a sub activa: traer estado actual
+    try {
+      const current = await apiFetch(`/api/admin/users/${userId}/subscription`);
+      const minutes = days * 24 * 60;
+      let body;
+      if (current.status === 'active') {
+        body = { subscription_end_offset_minutes: minutes, subscription_status: 'active' };
+      } else {
+        body = { trial_end_offset_minutes: minutes, subscription_status: 'trial' };
+      }
+      await apiFetch(`/api/admin/users/${userId}/subscription`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+      showToast(`Días actualizados a ${days}`, 'success');
+      closeModalDirect();
+      loadSubscriptions();
     } catch (e) { showToast(e.message, 'error'); }
   }
 
   /* ── Support tab ── */
+  function renderSupportRow(t) {
+    return `
+      <tr class="clickable-row" onclick="Admin.openTicket('${esc(t.id)}')">
+        <td><strong>${esc(t.subject)}</strong>${t.unread_for_admin > 0 ? ` <span class="support-badge">${t.unread_for_admin}</span>` : ''}</td>
+        <td class="td-small">${esc(t.user_nombre || '')} ${esc(t.user_apellido || '')}<br><small class="muted">${esc(t.user_email)}</small></td>
+        <td><span class="badge badge-status-${t.status}">${t.status}</span></td>
+        <td class="td-small muted">${formatDate(t.updated_at)}</td>
+        <td class="td-actions">
+          <button class="btn-icon btn-view" onclick="event.stopPropagation(); Admin.openTicket('${esc(t.id)}')">
+            <i data-lucide="eye"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }
+
   async function loadSupport() {
-    const tbody = document.getElementById('support-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Cargando…</td></tr>';
+    const vipT = document.getElementById('support-vip-tbody');
+    const norT = document.getElementById('support-normal-tbody');
+    if (vipT) vipT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
+    if (norT) norT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
     try {
       const tickets = await apiFetch('/api/admin/support');
       markRefreshed();
-      if (!tickets.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">Sin tickets</td></tr>';
-        return;
-      }
-      tbody.innerHTML = tickets.map(t => `
-        <tr class="clickable-row" onclick="Admin.openTicket('${esc(t.id)}')">
-          <td>${t.priority === 'priority' ? '<span class="priority-cell">⚡ PRO</span>' : 'Normal'}</td>
-          <td><strong>${esc(t.subject)}</strong>${t.unread_for_admin > 0 ? ` <span class="support-badge">${t.unread_for_admin}</span>` : ''}</td>
-          <td class="td-small">${esc(t.user_nombre || '')} ${esc(t.user_apellido || '')}<br><small class="muted">${esc(t.user_email)}</small></td>
-          <td><span class="sub-pill sub-pill-${t.user_subscription_status || 'trial'}">${t.user_subscription_status || 'trial'}</span></td>
-          <td><span class="badge badge-status-${t.status}">${t.status}</span></td>
-          <td class="td-small muted">${formatDate(t.updated_at)}</td>
-          <td class="td-actions">
-            <button class="btn-icon btn-view" onclick="event.stopPropagation(); Admin.openTicket('${esc(t.id)}')">
-              <i data-lucide="eye"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
+      const vip = tickets.filter(t => t.priority === 'priority');
+      const normal = tickets.filter(t => t.priority !== 'priority');
+      const vipCount = document.getElementById('support-vip-count');
+      const norCount = document.getElementById('support-normal-count');
+      if (vipCount) vipCount.textContent = vip.length;
+      if (norCount) norCount.textContent = normal.length;
+      if (vipT) vipT.innerHTML = vip.length ? vip.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets VIP</td></tr>';
+      if (norT) norT.innerHTML = normal.length ? normal.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets normales</td></tr>';
       if (window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (vipT) vipT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (norT) norT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
     }
   }
 
+  let _ticketPollTimer = null;
   async function openTicket(id) {
     try {
       const t = await apiFetch(`/api/admin/support/${id}`);
@@ -387,6 +499,29 @@ const Admin = (() => {
       `;
       overlay.style.display = 'flex';
       if (window.lucide) lucide.createIcons();
+      // Polling silencioso para ver nuevas respuestas del usuario
+      if (_ticketPollTimer) clearInterval(_ticketPollTimer);
+      _ticketPollTimer = setInterval(async () => {
+        if (!_modalOpen) { clearInterval(_ticketPollTimer); _ticketPollTimer = null; return; }
+        try {
+          const t2 = await apiFetch(`/api/admin/support/${id}`);
+          const ct = document.getElementById('admin-ticket-msgs');
+          if (!ct) return;
+          const nearBottom = (ct.scrollHeight - ct.scrollTop - ct.clientHeight) < 60;
+          const newHtml = t2.messages.map(m => `
+            <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:${m.from === 'admin' ? '#e8f1ff' : '#f3f4f6'};">
+              <div style="font-size:11px;color:var(--gray500);margin-bottom:4px">
+                <strong>${m.from === 'admin' ? 'Soporte (Admin)' : (t2.user ? t2.user.nombre : 'Usuario')}</strong> · ${formatDate(m.created_at)}
+              </div>
+              <div style="font-size:13px;white-space:pre-wrap">${esc(m.message)}</div>
+            </div>
+          `).join('');
+          if (ct.innerHTML !== newHtml) {
+            ct.innerHTML = newHtml;
+            if (nearBottom) ct.scrollTop = ct.scrollHeight;
+          }
+        } catch { /* ignore */ }
+      }, 4000);
     } catch (e) { showToast(e.message, 'error'); }
   }
 
@@ -727,68 +862,64 @@ const Admin = (() => {
     try {
       const r = await apiFetch(`/api/admin/resources/${id}`);
 
-      let extraFields = '';
-      if (r.cantidad || r.unidad) {
-        extraFields += `
+      const categoriaOptionsHtml = categoriaOptions(r.categoria || '');
+      const extraFields = `
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Cantidad</label>
-              <input class="modal-input" value="${esc(r.cantidad || '—')}" readonly>
+              <input class="modal-input" id="rf-cantidad" value="${esc(r.cantidad || '')}">
             </div>
             <div class="modal-field">
               <label>Unidad</label>
-              <input class="modal-input" value="${esc(r.unidad || '—')}" readonly>
+              <input class="modal-input" id="rf-unidad" value="${esc(r.unidad || '')}">
             </div>
-          </div>`;
-      }
-      if (r.precio_referencia || r.condicion) {
-        extraFields += `
+          </div>
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Precio referencia</label>
-              <input class="modal-input" value="${esc(r.precio_referencia || '—')}" readonly>
+              <input class="modal-input" id="rf-precio" value="${esc(r.precio_referencia || '')}">
             </div>
             <div class="modal-field">
               <label>Condición</label>
-              <input class="modal-input" value="${esc(r.condicion || '—')}" readonly>
+              <input class="modal-input" id="rf-condicion" value="${esc(r.condicion || '')}">
             </div>
-          </div>`;
-      }
-      if (r.disponibilidad) {
-        extraFields += `
+          </div>
           <div class="modal-field-group modal-field-full">
             <div class="modal-field">
               <label>Disponibilidad</label>
-              <input class="modal-input" value="${esc(r.disponibilidad)}" readonly>
+              <input class="modal-input" id="rf-disponibilidad" value="${esc(r.disponibilidad || '')}">
             </div>
-          </div>`;
-      }
-      if (r.ofrece || r.recibe) {
-        extraFields += `
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Modalidad</label>
+              <input class="modal-input" id="rf-modalidad" value="${esc(r.modalidad || '')}">
+            </div>
+            <div class="modal-field">
+              <label>Duración préstamo</label>
+              <input class="modal-input" id="rf-duracion" value="${esc(r.duracion_prestamo || '')}">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Garantía</label>
+              <input class="modal-input" id="rf-garantia" value="${esc(r.garantia || '')}">
+            </div>
+            <div class="modal-field">
+              <label>Location notes</label>
+              <input class="modal-input" id="rf-location-notes" value="${esc(r.location_notes || '')}">
+            </div>
+          </div>
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Ofrece (trueque)</label>
-              <input class="modal-input" value="${esc(r.ofrece || '—')}" readonly>
+              <input class="modal-input" id="rf-ofrece" value="${esc(r.ofrece || '')}">
             </div>
             <div class="modal-field">
               <label>Recibe (trueque)</label>
-              <input class="modal-input" value="${esc(r.recibe || '—')}" readonly>
+              <input class="modal-input" id="rf-recibe" value="${esc(r.recibe || '')}">
             </div>
           </div>`;
-      }
-      if (r.duracion_prestamo || r.garantia) {
-        extraFields += `
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Duración préstamo</label>
-              <input class="modal-input" value="${esc(r.duracion_prestamo || '—')}" readonly>
-            </div>
-            <div class="modal-field">
-              <label>Garantía</label>
-              <input class="modal-input" value="${esc(r.garantia || '—')}" readonly>
-            </div>
-          </div>`;
-      }
 
       card.innerHTML = `
         <div class="modal-header">
@@ -827,10 +958,28 @@ const Admin = (() => {
             ` : ''}
           </div>
 
-          ${extraFields ? `<div class="modal-section-title">Detalles del recurso</div>${extraFields}` : ''}
-
           <div class="modal-section-title">Editar datos</div>
 
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Tipo</label>
+              <select class="modal-select" id="rf-tipo">
+                <option value="oferta" ${r.tipo === 'oferta' ? 'selected' : ''}>Oferta</option>
+                <option value="solicitud" ${r.tipo === 'solicitud' ? 'selected' : ''}>Solicitud</option>
+                <option value="demanda" ${r.tipo === 'demanda' ? 'selected' : ''}>Demanda</option>
+                <option value="prestamo" ${r.tipo === 'prestamo' ? 'selected' : ''}>Préstamo</option>
+                <option value="trueque" ${r.tipo === 'trueque' ? 'selected' : ''}>Trueque</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Estado</label>
+              <select class="modal-select" id="rf-status">
+                <option value="active" ${r.status === 'active' ? 'selected' : ''}>Activo</option>
+                <option value="scheduled" ${r.status === 'scheduled' ? 'selected' : ''}>Programado</option>
+                <option value="closed" ${r.status === 'closed' ? 'selected' : ''}>Cerrado</option>
+              </select>
+            </div>
+          </div>
           <div class="modal-field-group modal-field-full">
             <div class="modal-field">
               <label>Título</label>
@@ -846,23 +995,15 @@ const Admin = (() => {
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Categoría</label>
-              <input class="modal-input" id="rf-categoria" value="${esc(r.categoria)}" placeholder="Categoría">
+              <select class="modal-select" id="rf-categoria">${categoriaOptionsHtml}</select>
             </div>
             <div class="modal-field">
               <label>Municipio</label>
               <input class="modal-input" id="rf-municipio" value="${esc(r.municipio)}" placeholder="Municipio">
             </div>
           </div>
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Estado</label>
-              <select class="modal-select" id="rf-status">
-                <option value="active" ${r.status === 'active' ? 'selected' : ''}>Activo</option>
-                <option value="scheduled" ${r.status === 'scheduled' ? 'selected' : ''}>Programado</option>
-                <option value="closed" ${r.status === 'closed' ? 'selected' : ''}>Cerrado</option>
-              </select>
-            </div>
-          </div>
+
+          ${extraFields ? `<div class="modal-section-title">Detalles adicionales</div>${extraFields}` : ''}
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cancelar</button>
@@ -883,15 +1024,28 @@ const Admin = (() => {
     if (!btn) return;
     btn.disabled = true;
     btn.textContent = 'Guardando…';
+    const val = (i) => (document.getElementById(i) ? document.getElementById(i).value : '');
     try {
       await apiFetch(`/api/admin/resources/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          titulo: document.getElementById('rf-titulo').value,
-          descripcion: document.getElementById('rf-descripcion').value,
-          categoria: document.getElementById('rf-categoria').value,
-          municipio: document.getElementById('rf-municipio').value,
-          status: document.getElementById('rf-status').value,
+          tipo: val('rf-tipo'),
+          titulo: val('rf-titulo'),
+          descripcion: val('rf-descripcion'),
+          categoria: val('rf-categoria'),
+          municipio: val('rf-municipio'),
+          status: val('rf-status'),
+          modalidad: val('rf-modalidad'),
+          cantidad: val('rf-cantidad'),
+          unidad: val('rf-unidad'),
+          condicion: val('rf-condicion'),
+          disponibilidad: val('rf-disponibilidad'),
+          precio_referencia: val('rf-precio'),
+          duracion_prestamo: val('rf-duracion'),
+          garantia: val('rf-garantia'),
+          ofrece: val('rf-ofrece'),
+          recibe: val('rf-recibe'),
+          location_notes: val('rf-location-notes'),
         }),
       });
       showToast('Publicación actualizada correctamente', 'success');
@@ -904,6 +1058,31 @@ const Admin = (() => {
       btn.innerHTML = '<i data-lucide="save" style="width:14px;height:14px;"></i> Guardar cambios';
       if (window.lucide) lucide.createIcons();
     }
+  }
+
+  function categoriaOptions(selected) {
+    const groups = {
+      'Herramientas y equipos': ['Herramientas y maquinaria','Riego y sistemas de agua','Energía (solar, generadores)','Transporte y logística','Empaque y almacenamiento'],
+      'Insumos agrícolas': ['Semillas e insumos','Fertilizantes y abonos','Compost y abono orgánico','Control de plagas','Viveros y plántulas'],
+      'Producción': ['Frutas y verduras','Granos y cereales','Hortalizas','Tubérculos','Ganadería','Aves de corral','Productos lácteos','Miel y apicultura','Excedentes de producción','Cosecha y postcosecha'],
+      'Servicios y conocimiento': ['Mano de obra','Asesoría técnica','Capacitación y cursos','Tierra en arriendo'],
+    };
+    const sel = selected || '';
+    let html = `<option value="" ${!sel ? 'selected' : ''}>Seleccionar categoría...</option>`;
+    for (const [label, items] of Object.entries(groups)) {
+      html += `<optgroup label="${esc(label)}">`;
+      for (const it of items) {
+        html += `<option value="${esc(it)}" ${it === sel ? 'selected' : ''}>${esc(it)}</option>`;
+      }
+      html += `</optgroup>`;
+    }
+    html += `<option value="Otros recursos" ${sel === 'Otros recursos' ? 'selected' : ''}>Otros recursos</option>`;
+    // Si la categoría actual no está en la lista, añadirla para no perderla
+    const all = Object.values(groups).flat().concat(['Otros recursos']);
+    if (sel && !all.includes(sel)) {
+      html += `<option value="${esc(sel)}" selected>${esc(sel)} (custom)</option>`;
+    }
+    return html;
   }
 
   /* ── Agreement modal ── */
@@ -979,18 +1158,22 @@ const Admin = (() => {
               <span class="modal-stat-value">💬 ${a.message_count}</span>
             </div>
             <div class="modal-stat">
-              <span class="modal-stat-label">Completado por solicitante</span>
-              <span class="modal-stat-value">${a.complete_requester ? '✅ Sí' : '⏳ No'}</span>
-            </div>
-            <div class="modal-stat">
-              <span class="modal-stat-label">Completado por proveedor</span>
-              <span class="modal-stat-value">${a.complete_provider ? '✅ Sí' : '⏳ No'}</span>
+              <span class="modal-stat-label">Creado</span>
+              <span class="modal-stat-value">${formatDateShort(a.created_at)}</span>
             </div>
             <div class="modal-stat">
               <span class="modal-stat-label">Última actualización</span>
               <span class="modal-stat-value">${formatDateShort(a.updated_at)}</span>
             </div>
           </div>
+
+          ${a.cancel_reason ? `
+            <div class="modal-section-title">Motivo de cancelación</div>
+            <div class="message-bubble" style="border-left:3px solid #c0392b;background:#fbeaea">
+              <strong>${a.cancelled_by_nombre ? esc(a.cancelled_by_nombre) + ':' : 'Cancelado:'}</strong>
+              ${esc(a.cancel_reason)}
+            </div>
+          ` : ''}
 
           ${a.message ? `
             <div class="modal-section-title">Mensaje inicial</div>
@@ -1001,6 +1184,19 @@ const Admin = (() => {
             <div class="modal-section-title">Descripción del recurso</div>
             <div class="message-bubble">${esc(a.resource_descripcion)}</div>
           ` : ''}
+
+          <div class="modal-section-title">Chat del acuerdo (${a.message_count || 0})</div>
+          <div class="agr-chat-log" style="max-height:45vh;overflow-y:auto;padding:8px;background:var(--gray50);border-radius:8px;display:flex;flex-direction:column;gap:8px">
+            ${(a.messages || []).length ? a.messages.map(m => {
+              const mine = m.sender_id === a.requester_id;
+              const side = mine ? 'flex-start' : 'flex-end';
+              const bg = mine ? '#f3f4f6' : '#e8f1ff';
+              return `<div style="align-self:${side};max-width:80%;background:${bg};border-radius:10px;padding:8px 10px">
+                <div style="font-size:11px;color:var(--gray500);margin-bottom:2px"><strong>${esc((m.sender_nombre || '') + ' ' + (m.sender_apellido || ''))}</strong> · ${formatDate(m.created_at)}</div>
+                <div style="font-size:13px;white-space:pre-wrap;word-break:break-word">${esc(m.content)}</div>
+              </div>`;
+            }).join('') : '<div class="empty-state">Sin mensajes en el chat</div>'}
+          </div>
 
           ${ratingsHtml}
 
@@ -1121,7 +1317,7 @@ const Admin = (() => {
     startAutoRefresh, stopAutoRefresh,
     formatDate, showToast,
     toggleVerify,
-    loadSubscriptions, subAction,
+    loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays,
     loadSupport, openTicket, replyTicket, ticketStatus,
     loadConfig, saveConfig,
   };

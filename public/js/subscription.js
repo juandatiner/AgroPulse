@@ -39,6 +39,10 @@ const Subscription = {
         if (!el || !this.state) return;
         const s = this.state;
         if (s.status === 'active') { el.classList.add('hidden'); return; }
+        // Si no hay trial configurado (0 días) y el usuario nunca tuvo prueba, ocultar
+        if (s.status !== 'trial' && (!s.trial_days_granted || s.trial_days_granted <= 0) && !s.trial_end) {
+            el.classList.add('hidden'); return;
+        }
         el.classList.remove('hidden');
         const priceReg = this.formatPrice(s.price_regular);
         const pricePromo = this.formatPrice(s.price_promo);
@@ -92,10 +96,8 @@ const Subscription = {
         if (inTrial) {
             statusText = `<strong>${s.trial_days_left}</strong> ${s.trial_days_left === 1 ? 'día' : 'días'} de prueba Pro`;
             statusClass = 'sub-card-trial';
-            const trialTotal = s.trial_end && s.trial_days_left
-                ? Math.max(1, Math.round((new Date(s.trial_end) - new Date()) / 86400000) + (60 - s.trial_days_left))
-                : 60;
-            const trialPct = Math.max(2, Math.round(((60 - s.trial_days_left) / 60) * 100));
+            const trialTotal = Math.max(1, s.trial_days_granted || s.trial_days_left || 1);
+            const trialPct = Math.max(2, Math.round(((trialTotal - s.trial_days_left) / trialTotal) * 100));
             bodyHtml = `
                 <p class="sub-home-card-hint" style="margin-bottom:8px">
                     Acceso <strong>ilimitado</strong> a todas las funciones Pro durante tu prueba
@@ -160,41 +162,101 @@ const Subscription = {
     },
 
     // ========== Ads simulados (free only) ==========
+    _ADS: [
+        { id: 'tractores', icon: '🚜', title: 'Tractores Boyacá', text: 'Renta diaria desde $80.000', cta: 'Ver más',
+          long: 'Tractores modernos con operador incluido. Servicio puerta a puerta en Boyacá, Cundinamarca y Santander. Tarifas por jornada, semana o temporada. Contáctanos para cotización.', phone: '300 123 4567' },
+        { id: 'semillas', icon: '🌱', title: 'Semillas certificadas', text: 'Variedades resistentes a plagas', cta: 'Comprar',
+          long: 'Semillas certificadas por el ICA, variedades de papa, maíz, frijol y hortalizas resistentes a plagas y enfermedades comunes de clima frío. Entregamos en finca.', phone: '310 555 7890' },
+        { id: 'suelos', icon: '🧪', title: 'Análisis de suelos', text: 'Laboratorio con 24h de entrega', cta: 'Cotizar',
+          long: 'Análisis completo de suelos: pH, nutrientes mayores y menores, textura y materia orgánica. Informe con recomendaciones técnicas personalizadas en 24 horas.', phone: '320 741 8520' },
+        { id: 'feria', icon: '🐄', title: 'Feria ganadera', text: 'Tunja · 15 de octubre', cta: 'Info',
+          long: 'Gran feria ganadera de Boyacá. Subastas de razas lecheras y de carne, remate de sementales, charlas técnicas y maquinaria agrícola. Entrada gratuita.', phone: '301 234 5678' },
+        { id: 'credito', icon: '💰', title: 'Crédito rural', text: 'Tasa preferencial 1.2% mensual', cta: 'Aplicar',
+          long: 'Créditos agropecuarios con periodo de gracia y tasa preferencial. Desde $2.000.000 hasta $100.000.000. Aprobación en 48h. Requiere cédula y certificado predial.', phone: '018000-AGRO' },
+    ],
+
+    _slotPositions: {
+        inicio: 'top',
+        mercado: 'top',
+        publicar: 'bottom',
+        intercambios: 'top',
+        perfil: 'bottom',
+    },
+
     renderAds() {
-        const hostMercado = document.getElementById('panel-mercado');
-        if (!hostMercado) return;
-        let adBar = document.getElementById('sub-ads-bar');
-        if (this.isPremium()) { if (adBar) adBar.remove(); return; }
-        if (!adBar) {
-            adBar = document.createElement('div');
-            adBar.id = 'sub-ads-bar';
-            adBar.className = 'sub-ads-bar';
-            hostMercado.insertBefore(adBar, hostMercado.firstChild);
+        const panels = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
+        if (this.isPremium()) {
+            panels.forEach(p => {
+                const old = document.getElementById('sub-ads-slot-' + p);
+                if (old) old.remove();
+            });
+            const legacy = document.getElementById('sub-ads-bar');
+            if (legacy) legacy.remove();
+            return;
         }
-        const ads = [
-            { icon: '🚜', title: 'Tractores Boyacá', text: 'Renta diaria desde $80.000', cta: 'Ver más' },
-            { icon: '🌱', title: 'Semillas certificadas', text: 'Variedades resistentes a plagas', cta: 'Comprar' },
-            { icon: '🧪', title: 'Análisis de suelos', text: 'Laboratorio con 24h de entrega', cta: 'Cotizar' },
-            { icon: '🐄', title: 'Feria ganadera', text: 'Tunja · 15 de octubre', cta: 'Info' },
-        ];
-        const pick = ads[Math.floor(Math.random() * ads.length)];
-        adBar.innerHTML = `
-            <div class="ad-slot">
-                <span class="ad-sponsored">Publicidad</span>
-                <div class="ad-body">
-                    <span class="ad-icon">${pick.icon}</span>
-                    <div class="ad-text">
-                        <strong>${pick.title}</strong>
-                        <span>${pick.text}</span>
+        const legacy = document.getElementById('sub-ads-bar');
+        if (legacy) legacy.remove();
+
+        panels.forEach((panelName, idx) => {
+            const host = document.getElementById('panel-' + panelName);
+            if (!host) return;
+            const slotId = 'sub-ads-slot-' + panelName;
+            let slot = document.getElementById(slotId);
+            if (!slot) {
+                slot = document.createElement('div');
+                slot.id = slotId;
+                slot.className = 'sub-ads-slot sub-ads-slot-' + (this._slotPositions[panelName] || 'top');
+            }
+            if (slot.parentNode) slot.parentNode.removeChild(slot);
+            if (this._slotPositions[panelName] === 'bottom') host.appendChild(slot);
+            else host.insertBefore(slot, host.firstChild);
+
+            // Rotación diferente por panel
+            const pick = this._ADS[(Math.floor(Date.now() / 60000) + idx) % this._ADS.length];
+            slot.innerHTML = `
+                <div class="ad-slot ad-slot-compact" onclick="Subscription.openAdCard('${pick.id}')">
+                    <span class="ad-sponsored">Publicidad</span>
+                    <div class="ad-body">
+                        <span class="ad-icon">${pick.icon}</span>
+                        <div class="ad-text">
+                            <strong>${this._esc(pick.title)}</strong>
+                            <span>${this._esc(pick.text)}</span>
+                        </div>
+                        <button class="ad-cta" onclick="event.stopPropagation(); Subscription.openAdCard('${pick.id}')">${this._esc(pick.cta)}</button>
                     </div>
-                    <button class="ad-cta" onclick="App.showToast('Anuncio simulado — demo', 'info')">${pick.cta}</button>
+                    <button class="ad-remove" onclick="event.stopPropagation(); Subscription.openPlans()" title="Quitar anuncios con Pro">
+                        <i data-lucide="x"></i>
+                    </button>
                 </div>
-                <button class="ad-remove" onclick="Subscription.openPlans()" title="Quitar anuncios con Pro">
-                    <i data-lucide="x"></i>
+            `;
+        });
+        if (window.lucide) lucide.createIcons();
+    },
+
+    openAdCard(id) {
+        const ad = this._ADS.find(a => a.id === id);
+        if (!ad) return;
+        this._openOverlay('ad-card-overlay', `
+            <div class="ad-card-overlay-inner">
+                <button class="plans-close" onclick="Subscription._closeOverlay('ad-card-overlay')"><i data-lucide="x"></i></button>
+                <div class="ad-card-hero">
+                    <div class="ad-card-icon">${ad.icon}</div>
+                    <span class="ad-sponsored">Publicidad</span>
+                </div>
+                <h2 style="margin:10px 0 4px">${this._esc(ad.title)}</h2>
+                <p style="color:var(--text-muted);margin-bottom:12px">${this._esc(ad.text)}</p>
+                <div style="background:var(--cream);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+                    <p style="margin:0;line-height:1.5">${this._esc(ad.long)}</p>
+                </div>
+                ${ad.phone ? `<div style="font-size:0.88rem;margin-bottom:14px">📞 <strong>${this._esc(ad.phone)}</strong></div>` : ''}
+                <button class="btn btn-primary btn-full" onclick="App.showToast('Anuncio simulado — demo', 'info')">
+                    <i data-lucide="external-link"></i> Contactar anunciante
+                </button>
+                <button class="btn btn-outline btn-full" onclick="Subscription._closeOverlay('ad-card-overlay'); Subscription.openPlans()" style="margin-top:8px">
+                    <i data-lucide="shield-off"></i> Quitar anuncios con Pro
                 </button>
             </div>
-        `;
-        if (window.lucide) lucide.createIcons();
+        `);
     },
 
     updateVerifiedBadge() {
@@ -600,39 +662,60 @@ const Subscription = {
 
     async openTicket(id) {
         this._openOverlay('ticket-overlay', `
-            <div class="ticket-overlay-inner">
-                <button class="plans-close" onclick="Subscription._closeOverlay('ticket-overlay'); Subscription.openSupport()"><i data-lucide="x"></i></button>
-                <div id="ticket-head-info"></div>
-                <div id="ticket-messages" class="ticket-messages"></div>
-                <div class="ticket-reply-bar">
-                    <input type="text" id="ticket-reply-input" placeholder="Responder al equipo...">
-                    <button class="btn btn-primary" onclick="Subscription.replyTicket('${id}')">
+            <div class="ticket-overlay-inner ticket-chat-inner">
+                <div class="ticket-chat-header">
+                    <button class="plans-close" onclick="Subscription.closeTicket()"><i data-lucide="arrow-left"></i></button>
+                    <div id="ticket-head-info" style="flex:1"></div>
+                </div>
+                <div id="ticket-messages" class="ticket-messages ticket-chat-messages"></div>
+                <form class="ticket-reply-bar ticket-chat-input" onsubmit="event.preventDefault(); Subscription.replyTicket('${id}')">
+                    <input type="text" id="ticket-reply-input" placeholder="Escribe un mensaje..." autocomplete="off">
+                    <button class="btn btn-primary" type="submit" aria-label="Enviar">
                         <i data-lucide="send"></i>
                     </button>
-                </div>
+                </form>
             </div>
         `);
         await this._loadTicket(id);
+        this._ticketPollId = id;
+        if (this._ticketPollTimer) clearInterval(this._ticketPollTimer);
+        this._ticketPollTimer = setInterval(() => {
+            if (this._ticketPollId) this._loadTicket(this._ticketPollId, true);
+        }, 4000);
     },
 
-    async _loadTicket(id) {
+    closeTicket() {
+        if (this._ticketPollTimer) { clearInterval(this._ticketPollTimer); this._ticketPollTimer = null; }
+        this._ticketPollId = null;
+        this._closeOverlay('ticket-overlay');
+        this.openSupport();
+    },
+
+    async _loadTicket(id, silent) {
         try {
             const t = await API.getSupportTicket(id);
-            document.getElementById('ticket-head-info').innerHTML = `
-                <h3>${this._esc(t.subject)}</h3>
-                <small>Estado: <strong>${t.status}</strong> ${t.priority === 'priority' ? '· <span class="priority-tag">Prioritario</span>' : ''}</small>
+            const head = document.getElementById('ticket-head-info');
+            if (head) head.innerHTML = `
+                <h3 style="margin:0;font-size:15px">${this._esc(t.subject)}</h3>
+                <small>Estado: <strong>${t.status}</strong> ${t.priority === 'priority' ? '· <span class="priority-tag">⚡ Prioritario</span>' : ''}</small>
             `;
             const msgs = document.getElementById('ticket-messages');
+            if (!msgs) return;
+            const prevCount = msgs.dataset.msgCount ? parseInt(msgs.dataset.msgCount, 10) : 0;
+            const nearBottom = (msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight) < 80;
             msgs.innerHTML = t.messages.map(m => `
                 <div class="ticket-msg ticket-msg-${m.from}">
                     <div class="ticket-msg-head">${m.from === 'admin' ? 'Soporte AgroPulse' : 'Tú'} · ${new Date(m.created_at).toLocaleString()}</div>
                     <div class="ticket-msg-body">${this._esc(m.message)}</div>
                 </div>
             `).join('');
-            msgs.scrollTop = msgs.scrollHeight;
+            msgs.dataset.msgCount = t.messages.length;
+            if (!silent || nearBottom || t.messages.length > prevCount) {
+                msgs.scrollTop = msgs.scrollHeight;
+            }
             if (window.lucide) lucide.createIcons();
         } catch (e) {
-            App.showToast(e.message, 'error');
+            if (!silent) App.showToast(e.message, 'error');
         }
     },
 

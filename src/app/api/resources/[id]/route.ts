@@ -35,6 +35,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
           user_municipio: '$_user.municipio',
           user_tipo: '$_user.tipo',
           user_reputation: '$_user.reputation_score',
+          user_verified: '$_user.verified',
         },
       },
     ]).toArray()
@@ -75,6 +76,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       user_municipio: d.user_municipio,
       user_tipo: d.user_tipo,
       user_reputation: d.user_reputation,
+      user_verified: !!d.user_verified,
     })
   })
 }

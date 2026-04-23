@@ -49,6 +49,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const toIso = (v: unknown) => v instanceof Date ? v.toISOString() : v ?? null
 
     const msgCount = await db.collection('messages').countDocuments({ agreement_id: aid })
+    const messages = await db.collection('messages')
+      .aggregate([
+        { $match: { agreement_id: aid } },
+        { $sort: { created_at: 1 } },
+        { $lookup: { from: 'users', localField: 'sender_id', foreignField: '_id', as: '_s' } },
+        { $unwind: { path: '$_s', preserveNullAndEmptyArrays: true } },
+      ])
+      .toArray()
+    const serializedMessages = messages.map((m) => ({
+      id: (m._id as ObjectId).toHexString(),
+      sender_id: m.sender_id instanceof ObjectId ? m.sender_id.toHexString() : String(m.sender_id || ''),
+      sender_nombre: m._s?.nombre || '',
+      sender_apellido: m._s?.apellido || '',
+      content: m.content || '',
+      created_at: toIso(m.created_at),
+    }))
 
     return json({
       id: (d._id as ObjectId).toHexString(),
@@ -73,6 +89,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       complete_requester: d.complete_requester ?? 0,
       complete_provider: d.complete_provider ?? 0,
       message_count: msgCount,
+      messages: serializedMessages,
+      cancel_reason: d.cancel_reason || '',
+      cancelled_by_id: d.cancelled_by_id instanceof ObjectId ? d.cancelled_by_id.toHexString() : (d.cancelled_by_id || ''),
+      cancelled_by_nombre: d.cancelled_by_nombre || '',
       created_at: toIso(d.created_at),
       updated_at: toIso(d.updated_at),
     })

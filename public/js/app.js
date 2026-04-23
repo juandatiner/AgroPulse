@@ -70,6 +70,12 @@ const App = {
     },
 
     switchTab(tab) {
+        // Bloqueo publicar si usuario free agotó sus publicaciones
+        if (tab === 'publicar' && typeof Subscription !== 'undefined' && Subscription.state
+            && !Subscription.state.is_premium && Subscription.state.posts_remaining <= 0) {
+            Subscription.openPaywall(`Alcanzaste el límite de ${Subscription.state.free_posts_per_month} publicaciones gratis este mes. Suscríbete para publicar sin límite.`);
+            return;
+        }
         if (this.currentTab === 'publicar' && tab !== 'publicar' && this._editingResourceId) {
             this._editingResourceId = null;
         }
@@ -474,7 +480,7 @@ const App = {
                 <p>${this.esc(r.descripcion)}</p>
                 <div class="resource-card-meta">
                     <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
-                        <i data-lucide="user"></i> ${this.esc(r.user_nombre)}
+                        <i data-lucide="user"></i> ${this.esc(r.user_nombre)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}
                         <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
                     </span>
                     ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
@@ -531,7 +537,7 @@ const App = {
                     <div class="market-item-footer">
                         <div class="market-item-meta">
                             <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
-                                <i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}
+                                <i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}
                                 <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
                             </span>
                             ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
@@ -617,18 +623,21 @@ const App = {
                 </div>
                 <div class="detail-body">
                     <div class="detail-type-badge"><span class="type-badge ${r.tipo}">${this.TYPE_LABELS[r.tipo]}</span></div>
-                    <h2 class="detail-title">${this.esc(r.titulo)}</h2>
+                    <h2 class="detail-title" style="font-size:1.6rem;line-height:1.15;font-weight:800;margin:6px 0 12px">${this.esc(r.titulo)}</h2>
                     ${r.image_data ? `<div style="margin-bottom:16px;cursor:zoom-in;border-radius:var(--radius-sm);overflow:hidden" onclick="App.openLightbox('${r.image_data}')">
                         <img src="${r.image_data}" alt="" style="width:100%;max-height:280px;object-fit:cover;display:block;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                         <div style="text-align:center;font-size:0.72rem;color:var(--text-muted);padding:4px 0;background:var(--cream)"><i data-lucide="zoom-in" style="width:12px;height:12px;vertical-align:middle"></i> Toca para ver en grande</div>
                     </div>` : ''}
-                    <p class="detail-desc">${this.esc(r.descripcion)}</p>
+                    ${r.descripcion ? `<div class="detail-desc-block" style="background:var(--cream,#fdf8f0);border-left:3px solid var(--earth,#6b8e23);padding:12px 14px;border-radius:8px;margin-bottom:14px">
+                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:4px;font-weight:600">Descripción</div>
+                        <p class="detail-desc" style="margin:0;white-space:pre-wrap;line-height:1.5">${this.esc(r.descripcion)}</p>
+                    </div>` : ''}
                     <div class="detail-info-grid">${infoItems}</div>
                     ${locationBlock}
                     <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile('${r.owner_id}')` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
-                            <h4>${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}</h4>
+                            <h4>${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}</h4>
                             <p>${this.esc(r.user_tipo || '')}${r.user_municipio ? ' · ' + this.esc(r.user_municipio) : ''}</p>
                         </div>
                         <div class="detail-owner-rating"><i data-lucide="star"></i> ${(r.user_reputation || 5).toFixed(1)}</div>
@@ -1939,6 +1948,10 @@ const App = {
             }
         }
 
+        const cancelBlock = (a.status === 'cancelled' || a.status === 'rejected') && a.cancel_reason
+            ? `<div class="agr-card-cancel-reason" style="margin-top:4px;padding:6px 8px;background:#fbeaea;border-left:2px solid #c0392b;font-size:0.76rem;border-radius:6px;color:#7a1a1a"><strong>Motivo${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre) + ')' : ''}:</strong> ${this.esc(a.cancel_reason)}</div>`
+            : '';
+
         return `
             <div class="agreement-card ${a.status}" onclick="App.showAgreementDetail('${a.id}')">
                 <div class="agr-card-row1">
@@ -1955,6 +1968,7 @@ const App = {
                     <span class="agr-card-sub">${roleText}</span>
                     ${updStr ? `<span class="agr-card-upd"><i data-lucide="clock" style="width:10px;height:10px;vertical-align:middle"></i> ${updStr}</span>` : ''}
                 </div>
+                ${cancelBlock}
                 <div class="agr-card-btns">${btns}</div>
             </div>`;
     },
@@ -1968,7 +1982,22 @@ const App = {
 
     async updateAgreement(id, status) {
         try {
-            await API.updateAgreement(id, { status });
+            const payload = { status };
+            if (status === 'cancelled' || status === 'rejected') {
+                const promptTitle = status === 'cancelled' ? '¿Por qué cancelas?' : '¿Por qué rechazas?';
+                const reason = await this.showInputModal({
+                    icon: 'alert-circle',
+                    title: promptTitle,
+                    subtitle: 'Cuéntale a la otra parte el motivo. Quedará registrado.',
+                    placeholder: 'Ej: ya no necesito el recurso / cambié de planes...',
+                    okLabel: 'Enviar motivo',
+                });
+                if (reason === null) return;
+                const trimmed = (reason || '').trim();
+                if (!trimmed) { this.showToast('Debes indicar un motivo', 'error'); return; }
+                payload.cancel_reason = trimmed;
+            }
+            await API.updateAgreement(id, payload);
             const labels = { active: 'Aceptado — servicio iniciado', rejected: 'Solicitud rechazada', cancelled: 'Cancelado', completed: '¡Servicio completado!' };
             this.showToast(labels[status] || 'Actualizado');
             this.loadAgreements();
@@ -2206,6 +2235,10 @@ const App = {
             this._selectedTags = [];
             this.showToast('Calificación enviada ✓');
             this.loadAgreements();
+            // Si el chat está abierto con este acuerdo, refrescar barra de estado
+            if (typeof Chat !== 'undefined' && Chat.currentAgreementId === agreementId) {
+                Chat.refreshStatusBar(agreementId);
+            }
         } catch (e) { this.showToast(e.message, 'error'); }
     },
 
@@ -2563,6 +2596,7 @@ const App = {
     // Quick actions
     quickPublish(type) {
         this.switchTab('publicar');
+        if (this.currentTab !== 'publicar') return; // bloqueado por paywall
         this.setPublishType(type);
     }
 };

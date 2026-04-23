@@ -353,9 +353,13 @@ const Tour = {
         const margin = 14;
         const vw = window.innerWidth;
         const vh = window.innerHeight;
+        // Restar altura barra inferior fija si está visible para no montar el tooltip sobre los botones
+        const tabBar = document.querySelector('.tab-bar');
+        const bottomReserved = (tabBar && tabBar.offsetParent !== null) ? (tabBar.offsetHeight + 8) : 0;
+        const usableBottom = vh - bottomReserved;
 
         let top, left;
-        const spaceBelow = vh - (rect.top + rect.height);
+        const spaceBelow = usableBottom - (rect.top + rect.height);
         const spaceAbove = rect.top;
 
         if (spaceBelow >= th + margin) {
@@ -363,9 +367,11 @@ const Tour = {
         } else if (spaceAbove >= th + margin) {
             top = rect.top - th - margin;
         } else {
-            // Center vertically as fallback
-            top = Math.max(margin, (vh - th) / 2);
+            // Center vertically dentro del área útil
+            top = Math.max(margin, (usableBottom - th) / 2);
         }
+        // Clamp para que no se salga del área útil
+        if (top + th > usableBottom - margin) top = Math.max(margin, usableBottom - margin - th);
 
         left = rect.left + rect.width / 2 - tw / 2;
         if (left < margin) left = margin;
@@ -382,14 +388,23 @@ const Tour = {
             const step = this.steps[this._idx];
             if (step && step.target) this._position(step);
         };
+        this._keyHandler = (e) => {
+            if (!this._active) return;
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); this.next(); }
+            else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); this.prev(); }
+            else if (e.key === 'Escape') { e.preventDefault(); this.skip(); }
+        };
         window.addEventListener('resize', this._resizeHandler);
         window.addEventListener('scroll', this._scrollHandler, true);
+        document.addEventListener('keydown', this._keyHandler);
     },
 
     _unbindViewportHandlers() {
         if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
         if (this._scrollHandler) window.removeEventListener('scroll', this._scrollHandler, true);
+        if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
         this._resizeHandler = null;
         this._scrollHandler = null;
+        this._keyHandler = null;
     },
 };

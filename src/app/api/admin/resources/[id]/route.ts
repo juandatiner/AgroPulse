@@ -70,10 +70,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     try { rid = new ObjectId(id) } catch { return json({ error: 'ID inválido' }, 400) }
 
     const body = await request.json()
-    const allowed = ['titulo', 'descripcion', 'categoria', 'municipio', 'status']
+    const allowed = ['tipo', 'titulo', 'descripcion', 'categoria', 'municipio', 'status',
+                     'modalidad', 'cantidad', 'unidad', 'condicion', 'disponibilidad',
+                     'precio_referencia', 'duracion_prestamo', 'garantia', 'ofrece', 'recibe', 'location_notes']
     const update: Record<string, unknown> = {}
     for (const k of allowed) {
-      if (k in body) update[k] = k === 'status' ? String(body[k]) : String(body[k] ?? '').trim()
+      if (k in body) update[k] = String(body[k] ?? '').trim()
     }
     if (!Object.keys(update).length) return json({ error: 'Sin campos para actualizar' }, 400)
 

@@ -35,6 +35,9 @@ function serializeAgreement(d: Record<string, unknown>): Record<string, unknown>
     prov_nombre: d.prov_nombre ?? null,
     prov_apellido: d.prov_apellido ?? null,
     unread_count: d.unread_count ?? 0,
+    cancel_reason: d.cancel_reason ?? null,
+    cancelled_by_id: d.cancelled_by_id ? toStr(d.cancelled_by_id) : null,
+    cancelled_by_nombre: d.cancelled_by_nombre ?? null,
   }
 }
 

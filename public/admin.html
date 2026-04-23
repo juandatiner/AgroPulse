@@ -1250,24 +1250,50 @@
         <i data-lucide="life-buoy" style="width:22px;height:22px;"></i>
         Soporte
       </div>
-      <div class="table-card">
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Prioridad</th>
-                <th>Asunto</th>
-                <th>Usuario</th>
-                <th>Plan</th>
-                <th>Estado</th>
-                <th>Último</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="support-tbody">
-              <tr><td colspan="7" class="loading-cell">Cargando…</td></tr>
-            </tbody>
-          </table>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+        <div class="table-card">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--gray200);font-weight:600;color:var(--harvest,#b8860b);display:flex;align-items:center;gap:6px">
+            ⚡ VIP (Pro)
+            <span id="support-vip-count" class="sub-pill sub-pill-active" style="margin-left:auto"></span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asunto</th>
+                  <th>Usuario</th>
+                  <th>Estado</th>
+                  <th>Último</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="support-vip-tbody">
+                <tr><td colspan="5" class="loading-cell">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="table-card">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--gray200);font-weight:600;color:var(--gray700);display:flex;align-items:center;gap:6px">
+            Normales
+            <span id="support-normal-count" class="sub-pill" style="margin-left:auto"></span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Asunto</th>
+                  <th>Usuario</th>
+                  <th>Estado</th>
+                  <th>Último</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="support-normal-tbody">
+                <tr><td colspan="5" class="loading-cell">Cargando…</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1283,8 +1309,8 @@
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Días de prueba gratuita</label>
-              <input type="number" id="cfg-trial-days" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
-              <small style="color:var(--gray500);font-size:11px">Por defecto 60 (2 meses)</small>
+              <input type="number" id="cfg-trial-days" min="1" max="90" style="width:100%;padding:8px 10px;border:1px solid var(--gray300);border-radius:6px" />
+              <small style="color:var(--gray500);font-size:11px">Mínimo 1, máximo 90 (3 meses). Por defecto 60 (2 meses)</small>
             </div>
             <div>
               <label style="display:block;font-size:12px;font-weight:600;color:var(--gray700);margin-bottom:6px">Precio suscripción (COP)</label>

@@ -16,7 +16,7 @@ export async function PATCH(request: Request) {
     if (!verifyAdmin(request)) return adminUnauth()
     const body = await request.json()
     const patch: Partial<AppConfig> = {}
-    if (typeof body.trial_days === 'number') patch.trial_days = Math.max(0, Math.floor(body.trial_days))
+    if (typeof body.trial_days === 'number') patch.trial_days = Math.min(90, Math.max(1, Math.floor(body.trial_days)))
     if (typeof body.subscription_price === 'number') patch.subscription_price = Math.max(0, Math.floor(body.subscription_price))
     if (typeof body.free_posts_per_month === 'number') patch.free_posts_per_month = Math.max(0, Math.floor(body.free_posts_per_month))
     if (typeof body.promo_active === 'boolean') patch.promo_active = body.promo_active

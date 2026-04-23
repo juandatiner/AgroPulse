@@ -20,6 +20,9 @@ function serializeAgreement(d: Record<string, unknown>): Record<string, unknown>
     review_provider: d.review_provider ?? null,
     complete_requester: d.complete_requester ?? 0,
     complete_provider: d.complete_provider ?? 0,
+    cancel_reason: d.cancel_reason ?? null,
+    cancelled_by_id: d.cancelled_by_id ? (d.cancelled_by_id instanceof ObjectId ? d.cancelled_by_id.toHexString() : String(d.cancelled_by_id)) : null,
+    cancelled_by_nombre: d.cancelled_by_nombre ?? null,
     resource_snapshot_titulo: d.resource_snapshot_titulo ?? null,
     resource_snapshot_tipo: d.resource_snapshot_tipo ?? null,
     resource_snapshot_cat: d.resource_snapshot_cat ?? null,
@@ -154,7 +157,15 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (['active', 'rejected', 'completed'].includes(action) && !uid.equals(a.provider_id))
       return json({ error: 'Solo el dueño del recurso puede realizar esta acción' }, 403)
 
-    await db.collection('agreements').updateOne({ _id: aid }, { $set: { status: action, updated_at: now } })
+    const setFields: Record<string, unknown> = { status: action, updated_at: now }
+    if (action === 'cancelled' || action === 'rejected') {
+      const reason = typeof data.cancel_reason === 'string' ? data.cancel_reason.trim().slice(0, 500) : ''
+      if (!reason) return json({ error: 'Debes indicar el motivo de la cancelación' }, 400)
+      setFields.cancel_reason = reason
+      setFields.cancelled_by_id = uid
+      setFields.cancelled_by_nombre = `${user.nombre || ''} ${user.apellido || ''}`.trim()
+    }
+    await db.collection('agreements').updateOne({ _id: aid }, { $set: setFields })
 
     const rid = a.resource_id as ObjectId | null
     if (action === 'active' && rid) {

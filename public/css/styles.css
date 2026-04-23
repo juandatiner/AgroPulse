@@ -2783,6 +2783,36 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 
 /* Ads sidebar */
 .sub-ads-bar { margin: 10px 16px 0; }
+.sub-ads-slot { margin: 10px 16px; cursor: pointer; }
+.sub-ads-slot-top { margin-top: 8px; }
+.sub-ads-slot-bottom { margin-bottom: 80px; }
+.ad-slot-compact { padding: 8px 10px; }
+.ad-slot-compact .ad-icon { font-size: 1.4rem; }
+.ad-slot-compact .ad-text strong { font-size: 0.85rem; }
+.ad-slot-compact .ad-text span { font-size: 0.72rem; }
+.ad-slot-compact .ad-cta { padding: 5px 10px; font-size: 0.72rem; }
+.ad-card-overlay-inner {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 20px 18px;
+    max-width: 420px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+.ad-card-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--cream-dark);
+    padding-bottom: 10px;
+}
+.ad-card-icon {
+    font-size: 2.8rem;
+    background: var(--cream);
+    width: 64px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+}
 .ad-slot {
     background: linear-gradient(135deg, #fff, #faf7f0);
     border: 1px dashed var(--cream-dark);
@@ -3238,6 +3268,37 @@ body.no-scroll { overflow: hidden; }
     font-size: 0.88rem;
 }
 .ticket-reply-bar button { padding: 8px 14px; }
+
+/* Chat-style ticket modal */
+.ticket-chat-inner {
+    display: flex; flex-direction: column;
+    height: 80vh; max-height: 80vh;
+    padding: 0 !important;
+}
+.ticket-chat-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--cream-dark);
+    background: var(--cream);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+.ticket-chat-header .plans-close {
+    position: static;
+    background: transparent; border: none; cursor: pointer;
+    color: var(--earth);
+}
+.ticket-chat-messages {
+    flex: 1;
+    max-height: none !important;
+    padding: 12px 14px;
+    background: var(--cream);
+}
+.ticket-chat-input {
+    padding: 10px 12px;
+    border-top: 1px solid var(--cream-dark);
+    background: var(--white);
+    border-radius: 0 0 var(--radius) var(--radius);
+}
 
 /* New ticket */
 .new-ticket-inner h2 { color: var(--earth); margin-bottom: 14px; }
