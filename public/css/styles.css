@@ -2525,7 +2525,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     transition: all 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
     outline: 2px solid rgba(255,255,255,0.85);
-    outline-offset: 4px;
+    outline-offset: 1px;
 }
 .tour-spotlight.tour-centered {
     box-shadow: 0 0 0 9999px rgba(15, 23, 30, 0.78);

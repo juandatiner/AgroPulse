@@ -326,7 +326,8 @@ const Tour = {
 
     _applySpotlight(el, spotlight, tooltip) {
         const r = el.getBoundingClientRect();
-        const pad = 8;
+        // Pad reducido para no invadir espacio vertical/horizontal del vecino
+        const pad = 3;
         const top = r.top - pad;
         const left = r.left - pad;
         const w = r.width + pad * 2;
