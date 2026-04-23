@@ -255,7 +255,14 @@ const Subscription = {
             }
 
             const vertical = position === 'right';
-            const count = vertical ? 4 : 3;
+            let count;
+            if (vertical) {
+                const avail = Math.max(200, window.innerHeight - 56 - 80 - 40); // top nav + tab-bar + respeto + header slot
+                const perTile = 120; // altura aprox por tile compacto
+                count = Math.max(1, Math.min(this._ADS.length, Math.floor(avail / perTile)));
+            } else {
+                count = 3;
+            }
             const picks = [];
             for (let k = 0; k < count; k++) {
                 picks.push(this._ADS[(this._adRotationIdx + idx + k) % this._ADS.length]);
@@ -289,6 +296,10 @@ const Subscription = {
                 this._adRotationIdx = (this._adRotationIdx + 1) % this._ADS.length;
                 if (!this.isPro()) this.renderAds();
             }, 10000);
+        }
+        if (!this._adResizeHandler) {
+            this._adResizeHandler = () => { if (!this.isPro()) this.renderAds(); };
+            window.addEventListener('resize', this._adResizeHandler);
         }
     },
 
