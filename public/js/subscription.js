@@ -205,8 +205,10 @@ const Subscription = {
         const panels = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
         if (this.isPremium()) {
             panels.forEach(p => {
+                const host = document.getElementById('panel-' + p);
                 const old = document.getElementById('sub-ads-slot-' + p);
                 if (old) old.remove();
+                if (host) host.classList.remove('panel-with-right-ad');
             });
             const legacy = document.getElementById('sub-ads-bar');
             if (legacy) legacy.remove();
@@ -228,8 +230,16 @@ const Subscription = {
             }
             slot.className = 'sub-ads-slot sub-ads-slot-' + position;
             if (slot.parentNode) slot.parentNode.removeChild(slot);
-            if (position === 'bottom') host.appendChild(slot);
-            else host.insertBefore(slot, host.firstChild);
+
+            if (position === 'right') {
+                host.classList.add('panel-with-right-ad');
+                // Insertar como PRIMER hijo para que float:right funcione con el contenido siguiente
+                host.insertBefore(slot, host.firstChild);
+            } else {
+                host.classList.remove('panel-with-right-ad');
+                if (position === 'bottom') host.appendChild(slot);
+                else host.insertBefore(slot, host.firstChild);
+            }
 
             const pick = this._ADS[(this._adRotationIdx + idx) % this._ADS.length];
             const vertical = position === 'right';

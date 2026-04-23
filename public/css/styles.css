@@ -2694,6 +2694,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     font-size: 0.88rem;
     text-align: center;
     flex-wrap: wrap;
+    position: relative;
+    padding-right: 36px;
 }
 .promo-banner-text { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
 .promo-banner-text s { opacity: 0.55; margin-right: 4px; }
@@ -2725,15 +2727,18 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     background: rgba(0,0,0,0.15);
     border: none;
     color: inherit;
-    width: 24px; height: 24px;
+    width: 26px; height: 26px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    margin-left: 6px;
     padding: 0;
     flex-shrink: 0;
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 .promo-banner-close:hover { background: rgba(0,0,0,0.3); }
 .promo-banner-close svg { width: 14px; height: 14px; }
@@ -2802,19 +2807,26 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .sub-ads-slot { margin: 10px 16px; cursor: pointer; }
 .sub-ads-slot-top { margin-top: 8px; }
 .sub-ads-slot-bottom { margin-bottom: 80px; }
-.sub-ads-slot-right {
-    position: fixed;
-    right: 10px;
-    top: 72px;
-    width: 160px;
-    z-index: 40;
-    margin: 0;
+.panel-with-right-ad::after {
+    content: '';
+    display: block;
+    clear: both;
 }
-.sub-ads-slot-right .ad-slot { padding: 8px; }
-@media (max-width: 480px) {
+.sub-ads-slot-right {
+    float: right;
+    width: 38%;
+    max-width: 280px;
+    min-height: 180px;
+    margin: 10px 16px 10px 12px;
+    clear: right;
+}
+.sub-ads-slot-right .ad-slot { padding: 12px; height: 100%; }
+@media (max-width: 520px) {
     .sub-ads-slot-right {
-        position: static;
+        float: none;
         width: auto;
+        max-width: none;
+        min-height: 0;
         margin: 10px 16px;
     }
 }
