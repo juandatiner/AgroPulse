@@ -2439,6 +2439,32 @@ const App = {
                 if (e.key === 'Enter') { e.preventDefault(); App.doLogin(); }
             });
         });
+
+        // Enter submits register (any input/select within the register screen)
+        const regScreen = document.getElementById('screen-register');
+        if (regScreen) {
+            regScreen.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                const tag = (e.target.tagName || '').toLowerCase();
+                if (tag === 'textarea') return;
+                e.preventDefault();
+                App.doRegister();
+            });
+        }
+
+        // Enter submits forgot-password steps
+        const forgotScreen = document.getElementById('screen-forgot');
+        if (forgotScreen) {
+            forgotScreen.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                const tag = (e.target.tagName || '').toLowerCase();
+                if (tag === 'textarea') return;
+                e.preventDefault();
+                if (document.getElementById('forgot-step-1').style.display !== 'none') App.forgotStep1();
+                else if (document.getElementById('forgot-step-2').style.display !== 'none') App.forgotStep2();
+                else if (document.getElementById('forgot-step-3').style.display !== 'none') App.forgotStep3();
+            });
+        }
     },
 
     // Quick actions
