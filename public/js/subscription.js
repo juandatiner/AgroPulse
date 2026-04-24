@@ -111,14 +111,11 @@ const Subscription = {
     },
 
     _updateAdTop() {
-        // Sidebar de ads debe arrancar debajo del nav + banner (si está visible)
-        requestAnimationFrame(() => {
-            const nav = document.querySelector('.app-nav');
-            const banner = document.getElementById('promo-banner');
-            const navH = nav ? nav.offsetHeight : 64;
-            const bannerH = (banner && !banner.classList.contains('hidden') && banner.offsetHeight) ? banner.offsetHeight : 0;
-            document.body.style.setProperty('--ad-top', (navH + bannerH) + 'px');
-        });
+        const nav = document.querySelector('.app-nav');
+        const banner = document.getElementById('promo-banner');
+        const navH = nav ? nav.offsetHeight : 64;
+        const bannerH = (banner && !banner.classList.contains('hidden') && banner.offsetHeight) ? banner.offsetHeight : 0;
+        document.body.style.setProperty('--ad-top', (navH + bannerH) + 'px');
     },
 
     _launchFireworks(burstCount = 5, particlesPerBurst = 22) {
@@ -472,8 +469,10 @@ const Subscription = {
             const PAD = 16;
             const GAP = 8;
             if (vertical) {
-                // Altura disponible real = viewport - top(64) - bottom(80) - padding slot
-                const avail = Math.max(180, window.innerHeight - 64 - 100 - 24 - HEADER_H);
+                // Altura disponible real = viewport - top dinámico (nav + banner) - bottom(100) - padding slot
+                const adTopStr = getComputedStyle(document.body).getPropertyValue('--ad-top').trim();
+                const adTop = parseInt(adTopStr, 10) || 64;
+                const avail = Math.max(180, window.innerHeight - adTop - 100 - 24 - HEADER_H);
                 // Cuántos tiles de mínimo 110 caben? tope por MAX_TILE también
                 const maxByMin = Math.floor((avail + GAP) / (MIN_TILE + GAP));
                 const minByMax = Math.ceil((avail + GAP) / (MAX_TILE + GAP));
