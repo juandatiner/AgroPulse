@@ -245,6 +245,10 @@ const App = {
             </div>
         `;
         Subscription._openOverlay('welcome-overlay', html);
+        if (Subscription._launchFireworks) {
+            setTimeout(() => Subscription._launchFireworks(), 200);
+            setTimeout(() => Subscription._launchFireworks(), 850);
+        }
     },
 
     async doLogin() {

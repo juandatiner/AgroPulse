@@ -108,6 +108,39 @@ const Subscription = {
         if (useRotator) this.startPlanRotator(); else if (this._planTimer) { clearInterval(this._planTimer); this._planTimer = null; }
     },
 
+    _launchFireworks(burstCount = 5, particlesPerBurst = 22) {
+        let layer = document.getElementById('fireworks-layer');
+        if (!layer) {
+            layer = document.createElement('div');
+            layer.id = 'fireworks-layer';
+            document.body.appendChild(layer);
+        }
+        const colors = ['#ff5e62','#ffd166','#06d6a0','#118ab2','#ff9966','#c8962a','#e8b84b','#ef476f'];
+        for (let b = 0; b < burstCount; b++) {
+            setTimeout(() => {
+                const cx = 10 + Math.random() * 80;
+                const cy = 10 + Math.random() * 60;
+                const burst = document.createElement('div');
+                burst.className = 'firework-burst';
+                burst.style.left = cx + 'vw';
+                burst.style.top = cy + 'vh';
+                for (let i = 0; i < particlesPerBurst; i++) {
+                    const p = document.createElement('span');
+                    p.className = 'firework-particle';
+                    const angle = (Math.PI * 2 * i) / particlesPerBurst;
+                    const dist = 60 + Math.random() * 60;
+                    p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+                    p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+                    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    p.style.animationDelay = (Math.random() * 0.05) + 's';
+                    burst.appendChild(p);
+                }
+                layer.appendChild(burst);
+                setTimeout(() => burst.remove(), 1400);
+            }, b * 220);
+        }
+    },
+
     _planRotText(p) {
         return `Plan <strong>${p.label}</strong>: <s>${p.reg}</s> ahora <strong>${p.now}</strong>/mes`;
     },
@@ -778,6 +811,8 @@ const Subscription = {
             });
             this.state = result.subscription;
             this.closeCheckout();
+            this.closePlans();
+            this._launchFireworks();
             const untilDate = new Date(result.until || this.state.subscription_end);
             const fmt = (d) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
             const untilStr = fmt(untilDate);
@@ -799,10 +834,17 @@ const Subscription = {
                 subtitle = 'Gracias por unirte a AgroPulse Pro';
             }
             this._openOverlay('success-overlay', `
-                <div class="success-overlay-inner">
-                    <div class="success-check"><i data-lucide="check-circle-2"></i></div>
+                <div class="welcome-overlay-inner success-paid-inner">
+                    <div class="welcome-gift success-trophy"><i data-lucide="party-popper"></i></div>
                     <h2>${title}</h2>
-                    <p>${subtitle}</p>
+                    <p class="welcome-sub">${subtitle}</p>
+                    <ul class="welcome-features">
+                        <li><i data-lucide="check-circle-2"></i> Publicaciones ilimitadas</li>
+                        <li><i data-lucide="check-circle-2"></i> Alertas de match inteligente</li>
+                        <li><i data-lucide="check-circle-2"></i> Chat con fotos y ubicación</li>
+                        <li><i data-lucide="check-circle-2"></i> Soporte prioritario</li>
+                        <li><i data-lucide="check-circle-2"></i> Sin anuncios</li>
+                    </ul>
                     <div class="success-receipt">
                         <div><span>Referencia</span><strong>${result.reference}</strong></div>
                         ${bonusLine}
@@ -813,6 +855,8 @@ const Subscription = {
                     </button>
                 </div>
             `);
+            setTimeout(() => this._launchFireworks(), 250);
+            setTimeout(() => this._launchFireworks(), 900);
         } catch (e) {
             btn.classList.remove('loading');
             btn.disabled = false;

@@ -3614,6 +3614,49 @@ body.no-scroll { overflow: hidden; }
     text-align: center;
     margin-top: 12px;
 }
+
+/* ===== Fireworks ===== */
+#fireworks-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2000;
+    overflow: hidden;
+}
+.firework-burst {
+    position: absolute;
+    width: 0; height: 0;
+}
+.firework-particle {
+    position: absolute;
+    left: 0; top: 0;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+    animation: fwBurst 1.2s cubic-bezier(.18,.7,.4,1) forwards;
+    box-shadow: 0 0 8px currentColor;
+}
+@keyframes fwBurst {
+    0%   { transform: translate(0,0) scale(0.4); opacity: 1; }
+    60%  { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.6); opacity: 0; }
+}
+
+/* ===== Success paid (estilo welcome) ===== */
+.success-paid-inner .success-trophy {
+    background: linear-gradient(135deg, #ffd166, #ff9966, #ef476f);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(239,71,111,0.35);
+    animation: trophyPulse 1.4s ease-in-out infinite;
+}
+.success-paid-inner .success-receipt {
+    margin-top: 14px;
+}
+@keyframes trophyPulse {
+    0%, 100% { transform: scale(1) rotate(-3deg); }
+    50%      { transform: scale(1.08) rotate(3deg); }
+}
 .spin { animation: spin 1s linear infinite; }
 .btn.loading { opacity: 0.7; pointer-events: none; }
 
