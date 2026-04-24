@@ -37,9 +37,15 @@ const App = {
 
     showApp(opts = {}) {
         this.showScreen('screen-app');
-        history.replaceState({ type: 'tab', tab: 'inicio' }, '');
+        const validTabs = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
+        let initialTab = 'inicio';
+        try {
+            const saved = localStorage.getItem('agropulse_current_tab');
+            if (saved && validTabs.includes(saved)) initialTab = saved;
+        } catch {}
+        history.replaceState({ type: 'tab', tab: initialTab }, '');
         window.addEventListener('popstate', e => this.handlePopState(e));
-        this.switchTab('inicio');
+        this.switchTab(initialTab);
         Chat.startGlobalPolling();
         this.updateNavAvatar();
         this.refreshAgreementCounts();
@@ -80,6 +86,7 @@ const App = {
             this._editingResourceId = null;
         }
         this.currentTab = tab;
+        try { localStorage.setItem('agropulse_current_tab', tab); } catch {}
         if (!this._skipHistory) history.pushState({ type: 'tab', tab }, '');
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         document.getElementById('panel-' + tab).classList.add('active');
