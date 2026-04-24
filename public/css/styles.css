@@ -2829,6 +2829,12 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .promo-banner-close svg { width: 14px; height: 14px; }
 .promo-banner-locked { padding-right: 16px; }
 
+/* Reservar espacio del sidebar derecho de publicidad en escritorio (free user) */
+@media (min-width: 521px) {
+    body.has-right-ad .promo-banner { padding-right: 180px; }
+    body.has-right-ad .promo-banner-close { right: 174px; }
+}
+
 /* ===== Mobile ad placements (in-feed, native, sticky) ===== */
 .ad-infeed {
     display: block;

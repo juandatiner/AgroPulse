@@ -100,8 +100,8 @@ const Subscription = {
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown}${mainText}</span>
                 <button class="promo-banner-cta">${ctaText} <i data-lucide="chevron-right"></i></button>
-                ${closeBtn}
             </div>
+            ${closeBtn}
         `;
         if (window.lucide) lucide.createIcons();
         this.startLeafTimer();
@@ -394,9 +394,11 @@ const Subscription = {
             if (sticky) sticky.remove();
             const legacy = document.getElementById('sub-ads-bar');
             if (legacy) legacy.remove();
+            document.body.classList.remove('has-right-ad');
             if (this._adRotationTimer) { clearInterval(this._adRotationTimer); this._adRotationTimer = null; }
             return;
         }
+        document.body.classList.toggle('has-right-ad', !this._isMobileAds());
         const legacy = document.getElementById('sub-ads-bar');
         if (legacy) legacy.remove();
 
