@@ -524,7 +524,7 @@ const App = {
                 lucide.createIcons({ nodes: [container] });
                 return;
             }
-            container.innerHTML = resources.map(r => `
+            const marketItems = resources.map(r => `
                 <div class="market-item" onclick="App.showResourceDetail('${r.id}')">
                     <div class="market-item-top">
                         <div class="market-item-icon resource-card-icon ${r.tipo}">
@@ -546,7 +546,10 @@ const App = {
                         <span class="type-badge ${r.tipo}">${this.TYPE_LABELS[r.tipo]}</span>
                     </div>
                 </div>
-            `).join('');
+            `);
+            container.innerHTML = (window.Subscription && Subscription.injectInFeed)
+                ? Subscription.injectInFeed(marketItems, 5)
+                : marketItems.join('');
             lucide.createIcons({ nodes: [container] });
         } catch (e) {
             container.innerHTML = '<div class="empty-state"><p>Error al cargar</p></div>';
@@ -1886,7 +1889,10 @@ const App = {
                 lucide.createIcons({ nodes: [container] });
                 return;
             }
-            container.innerHTML = filtered.map(a => this.renderAgreementCard(a)).join('');
+            const agItems = filtered.map(a => this.renderAgreementCard(a));
+            container.innerHTML = (window.Subscription && Subscription.injectInFeed)
+                ? Subscription.injectInFeed(agItems, 5)
+                : agItems.join('');
             lucide.createIcons({ nodes: [container] });
         } catch (e) {
             console.error('Error loading agreements:', e);

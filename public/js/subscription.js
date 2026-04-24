@@ -302,18 +302,63 @@ const Subscription = {
         intercambios: 'right',
         perfil: 'right',
     },
+    // Mobile (≤520px): tipo de slot por panel
+    _mobileSlot: {
+        inicio: 'native',       // tarjeta nativa después del hero
+        mercado: 'skip',        // in-feed (manejado por App.loadMarket)
+        publicar: 'sticky',     // banner sticky bottom
+        intercambios: 'skip',   // in-feed
+        perfil: 'native-end',   // tarjeta nativa al final
+    },
     _adRotationIdx: 0,
     _adRotationTimer: null,
 
+    _isMobileAds() { return window.matchMedia('(max-width: 520px)').matches; },
+
+    // HTML para una tarjeta sponsored (in-feed o nativa móvil)
+    adCardHtml(idx = 0) {
+        const ad = this._ADS[((this._adRotationIdx + idx) % this._ADS.length + this._ADS.length) % this._ADS.length];
+        return `
+            <div class="ad-infeed" onclick="Subscription.openAdCard('${ad.id}')">
+                <span class="ad-infeed-tag">Publicidad</span>
+                <div class="ad-infeed-body">
+                    <div class="ad-infeed-icon">${ad.icon}</div>
+                    <div class="ad-infeed-text">
+                        <strong>${this._esc(ad.title)}</strong>
+                        <span>${this._esc(ad.text)}</span>
+                    </div>
+                    <button class="ad-infeed-cta" onclick="event.stopPropagation(); Subscription.openAdCard('${ad.id}')">${this._esc(ad.cta)}</button>
+                </div>
+            </div>
+        `;
+    },
+
+    // Intercala una tarjeta cada N items en un array de HTML strings (solo móvil + free)
+    injectInFeed(itemsHtmlArr, every = 5) {
+        if (this.isPro() || !this._isMobileAds()) return itemsHtmlArr.join('');
+        const out = [];
+        let adIdx = 0;
+        for (let i = 0; i < itemsHtmlArr.length; i++) {
+            out.push(itemsHtmlArr[i]);
+            if ((i + 1) % every === 0 && i < itemsHtmlArr.length - 1) {
+                out.push(this.adCardHtml(adIdx++));
+            }
+        }
+        return out.join('');
+    },
+
     renderAds() {
         const panels = ['inicio', 'mercado', 'publicar', 'intercambios', 'perfil'];
+        const cleanupPanel = (p) => {
+            const host = document.getElementById('panel-' + p);
+            const old = document.getElementById('sub-ads-slot-' + p);
+            if (old) old.remove();
+            if (host) host.classList.remove('panel-with-right-ad');
+        };
         if (this.isPro()) {
-            panels.forEach(p => {
-                const host = document.getElementById('panel-' + p);
-                const old = document.getElementById('sub-ads-slot-' + p);
-                if (old) old.remove();
-                if (host) host.classList.remove('panel-with-right-ad');
-            });
+            panels.forEach(cleanupPanel);
+            const sticky = document.getElementById('sub-ads-sticky');
+            if (sticky) sticky.remove();
             const legacy = document.getElementById('sub-ads-bar');
             if (legacy) legacy.remove();
             if (this._adRotationTimer) { clearInterval(this._adRotationTimer); this._adRotationTimer = null; }
@@ -322,25 +367,51 @@ const Subscription = {
         const legacy = document.getElementById('sub-ads-bar');
         if (legacy) legacy.remove();
 
+        const isMobile = this._isMobileAds();
+        const stickyOld = document.getElementById('sub-ads-sticky');
+        if (stickyOld) stickyOld.remove();
+
         panels.forEach((panelName, idx) => {
             const host = document.getElementById('panel-' + panelName);
             if (!host) return;
             const slotId = 'sub-ads-slot-' + panelName;
-            const position = this._slotPositions[panelName] || 'top';
             let slot = document.getElementById(slotId);
-            if (!slot) {
+            if (slot) { slot.remove(); slot = null; }
+            host.classList.remove('panel-with-right-ad');
+
+            if (isMobile) {
+                const kind = this._mobileSlot[panelName];
+                if (kind === 'skip') return; // in-feed lo maneja app.js
+                if (kind === 'sticky') {
+                    const stickyEl = document.createElement('div');
+                    stickyEl.id = 'sub-ads-sticky';
+                    stickyEl.innerHTML = this.adCardHtml(idx);
+                    host.appendChild(stickyEl);
+                    return;
+                }
                 slot = document.createElement('div');
                 slot.id = slotId;
+                slot.className = 'sub-ads-slot sub-ads-mobile-native';
+                if (kind === 'native-end') {
+                    host.appendChild(slot);
+                } else {
+                    const hero = host.querySelector('.home-hero');
+                    if (hero && hero.nextSibling) host.insertBefore(slot, hero.nextSibling);
+                    else host.insertBefore(slot, host.firstChild);
+                }
+                slot.innerHTML = this.adCardHtml(idx);
+                return;
             }
-            slot.className = 'sub-ads-slot sub-ads-slot-' + position;
-            if (slot.parentNode) slot.parentNode.removeChild(slot);
 
+            // Desktop: sidebar derecho (lógica original)
+            const position = this._slotPositions[panelName] || 'top';
+            slot = document.createElement('div');
+            slot.id = slotId;
+            slot.className = 'sub-ads-slot sub-ads-slot-' + position;
             if (position === 'right') {
                 host.classList.add('panel-with-right-ad');
-                // Insertar como PRIMER hijo para que float:right funcione con el contenido siguiente
                 host.insertBefore(slot, host.firstChild);
             } else {
-                host.classList.remove('panel-with-right-ad');
                 if (position === 'bottom') host.appendChild(slot);
                 else host.insertBefore(slot, host.firstChild);
             }
