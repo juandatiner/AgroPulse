@@ -1728,16 +1728,24 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 
 /* ===== REPUTATION BAR ===== */
 .reputation-bar {
-    height: 8px;
-    background: var(--cream-dark);
-    border-radius: 4px;
+    position: relative;
+    height: 12px;
+    background-color: var(--cream-dark);
+    background-image: repeating-linear-gradient(
+        90deg,
+        transparent 0,
+        transparent calc(10% - 1px),
+        rgba(255,255,255,0.65) calc(10% - 1px),
+        rgba(255,255,255,0.65) 10%
+    );
+    border-radius: 6px;
     overflow: hidden;
     margin-top: 8px;
 }
 .reputation-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--field), var(--harvest-light));
-    border-radius: 4px;
+    border-radius: 6px;
     transition: width 0.5s ease;
 }
 

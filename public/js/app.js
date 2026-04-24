@@ -2353,10 +2353,7 @@ const App = {
             document.getElementById('profile-role').textContent = u.tipo;
             document.getElementById('profile-location').innerHTML = `<i data-lucide="map-pin"></i> ${this.esc(u.municipio)}`;
             document.getElementById('profile-stat-intercambios').textContent = u.stats.total_agreements;
-            document.getElementById('profile-stat-reputacion').textContent = (u.reputation_score || 5).toFixed(1);
             document.getElementById('profile-stat-publicaciones').textContent = u.stats.total_resources;
-            const repPercent = ((u.reputation_score || 5) / 5) * 100;
-            document.getElementById('reputation-fill').style.width = repPercent + '%';
 
             const nameEl = document.getElementById('profile-name');
             const oldTick = nameEl.querySelector('.verified-inline');
@@ -2380,6 +2377,37 @@ const App = {
                         planTitle.textContent = 'Mejorar a Pro';
                         planSub.textContent = 'Publicaciones ilimitadas + matches';
                     }
+                }
+
+                // Stat + barra de suscripción
+                const statEl = document.getElementById('profile-stat-suscripcion');
+                const fillEl = document.getElementById('subscription-fill');
+                const hintEl = document.getElementById('subscription-hint');
+                if (sub && statEl && fillEl && hintEl) {
+                    let daysLeft = 0, total = 0, label = 'No hay más', hint = 'Sin suscripción activa';
+                    if (sub.status === 'active') {
+                        daysLeft = sub.subscription_days_left || 0;
+                        total = 30;
+                        label = String(daysLeft);
+                        hint = daysLeft === 0
+                            ? 'Tu suscripción termina hoy'
+                            : `Quedan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de tu suscripción`;
+                    } else if (sub.status === 'trial' && sub.trial_days_left > 0) {
+                        daysLeft = sub.trial_days_left;
+                        total = Math.max(daysLeft, sub.trial_days_granted || daysLeft);
+                        label = String(daysLeft);
+                        hint = `Quedan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de tu prueba gratuita`;
+                    } else if (sub.status === 'expired' || (sub.status === 'trial' && sub.trial_days_left === 0)) {
+                        label = '0';
+                        hint = 'Se acabó tu suscripción';
+                    } else {
+                        label = '—';
+                        hint = 'No hay suscripción activa';
+                    }
+                    statEl.textContent = label;
+                    const pct = total > 0 ? Math.max(2, Math.min(100, Math.round((daysLeft / total) * 100))) : 0;
+                    fillEl.style.width = pct + '%';
+                    hintEl.textContent = hint;
                 }
             }
 
