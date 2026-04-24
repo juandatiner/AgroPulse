@@ -611,7 +611,7 @@ const Subscription = {
                     </div>
                 </div>
 
-                <p class="plans-legal">Pago mensual · Cancela cuando quieras · Simulación de pago (demo)</p>
+                <p class="plans-legal">Pago mensual · Cancela cuando quieras</p>
                 <button class="btn btn-outline btn-full" onclick="Subscription.closePlans()">Volver</button>
             </div>
         `;
@@ -662,27 +662,29 @@ const Subscription = {
         const html = `
             <div class="checkout-overlay-inner">
                 <button class="plans-close" onclick="Subscription.closeCheckout()"><i data-lucide="x"></i></button>
-                <div class="checkout-secure-bar">
-                    <i data-lucide="shield-check"></i>
-                    <span>Conexión segura — Pago cifrado</span>
-                    <div class="checkout-brands">
-                        <span>VISA</span><span>MC</span><span>AMEX</span>
+                <div class="checkout-wompi-header">
+                    <div class="wompi-brand">
+                        <span class="wompi-logo">w</span>
+                        <span class="wompi-name">Wompi</span>
+                    </div>
+                    <div class="wompi-secure">
+                        <i data-lucide="shield-check"></i> Pago seguro
                     </div>
                 </div>
-                <h2>Suscripción AgroPulse ${planLabel}</h2>
-                <div class="checkout-summary">
-                    <div><span>Plan ${planLabel} (mensual)</span><strong>${pricePromo}</strong></div>
-                    <div><span>IVA (19%)</span><strong>Incluido</strong></div>
-                    <div class="checkout-total"><span>Total hoy</span><strong>${pricePromo}</strong></div>
+                <div class="checkout-summary checkout-summary-slim">
+                    <span>Plan ${planLabel}</span>
+                    <strong>${pricePromo}</strong>
                 </div>
                 <form id="checkout-form" class="checkout-form" onsubmit="event.preventDefault(); Subscription.submitCheckout()">
                     <div class="form-group">
                         <label class="form-label">Titular de la tarjeta</label>
-                        <input type="text" id="ck-holder" class="form-input" placeholder="Como aparece en la tarjeta" autocomplete="cc-name">
+                        <input type="text" id="ck-holder" class="form-input" placeholder="Como aparece en la tarjeta"
+                               autocomplete="cc-name" maxlength="40"
+                               oninput="Subscription._formatHolder(this)">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Número de tarjeta</label>
-                        <input type="text" id="ck-card" class="form-input" placeholder="4242 4242 4242 4242"
+                        <input type="text" id="ck-card" class="form-input" placeholder="1234 5678 9012 3456"
                                inputmode="numeric" maxlength="23" autocomplete="cc-number"
                                oninput="Subscription._formatCard(this)">
                         <span class="form-hint" id="ck-brand-hint"></span>
@@ -697,12 +699,9 @@ const Subscription = {
                         <div class="form-group">
                             <label class="form-label">CVV</label>
                             <input type="text" id="ck-cvv" class="form-input" placeholder="123"
-                                   inputmode="numeric" maxlength="4" autocomplete="cc-csc">
+                                   inputmode="numeric" maxlength="4" autocomplete="cc-csc"
+                                   oninput="Subscription._formatCvv(this)">
                         </div>
-                    </div>
-                    <div class="checkout-demo-note">
-                        <i data-lucide="info"></i>
-                        <span>Demo: prueba con <code>4242 4242 4242 4242</code>, expiración futura y CVV <code>123</code></span>
                     </div>
                     <button type="submit" class="btn btn-primary btn-full" id="btn-ck-submit">
                         <i data-lucide="lock"></i> Pagar ${pricePromo}
@@ -730,6 +729,15 @@ const Subscription = {
         let v = input.value.replace(/\D/g, '').slice(0, 4);
         if (v.length >= 3) input.value = v.slice(0, 2) + ' / ' + v.slice(2);
         else input.value = v;
+    },
+
+    _formatHolder(input) {
+        // Solo letras (incluye acentos/ñ) y espacios. Mayúsculas como en tarjeta real.
+        input.value = input.value.replace(/[^A-Za-zÁÉÍÓÚáéíóúÑñ\s]/g, '').toUpperCase().slice(0, 40);
+    },
+
+    _formatCvv(input) {
+        input.value = input.value.replace(/\D/g, '').slice(0, 4);
     },
 
     _detectBrand(num) {
