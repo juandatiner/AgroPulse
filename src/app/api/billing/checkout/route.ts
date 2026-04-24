@@ -12,15 +12,6 @@ export async function POST(request: Request) {
     if (!user) return json({ error: 'No autorizado' }, 401)
 
     const existing = await computeSubscriptionState(user.id)
-    if (existing.is_premium) {
-      return json({
-        error: 'already_active',
-        message: existing.status === 'trial'
-          ? 'Ya tienes tu prueba gratuita activa — no necesitas pagar todavía'
-          : 'Ya tienes una suscripción activa',
-      }, 400)
-    }
-
     const body = await request.json()
     const planTier: 'basic' | 'pro' = body.plan === 'pro' ? 'pro' : 'basic'
     const card = String(body.card_number || '').replace(/\s+/g, '')
@@ -68,7 +59,23 @@ export async function POST(request: Request) {
       }, 402)
     }
 
-    const subEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    // Base de extensión: si hay suscripción activa, sumar a la fecha actual de fin (renovación).
+    // Si está en prueba, sumar a la fecha de fin de la prueba (los días gratis se respetan).
+    // Si no, partir de hoy.
+    const userDoc = await db.collection('users').findOne({ _id: uid })
+    const userSubEnd: Date | null = userDoc?.subscription_end instanceof Date ? userDoc.subscription_end : null
+    const userTrialEnd: Date | null = userDoc?.trial_end instanceof Date ? userDoc.trial_end : null
+    let baseTime = now.getTime()
+    let bonusDays = 0
+    let isRenewal = false
+    if (existing.status === 'active' && userSubEnd && userSubEnd > now) {
+      baseTime = userSubEnd.getTime()
+      isRenewal = true
+    } else if (existing.status === 'trial' && userTrialEnd && userTrialEnd > now) {
+      baseTime = userTrialEnd.getTime()
+      bonusDays = existing.trial_days_left
+    }
+    const subEnd = new Date(baseTime + 30 * 24 * 60 * 60 * 1000)
     const reference = 'AGP-' + crypto.randomBytes(4).toString('hex').toUpperCase()
 
     await db.collection('invoices').insertOne({
@@ -99,7 +106,7 @@ export async function POST(request: Request) {
     )
 
     const sub = await computeSubscriptionState(user.id)
-    return json({ ok: true, reference, subscription: sub })
+    return json({ ok: true, reference, subscription: sub, bonus_days: bonusDays, is_renewal: isRenewal, until: subEnd.toISOString() })
   })
 }
 

@@ -39,64 +39,99 @@ const Subscription = {
         const el = document.getElementById('promo-banner');
         if (!el || !this.state) return;
         const s = this.state;
-        if (s.status === 'active') { el.classList.add('hidden'); return; }
-        // Si no hay trial configurado (0 días) y el usuario nunca tuvo prueba, ocultar
-        if (s.status !== 'trial' && (!s.trial_days_granted || s.trial_days_granted <= 0) && !s.trial_end) {
-            el.classList.add('hidden'); return;
+
+        let countdown = '';
+        let mainText = '';
+        let ctaText = 'Ver suscripción';
+        let urgentDays = Infinity;
+        let endTs = null;
+        let useRotator = false;
+        const discount = s.promo_discount_percent || 50;
+        const dayLbl = (n) => n === 1 ? 'día' : 'días';
+
+        if (s.status === 'active') {
+            if ((s.subscription_days_left || 0) > 10) { el.classList.add('hidden'); return; }
+            urgentDays = s.subscription_days_left;
+            endTs = s.subscription_end ? new Date(s.subscription_end).getTime() : null;
+            ctaText = 'Renovar';
+            if (s.subscription_days_left === 1 && endTs) {
+                countdown = `⏳ Tu suscripción termina en ${this.leafCountdown(endTs)}`;
+            } else if (s.subscription_days_left > 0) {
+                countdown = `⏳ Tu suscripción termina en <strong>${s.subscription_days_left} ${dayLbl(s.subscription_days_left)}</strong>`;
+            } else {
+                countdown = `⏳ Tu suscripción termina hoy`;
+            }
+        } else if (s.status === 'trial' && s.trial_days_left > 0) {
+            urgentDays = s.trial_days_left;
+            endTs = s.trial_end ? new Date(s.trial_end).getTime() : null;
+            ctaText = 'Suscribirme';
+            if (s.trial_days_left === 1 && endTs) {
+                countdown = `🎁 Tu prueba termina en ${this.leafCountdown(endTs)}`;
+            } else {
+                countdown = `🎁 Tu prueba termina en <strong>${s.trial_days_left} ${dayLbl(s.trial_days_left)}</strong>`;
+            }
+        } else {
+            // sin suscripción (expired, trial 0, o sin trial) → rotador de planes
+            useRotator = true;
+            ctaText = 'Ver suscripciones';
+            const basicReg = this.formatPrice(s.price_basic_regular || s.price_basic || 7900);
+            const basicNow = this.formatPrice(s.price_basic || 7900);
+            const proReg = this.formatPrice(s.price_pro_regular || s.price_pro || 12900);
+            const proNow = this.formatPrice(s.price_pro || 12900);
+            this._bannerPlans = [
+                { label: 'Básico', reg: basicReg, now: basicNow },
+                { label: 'Pro', reg: proReg, now: proNow },
+            ];
+            const tag = s.promo_active ? `<span class="promo-tag">${discount}% OFF</span> ` : '';
+            mainText = `${tag}<span class="promo-rotator" data-idx="0">${this._planRotText(this._bannerPlans[0])}</span> <span class="promo-grab">¡Aprovéchalo!</span>`;
         }
-        // Si el user lo cerró en esta sesión, mantener oculto hasta próximo login
+
+        // Cerrado en sesión actual → ocultar (excepto si bloqueado por urgencia)
+        const cantClose = urgentDays < 3;
         try {
-            if (sessionStorage.getItem('agropulse_promo_banner_closed') === '1') {
+            if (!cantClose && sessionStorage.getItem('agropulse_promo_banner_closed') === '1') {
                 el.classList.add('hidden');
                 return;
             }
         } catch {}
         el.classList.remove('hidden');
-        const discount = s.promo_discount_percent || 50;
-        const promoText = s.promo_active
-            ? `<span class="promo-tag">${discount}% OFF</span> <span class="promo-grab">¡Aprovéchalo!</span>`
-            : `<span class="promo-grab">¡Aprovéchalo!</span>`;
 
-        let countdown = '';
-        let urgentDays = Infinity;
-        let endTs = null;
-        if (s.status === 'trial' && s.trial_days_left > 0) {
-            urgentDays = s.trial_days_left;
-            endTs = s.trial_end ? new Date(s.trial_end).getTime() : null;
-            if (s.trial_days_left === 1 && endTs) {
-                countdown = `🎁 Prueba gratuita: ${this.leafCountdown(endTs)} restantes · `;
-            } else {
-                countdown = `🎁 Prueba gratuita: <strong>${s.trial_days_left} ${s.trial_days_left === 1 ? 'día' : 'días'}</strong> restantes · `;
-            }
-        } else if (s.status === 'trial' && s.trial_days_left === 0) {
-            urgentDays = 0;
-            countdown = `⏰ Tu prueba gratis termina hoy · `;
-        } else if (s.status === 'expired') {
-            urgentDays = 0;
-            countdown = `⛔ Prueba vencida · `;
-        } else if (s.promo_active && s.promo_days_left > 0) {
-            urgentDays = s.promo_days_left;
-            endTs = s.promo_end_date ? new Date(s.promo_end_date).getTime() : null;
-            if (s.promo_days_left === 1 && endTs) {
-                countdown = `🔥 Promo termina en ${this.leafCountdown(endTs)} · `;
-            } else {
-                countdown = `🔥 Promo termina en <strong>${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</strong> · `;
-            }
-        }
-
-        const cantClose = urgentDays < 3;
         const closeBtn = cantClose ? '' : `<button class="promo-banner-close" onclick="event.stopPropagation(); Subscription.closeBanner()" aria-label="Cerrar banner"><i data-lucide="x"></i></button>`;
 
         el.classList.toggle('promo-banner-locked', cantClose);
         el.innerHTML = `
             <div class="promo-banner-inner">
-                <span class="promo-banner-text">${countdown}${promoText}</span>
-                <button class="promo-banner-cta">Ver suscripción <i data-lucide="chevron-right"></i></button>
+                <span class="promo-banner-text">${countdown}${mainText}</span>
+                <button class="promo-banner-cta">${ctaText} <i data-lucide="chevron-right"></i></button>
                 ${closeBtn}
             </div>
         `;
         if (window.lucide) lucide.createIcons();
         this.startLeafTimer();
+        if (useRotator) this.startPlanRotator(); else if (this._planTimer) { clearInterval(this._planTimer); this._planTimer = null; }
+    },
+
+    _planRotText(p) {
+        return `Plan <strong>${p.label}</strong>: <s>${p.reg}</s> ahora <strong>${p.now}</strong>/mes`;
+    },
+
+    startPlanRotator() {
+        if (this._planTimer) { clearInterval(this._planTimer); this._planTimer = null; }
+        if (!this._bannerPlans || this._bannerPlans.length < 2) return;
+        let idx = 0;
+        this._planTimer = setInterval(() => {
+            const node = document.querySelector('#promo-banner .promo-rotator');
+            if (!node || !this._bannerPlans) { clearInterval(this._planTimer); this._planTimer = null; return; }
+            idx = (idx + 1) % this._bannerPlans.length;
+            node.classList.remove('rot-in');
+            node.classList.add('rot-out');
+            setTimeout(() => {
+                node.innerHTML = this._planRotText(this._bannerPlans[idx]);
+                node.dataset.idx = String(idx);
+                node.classList.remove('rot-out');
+                node.classList.add('rot-in');
+            }, 280);
+        }, 4500);
     },
 
     leafCountdown(endTs) {
@@ -157,6 +192,7 @@ const Subscription = {
         if (!this.state) return;
         const s = this.state;
         if (s.status === 'active') { if (card) card.remove(); return; }
+        if (s.status === 'trial' && s.trial_days_left > 0) { if (card) card.remove(); return; }
 
         if (!card) {
             card = document.createElement('div');
@@ -167,20 +203,11 @@ const Subscription = {
             else host.insertBefore(card, host.firstChild);
         }
 
-        const inTrial = s.status === 'trial' && s.trial_days_left > 0;
         let statusText = '';
         let statusClass = '';
         let bodyHtml = '';
 
-        if (inTrial) {
-            const dayWord = s.trial_days_left === 1 ? 'día' : 'días';
-            const verb = s.trial_days_left === 1 ? 'Queda' : 'Quedan';
-            statusText = `${verb} <strong>${s.trial_days_left}</strong> ${dayWord} de tu suscripción`;
-            statusClass = 'sub-card-trial sub-home-card-slim';
-            const trialTotal = Math.max(1, s.trial_days_granted || s.trial_days_left || 1);
-            const elapsedPct = Math.max(2, Math.min(100, Math.round(((trialTotal - s.trial_days_left) / trialTotal) * 100)));
-            bodyHtml = `<div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${elapsedPct}%"></div></div>`;
-        } else if (s.status === 'expired') {
+        if (s.status === 'expired') {
             statusText = `Tu prueba gratuita terminó`;
             statusClass = 'sub-card-expired';
             const remaining = s.posts_remaining;
@@ -227,7 +254,7 @@ const Subscription = {
                     <i data-lucide="sparkles"></i>
                     <span>${statusText}</span>
                 </div>
-                ${inTrial ? '' : `<button class="sub-home-card-action" onclick="Subscription.openPlans()">${s.status === 'expired' ? 'Suscribirme' : 'Mejorar plan'}</button>`}
+                <button class="sub-home-card-action" onclick="Subscription.openPlans()">${s.status === 'expired' ? 'Suscribirme' : 'Mejorar plan'}</button>
             </div>
             <div class="sub-home-card-body">${bodyHtml}</div>
         `;
@@ -447,16 +474,17 @@ const Subscription = {
             </li>
         `).join('');
 
-        const ctaBasic = (alreadyActive && currentTier === 'basic')
-            ? `<button class="btn btn-outline btn-full" disabled>Tu plan actual</button>`
-            : (alreadyActive && currentTier === 'pro'
+        const isActiveSub = alreadyActive && s.status === 'active';
+        const ctaBasic = (isActiveSub && currentTier === 'basic')
+            ? `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('basic')"><i data-lucide="refresh-cw"></i> Renovar Básico (+30 días)</button>`
+            : (isActiveSub && currentTier === 'pro'
                 ? `<button class="btn btn-outline btn-full" disabled>Ya tienes Pro</button>`
                 : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('basic')">
                      <i data-lucide="credit-card"></i> Suscribirme al Básico
                    </button>`);
 
-        const ctaPro = (alreadyActive && currentTier === 'pro')
-            ? `<button class="btn btn-outline btn-full" disabled>Tu plan actual</button>`
+        const ctaPro = (isActiveSub && currentTier === 'pro')
+            ? `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('pro')"><i data-lucide="refresh-cw"></i> Renovar Pro (+30 días)</button>`
             : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('pro')">
                  <i data-lucide="credit-card"></i> Suscribirme al Pro
                </button>`;
@@ -673,14 +701,24 @@ const Subscription = {
             });
             this.state = result.subscription;
             this.closeCheckout();
+            const untilDate = new Date(result.until || this.state.subscription_end);
+            const untilStr = untilDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+            const title = result.is_renewal ? '¡Suscripción renovada!' : '¡Suscripción activada!';
+            const bonusLine = result.bonus_days > 0
+                ? `<div><span>Días bonus de prueba</span><strong>+${result.bonus_days}</strong></div>`
+                : (result.is_renewal ? `<div><span>Tipo</span><strong>Renovación · +30 días</strong></div>` : '');
+            const subtitle = result.bonus_days > 0
+                ? `Sumamos los <strong>${result.bonus_days}</strong> ${result.bonus_days === 1 ? 'día' : 'días'} restantes de tu prueba`
+                : (result.is_renewal ? 'Extendimos tu suscripción 30 días más' : 'Gracias por unirte a AgroPulse Pro');
             this._openOverlay('success-overlay', `
                 <div class="success-overlay-inner">
                     <div class="success-check"><i data-lucide="check-circle-2"></i></div>
-                    <h2>¡Suscripción activada!</h2>
-                    <p>Gracias por unirte a AgroPulse Pro</p>
+                    <h2>${title}</h2>
+                    <p>${subtitle}</p>
                     <div class="success-receipt">
                         <div><span>Referencia</span><strong>${result.reference}</strong></div>
-                        <div><span>Renovación</span><strong>${new Date(this.state.subscription_end).toLocaleDateString()}</strong></div>
+                        ${bonusLine}
+                        <div><span>Tu suscripción va hasta</span><strong>${untilStr}</strong></div>
                     </div>
                     <button class="btn btn-primary btn-full" onclick="Subscription._closeOverlay('success-overlay'); Subscription.refresh(); App.loadHome && App.loadHome();">
                         Continuar
