@@ -52,13 +52,20 @@ const Admin = (() => {
   function showApp() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'flex';
-    switchTab('dashboard');
+    const validTabs = ['dashboard', 'users', 'resources', 'agreements', 'subscriptions', 'support', 'config'];
+    let initial = 'dashboard';
+    try {
+      const saved = localStorage.getItem('agropulse_admin_tab');
+      if (saved && validTabs.includes(saved)) initial = saved;
+    } catch {}
+    switchTab(initial);
     startAutoRefresh();
   }
 
   /* ── Tabs ── */
   function switchTab(tab) {
     _currentTab = tab;
+    try { localStorage.setItem('agropulse_admin_tab', tab); } catch {}
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
     if (btn) btn.classList.add('active');
@@ -268,25 +275,43 @@ const Admin = (() => {
       }
       tbody.innerHTML = users.map(u => {
         const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>` : '';
+        const status = u.subscription_status || 'trial';
+        const daysLeft = computeDaysLeft(u, status);
+        const daysCell = daysLeft === null
+          ? '<span class="muted">—</span>'
+          : daysLeft === 0
+            ? '<span style="color:var(--danger);font-weight:700">0</span>'
+            : `<strong>${daysLeft}</strong>`;
         return `
         <tr>
           <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>
           <td class="td-small">${esc(u.email)}</td>
-          <td><span class="sub-pill sub-pill-${u.subscription_status || 'trial'}">${u.subscription_status || 'trial'}</span></td>
+          <td><span class="sub-pill sub-pill-${status}">${status}</span></td>
+          <td class="td-center">${daysCell}</td>
           <td class="td-center">${u.monthly_post_count || 0}</td>
           <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
           <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
           <td>
             <button class="quick-btn" title="Ver suscripción y editar" onclick="Admin.openSubModal('${esc(u.id)}')">👁 Ver</button>
-            <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(u.subscription_status || 'trial')}')">📅 Cambiar días</button>
+            <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(status)}', ${daysLeft === null ? 'null' : daysLeft})">📅 Cambiar días</button>
             <button class="quick-btn danger" title="Quitar suscripción (cancelar)" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">🗑 Quitar</button>
           </td>
         </tr>
       `;
       }).join('');
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${esc(e.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="error-cell">${esc(e.message)}</td></tr>`;
     }
+  }
+
+  function computeDaysLeft(u, status) {
+    let endStr = null;
+    if (status === 'trial') endStr = u.trial_end;
+    else if (status === 'active') endStr = u.subscription_end;
+    if (!endStr) return null;
+    const ms = new Date(endStr).getTime() - Date.now();
+    if (!Number.isFinite(ms)) return null;
+    return Math.max(0, Math.ceil(ms / 86400000));
   }
 
   async function subAction(userId, action) {
@@ -343,9 +368,12 @@ const Admin = (() => {
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Días (1 a 90)</label>
-              <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))}">
+              <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))}" oninput="Admin.updateDaysPreview(${sub.status === 'active' ? (sub.subscription_days_left || 0) : (sub.trial_days_left || 0)})">
               <small style="color:var(--gray500);font-size:11px">Máximo 3 meses (90 días).</small>
             </div>
+          </div>
+          <div class="days-change-preview" id="days-change-preview" style="margin-top:14px;padding:12px 14px;background:var(--gray50,#f7f7f7);border-radius:8px;border-left:4px solid var(--harvest);font-size:14px">
+            Pasa de <strong>${sub.status === 'active' ? (sub.subscription_days_left || 0) : (sub.trial_days_left || 0)} días</strong> → <strong id="days-preview-new">${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))} días</strong>
           </div>
         </div>
         <div class="modal-footer">
@@ -360,9 +388,11 @@ const Admin = (() => {
     }
   }
 
-  function openEditDaysModal(userId, name, status) {
+  function openEditDaysModal(userId, name, status, currentDays) {
     const card = document.getElementById('modal-card');
     openModal();
+    const cur = (currentDays === null || currentDays === undefined) ? '—' : currentDays;
+    const initVal = (currentDays === null || currentDays === undefined) ? 30 : Math.max(1, Math.min(90, currentDays || 30));
     card.innerHTML = `
       <div class="modal-header">
         <div>
@@ -375,9 +405,12 @@ const Admin = (() => {
         <div class="modal-field-group">
           <div class="modal-field">
             <label>Días (1 a 90)</label>
-            <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="30">
+            <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="${initVal}" oninput="Admin.updateDaysPreview(${cur === '—' ? 'null' : cur})">
             <small style="color:var(--gray500);font-size:11px">Mayor a 0 y máximo 3 meses (90 días). Aplica al trial si estado es trial, o a la suscripción si es activa.</small>
           </div>
+        </div>
+        <div class="days-change-preview" id="days-change-preview" style="margin-top:14px;padding:12px 14px;background:var(--gray50,#f7f7f7);border-radius:8px;border-left:4px solid var(--harvest);font-size:14px">
+          Pasa de <strong>${cur}${cur === '—' ? '' : ' días'}</strong> → <strong id="days-preview-new">${initVal} días</strong>
         </div>
       </div>
       <div class="modal-footer">
@@ -386,6 +419,14 @@ const Admin = (() => {
       </div>
     `;
     if (window.lucide) lucide.createIcons();
+  }
+
+  function updateDaysPreview(currentDays) {
+    const input = document.getElementById('sub-edit-days');
+    const out = document.getElementById('days-preview-new');
+    if (!input || !out) return;
+    const v = parseInt(input.value || '0', 10);
+    out.textContent = (Number.isFinite(v) && v > 0) ? `${v} ${v === 1 ? 'día' : 'días'}` : '—';
   }
 
   async function saveSubDays(userId) {
@@ -1326,7 +1367,7 @@ const Admin = (() => {
     startAutoRefresh, stopAutoRefresh,
     formatDate, showToast,
     toggleVerify,
-    loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays,
+    loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays, updateDaysPreview,
     loadSupport, openTicket, replyTicket, ticketStatus,
     loadConfig, saveConfig,
   };
