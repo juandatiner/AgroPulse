@@ -70,18 +70,15 @@ const Subscription = {
             } else {
                 countdown = `🎁 Tu prueba termina en <strong>${s.trial_days_left} ${dayLbl(s.trial_days_left)}</strong>`;
             }
+            useRotator = true;
+            this._setupBannerPlans(s);
+            const tag = s.promo_active ? `<span class="promo-tag">${discount}% OFF</span> ` : '';
+            mainText = ` · ${tag}<span class="promo-rotator" data-idx="0">${this._planRotText(this._bannerPlans[0])}</span> <span class="promo-grab">¡Aprovéchalo!</span>`;
         } else {
             // sin suscripción (expired, trial 0, o sin trial) → rotador de planes
             useRotator = true;
             ctaText = 'Ver suscripciones';
-            const basicReg = this.formatPrice(s.price_basic_regular || s.price_basic || 7900);
-            const basicNow = this.formatPrice(s.price_basic || 7900);
-            const proReg = this.formatPrice(s.price_pro_regular || s.price_pro || 12900);
-            const proNow = this.formatPrice(s.price_pro || 12900);
-            this._bannerPlans = [
-                { label: 'Básico', reg: basicReg, now: basicNow },
-                { label: 'Pro', reg: proReg, now: proNow },
-            ];
+            this._setupBannerPlans(s);
             const tag = s.promo_active ? `<span class="promo-tag">${discount}% OFF</span> ` : '';
             mainText = `${tag}<span class="promo-rotator" data-idx="0">${this._planRotText(this._bannerPlans[0])}</span> <span class="promo-grab">¡Aprovéchalo!</span>`;
         }
@@ -113,6 +110,17 @@ const Subscription = {
 
     _planRotText(p) {
         return `Plan <strong>${p.label}</strong>: <s>${p.reg}</s> ahora <strong>${p.now}</strong>/mes`;
+    },
+
+    _setupBannerPlans(s) {
+        const basicReg = this.formatPrice(s.price_basic_regular || s.price_basic || 7900);
+        const basicNow = this.formatPrice(s.price_basic || 7900);
+        const proReg = this.formatPrice(s.price_pro_regular || s.price_pro || 12900);
+        const proNow = this.formatPrice(s.price_pro || 12900);
+        this._bannerPlans = [
+            { label: 'Básico', reg: basicReg, now: basicNow },
+            { label: 'Pro', reg: proReg, now: proNow },
+        ];
     },
 
     startPlanRotator() {
@@ -575,14 +583,6 @@ const Subscription = {
     // ========== Pasarela de pago simulada ==========
     openCheckout(plan) {
         const s = this.state || {};
-        if (s.is_premium && s.plan_tier === 'pro') {
-            App.showToast('Ya tienes el plan Pro activo', 'info');
-            return;
-        }
-        if (s.is_premium && s.status === 'trial') {
-            App.showToast('Ya tienes tu prueba gratuita activa', 'info');
-            return;
-        }
         const selectedPlan = plan === 'pro' ? 'pro' : (plan === 'basic' ? 'basic' : 'basic');
         this._selectedPlan = selectedPlan;
         const planLabel = selectedPlan === 'pro' ? 'Pro' : 'Básico';
