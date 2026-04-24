@@ -233,6 +233,8 @@ const Subscription = {
         const el = document.getElementById('promo-banner');
         if (el) el.classList.add('hidden');
         try { sessionStorage.setItem('agropulse_promo_banner_closed', '1'); } catch {}
+        this._updateAdTop();
+        this.renderAds();
     },
 
     // ========== Home cards: trial progreso + posts remaining ==========
