@@ -2712,7 +2712,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 6px;
     max-width: 1100px;
     margin: 0 auto;
     font-size: clamp(0.62rem, 1.35vw, 0.88rem);
@@ -2726,7 +2726,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
