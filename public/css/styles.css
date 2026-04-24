@@ -3094,8 +3094,9 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     min-height: 110px;
     max-height: 180px;
     padding: 10px 8px;
-    justify-content: center;
+    justify-content: flex-start;
 }
+.ad-tile-v .ad-tile-cta { margin-top: auto !important; }
 .sub-ads-slot-right .ad-tiles-v {
     flex: 1 1 auto;
     min-height: 0;
