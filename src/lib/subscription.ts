@@ -101,6 +101,7 @@ export interface SubscriptionState {
   price_pro: number
   price_pro_regular: number
   promo_active: boolean
+  promo_discount_percent: number
   promo_end_date: string | null
   promo_days_left: number
 }
@@ -201,6 +202,7 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
     price_pro: cfg.price_pro,
     price_pro_regular: priceProRegular,
     promo_active: promoActiveResolved,
+    promo_discount_percent: cfg.promo_discount_percent,
     promo_end_date: cfg.promo_end_date,
     promo_days_left: promoDaysLeft,
   }

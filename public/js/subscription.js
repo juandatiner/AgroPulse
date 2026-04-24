@@ -52,33 +52,95 @@ const Subscription = {
             }
         } catch {}
         el.classList.remove('hidden');
-        const priceReg = this.formatPrice(s.price_regular);
-        const pricePromo = this.formatPrice(s.price_promo);
+        const discount = s.promo_discount_percent || 50;
         const promoText = s.promo_active
-            ? `<span class="promo-tag">50% OFF</span> <s>${priceReg}</s> ahora <strong>${pricePromo}</strong>/mes`
-            : `Desde ${pricePromo}/mes`;
+            ? `<span class="promo-tag">${discount}% OFF</span> <span class="promo-grab">¡Aprovéchalo!</span>`
+            : `<span class="promo-grab">¡Aprovéchalo!</span>`;
 
         let countdown = '';
+        let urgentDays = Infinity;
+        let endTs = null;
         if (s.status === 'trial' && s.trial_days_left > 0) {
-            countdown = `🎁 Prueba gratuita: <strong>${s.trial_days_left} ${s.trial_days_left === 1 ? 'día' : 'días'}</strong> restantes · `;
+            urgentDays = s.trial_days_left;
+            endTs = s.trial_end ? new Date(s.trial_end).getTime() : null;
+            if (s.trial_days_left === 1 && endTs) {
+                countdown = `🎁 Prueba gratuita: ${this.leafCountdown(endTs)} restantes · `;
+            } else {
+                countdown = `🎁 Prueba gratuita: <strong>${s.trial_days_left} ${s.trial_days_left === 1 ? 'día' : 'días'}</strong> restantes · `;
+            }
         } else if (s.status === 'trial' && s.trial_days_left === 0) {
+            urgentDays = 0;
             countdown = `⏰ Tu prueba gratis termina hoy · `;
         } else if (s.status === 'expired') {
+            urgentDays = 0;
             countdown = `⛔ Prueba vencida · `;
         } else if (s.promo_active && s.promo_days_left > 0) {
-            countdown = `🔥 Promo termina en <strong>${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</strong> · `;
+            urgentDays = s.promo_days_left;
+            endTs = s.promo_end_date ? new Date(s.promo_end_date).getTime() : null;
+            if (s.promo_days_left === 1 && endTs) {
+                countdown = `🔥 Promo termina en ${this.leafCountdown(endTs)} · `;
+            } else {
+                countdown = `🔥 Promo termina en <strong>${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</strong> · `;
+            }
         }
 
+        const cantClose = urgentDays < 3;
+        const closeBtn = cantClose ? '' : `<button class="promo-banner-close" onclick="event.stopPropagation(); Subscription.closeBanner()" aria-label="Cerrar banner"><i data-lucide="x"></i></button>`;
+
+        el.classList.toggle('promo-banner-locked', cantClose);
         el.innerHTML = `
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown}${promoText}</span>
                 <button class="promo-banner-cta">Ver suscripción <i data-lucide="chevron-right"></i></button>
-                <button class="promo-banner-close" onclick="event.stopPropagation(); Subscription.closeBanner()" aria-label="Cerrar banner">
-                    <i data-lucide="x"></i>
-                </button>
+                ${closeBtn}
             </div>
         `;
         if (window.lucide) lucide.createIcons();
+        this.startLeafTimer();
+    },
+
+    leafCountdown(endTs) {
+        return `<span class="promo-leaf-countdown" data-end="${endTs}">`
+            + `<span class="leaf-unit"><span class="leaf-num" data-u="h">--</span><span class="leaf-lbl">h</span></span>`
+            + `<span class="leaf-sep">🍃</span>`
+            + `<span class="leaf-unit"><span class="leaf-num" data-u="m">--</span><span class="leaf-lbl">m</span></span>`
+            + `<span class="leaf-sep">🍃</span>`
+            + `<span class="leaf-unit"><span class="leaf-num" data-u="s">--</span><span class="leaf-lbl">s</span></span>`
+            + `</span>`;
+    },
+
+    startLeafTimer() {
+        if (this._leafTimer) { clearInterval(this._leafTimer); this._leafTimer = null; }
+        const root = document.querySelector('#promo-banner .promo-leaf-countdown');
+        if (!root) return;
+        const tick = () => {
+            const node = document.querySelector('#promo-banner .promo-leaf-countdown');
+            if (!node) { clearInterval(this._leafTimer); this._leafTimer = null; return; }
+            const end = parseInt(node.dataset.end, 10);
+            let diff = Math.max(0, Math.floor((end - Date.now()) / 1000));
+            const h = Math.floor(diff / 3600); diff -= h * 3600;
+            const m = Math.floor(diff / 60);
+            const sec = diff - m * 60;
+            const setNum = (u, v) => {
+                const el = node.querySelector(`.leaf-num[data-u="${u}"]`);
+                if (!el) return;
+                const txt = String(v).padStart(2, '0');
+                if (el.textContent !== txt) {
+                    el.textContent = txt;
+                    el.classList.remove('flip');
+                    void el.offsetWidth;
+                    el.classList.add('flip');
+                }
+            };
+            setNum('h', h); setNum('m', m); setNum('s', sec);
+            if (end - Date.now() <= 0) {
+                clearInterval(this._leafTimer);
+                this._leafTimer = null;
+                Subscription.refresh();
+            }
+        };
+        tick();
+        this._leafTimer = setInterval(tick, 1000);
     },
 
     closeBanner() {
