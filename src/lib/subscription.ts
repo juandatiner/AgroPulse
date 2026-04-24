@@ -104,6 +104,7 @@ export interface SubscriptionState {
   promo_discount_percent: number
   promo_end_date: string | null
   promo_days_left: number
+  pending_change: { tier: 'basic' | 'pro'; starts: string | null; ends: string } | null
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -138,8 +139,33 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
   const db = await getDb()
   const cfg = await getAppConfig()
   await ensurePostCounterWindow(userId)
-  const u = await db.collection('users').findOne({ _id: new ObjectId(userId) })
+  let u = await db.collection('users').findOne({ _id: new ObjectId(userId) })
   const now = new Date()
+
+  // Auto-rollover: si hay plan agendado y se acabó el actual (o la prueba), aplicar
+  const nextTier: 'basic' | 'pro' | null = (u?.next_plan_tier === 'basic' || u?.next_plan_tier === 'pro') ? u.next_plan_tier : null
+  const nextEnd: Date | null = u?.next_subscription_end instanceof Date ? u.next_subscription_end : null
+  const curSubEnd: Date | null = u?.subscription_end instanceof Date ? u.subscription_end : null
+  const curTrialEnd: Date | null = u?.trial_end instanceof Date ? u.trial_end : null
+  const curStatus = u?.subscription_status as SubStatus | undefined
+  const trialJustEnded = curStatus === 'trial' && curTrialEnd && now >= curTrialEnd
+  const activeJustEnded = curStatus === 'active' && curSubEnd && now >= curSubEnd
+  if (nextTier && nextEnd && nextEnd > now && (trialJustEnded || activeJustEnded)) {
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(userId) },
+      {
+        $set: {
+          subscription_status: 'active',
+          subscription_end: nextEnd,
+          plan_tier: nextTier,
+          monthly_post_count: 0,
+          monthly_post_reset: now,
+        },
+        $unset: { next_plan_tier: '', next_subscription_end: '' },
+      }
+    )
+    u = await db.collection('users').findOne({ _id: new ObjectId(userId) })
+  }
 
   const trialEnd: Date | null = u?.trial_end instanceof Date ? u.trial_end : null
   const subEnd: Date | null = u?.subscription_end instanceof Date ? u.subscription_end : null
@@ -205,6 +231,13 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
     promo_discount_percent: cfg.promo_discount_percent,
     promo_end_date: cfg.promo_end_date,
     promo_days_left: promoDaysLeft,
+    pending_change: (u?.next_plan_tier === 'basic' || u?.next_plan_tier === 'pro') && u?.next_subscription_end instanceof Date
+      ? {
+          tier: u.next_plan_tier as 'basic' | 'pro',
+          starts: status === 'trial' ? (trialEnd ? trialEnd.toISOString() : null) : (subEnd ? subEnd.toISOString() : null),
+          ends: u.next_subscription_end.toISOString(),
+        }
+      : null,
   }
 }
 

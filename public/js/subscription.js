@@ -554,19 +554,17 @@ const Subscription = {
         `).join('');
 
         const isActiveSub = alreadyActive && s.status === 'active';
-        const ctaBasic = (isActiveSub && currentTier === 'basic')
-            ? `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('basic')"><i data-lucide="refresh-cw"></i> Renovar Básico (+30 días)</button>`
-            : (isActiveSub && currentTier === 'pro'
-                ? `<button class="btn btn-outline btn-full" disabled>Ya tienes Pro</button>`
-                : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('basic')">
-                     <i data-lucide="credit-card"></i> Suscribirme al Básico
-                   </button>`);
-
-        const ctaPro = (isActiveSub && currentTier === 'pro')
-            ? `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('pro')"><i data-lucide="refresh-cw"></i> Renovar Pro (+30 días)</button>`
-            : `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('pro')">
-                 <i data-lucide="credit-card"></i> Suscribirme al Pro
-               </button>`;
+        const ctaFor = (tier, label) => {
+            if (isActiveSub && currentTier === tier) {
+                return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="refresh-cw"></i> Renovar ${label} (+30 días)</button>`;
+            }
+            if (isActiveSub && currentTier && currentTier !== tier) {
+                return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="repeat"></i> Cambiar a ${label}</button>`;
+            }
+            return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="credit-card"></i> Suscribirme al ${label}</button>`;
+        };
+        const ctaBasic = ctaFor('basic', 'Básico');
+        const ctaPro = ctaFor('pro', 'Pro');
 
         const html = `
             <div class="plans-overlay-inner">
@@ -781,14 +779,25 @@ const Subscription = {
             this.state = result.subscription;
             this.closeCheckout();
             const untilDate = new Date(result.until || this.state.subscription_end);
-            const untilStr = untilDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
-            const title = result.is_renewal ? '¡Suscripción renovada!' : '¡Suscripción activada!';
-            const bonusLine = result.bonus_days > 0
-                ? `<div><span>Días bonus de prueba</span><strong>+${result.bonus_days}</strong></div>`
-                : (result.is_renewal ? `<div><span>Tipo</span><strong>Renovación · +30 días</strong></div>` : '');
-            const subtitle = result.bonus_days > 0
-                ? `Sumamos los <strong>${result.bonus_days}</strong> ${result.bonus_days === 1 ? 'día' : 'días'} restantes de tu prueba`
-                : (result.is_renewal ? 'Extendimos tu suscripción 30 días más' : 'Gracias por unirte a AgroPulse Pro');
+            const fmt = (d) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+            const untilStr = fmt(untilDate);
+            const sched = result.scheduled;
+            const tierLabel = (t) => t === 'pro' ? 'Pro' : (t === 'basic' ? 'Básico' : 'Prueba');
+            let title, subtitle, bonusLine = '';
+            if (sched) {
+                const startsStr = fmt(new Date(sched.current_until));
+                title = `¡${tierLabel(sched.next_tier)} agendado!`;
+                subtitle = `Tu ${tierLabel(sched.current_tier)} sigue hasta el <strong>${startsStr}</strong>. Después arranca <strong>${tierLabel(sched.next_tier)}</strong> por 30 días.`;
+                bonusLine = `<div><span>Plan actual</span><strong>${tierLabel(sched.current_tier)} hasta ${startsStr}</strong></div>
+                             <div><span>Próximo plan</span><strong>${tierLabel(sched.next_tier)}</strong></div>`;
+            } else if (result.is_renewal) {
+                title = '¡Suscripción renovada!';
+                subtitle = 'Extendimos tu suscripción 30 días más';
+                bonusLine = `<div><span>Tipo</span><strong>Renovación · +30 días</strong></div>`;
+            } else {
+                title = '¡Suscripción activada!';
+                subtitle = 'Gracias por unirte a AgroPulse Pro';
+            }
             this._openOverlay('success-overlay', `
                 <div class="success-overlay-inner">
                     <div class="success-check"><i data-lucide="check-circle-2"></i></div>

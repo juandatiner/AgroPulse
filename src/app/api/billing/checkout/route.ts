@@ -59,23 +59,84 @@ export async function POST(request: Request) {
       }, 402)
     }
 
-    // Base de extensión: si hay suscripción activa, sumar a la fecha actual de fin (renovación).
-    // Si está en prueba, sumar a la fecha de fin de la prueba (los días gratis se respetan).
-    // Si no, partir de hoy.
+    // Lógica de programación (sin prorratear):
+    //   - Activa mismo tier  → renovar: sub_end += 30d.
+    //   - Activa otro tier   → AGENDAR: actual sigue hasta su fin, nuevo plan arranca cuando termine.
+    //   - Trial              → AGENDAR: prueba sigue hasta trial_end, nuevo plan arranca después.
+    //   - Sin nada           → arranca hoy + 30d.
     const userDoc = await db.collection('users').findOne({ _id: uid })
     const userSubEnd: Date | null = userDoc?.subscription_end instanceof Date ? userDoc.subscription_end : null
     const userTrialEnd: Date | null = userDoc?.trial_end instanceof Date ? userDoc.trial_end : null
-    let baseTime = now.getTime()
-    let bonusDays = 0
+    const userPlanTier: 'basic' | 'pro' | null = (userDoc?.plan_tier === 'basic' || userDoc?.plan_tier === 'pro') ? userDoc.plan_tier : null
+
+    const DAY = 86400000
     let isRenewal = false
-    if (existing.status === 'active' && userSubEnd && userSubEnd > now) {
-      baseTime = userSubEnd.getTime()
+    let bonusDays = 0
+    let scheduled: { current_tier: string; current_until: string; next_tier: 'basic' | 'pro'; next_ends: string } | null = null
+    let subEnd: Date
+
+    const isActive = existing.status === 'active' && userSubEnd && userSubEnd > now
+    const isTrial = existing.status === 'trial' && userTrialEnd && userTrialEnd > now
+
+    let userUpdate: Record<string, unknown> = { plan_tier: planTier }
+    let userUnset: Record<string, ''> | null = null
+
+    if (isActive && userPlanTier && userPlanTier !== planTier) {
+      // Agendar nuevo plan
+      const nextStart = userSubEnd!
+      const nextEnd = new Date(nextStart.getTime() + 30 * DAY)
+      subEnd = nextEnd
+      scheduled = {
+        current_tier: userPlanTier,
+        current_until: nextStart.toISOString(),
+        next_tier: planTier,
+        next_ends: nextEnd.toISOString(),
+      }
+      userUpdate = {
+        next_plan_tier: planTier,
+        next_subscription_end: nextEnd,
+        // mantener subscription_end y plan_tier actuales
+      }
+    } else if (isActive && userSubEnd) {
+      // Renovación mismo tier
+      subEnd = new Date(userSubEnd.getTime() + 30 * DAY)
       isRenewal = true
-    } else if (existing.status === 'trial' && userTrialEnd && userTrialEnd > now) {
-      baseTime = userTrialEnd.getTime()
+      userUpdate = {
+        subscription_status: 'active',
+        subscription_end: subEnd,
+        plan_tier: planTier,
+        monthly_post_count: 0,
+        monthly_post_reset: now,
+      }
+      userUnset = { next_plan_tier: '', next_subscription_end: '' }
+    } else if (isTrial && userTrialEnd) {
+      // Agendar plan después de la prueba
+      const nextStart = userTrialEnd
+      subEnd = new Date(nextStart.getTime() + 30 * DAY)
       bonusDays = existing.trial_days_left
+      scheduled = {
+        current_tier: 'trial',
+        current_until: nextStart.toISOString(),
+        next_tier: planTier,
+        next_ends: subEnd.toISOString(),
+      }
+      // Mantener trial activo, agendar suscripción para después
+      userUpdate = {
+        next_plan_tier: planTier,
+        next_subscription_end: subEnd,
+      }
+    } else {
+      // Sin nada → arranca hoy
+      subEnd = new Date(now.getTime() + 30 * DAY)
+      userUpdate = {
+        subscription_status: 'active',
+        subscription_end: subEnd,
+        plan_tier: planTier,
+        monthly_post_count: 0,
+        monthly_post_reset: now,
+      }
+      userUnset = { next_plan_tier: '', next_subscription_end: '' }
     }
-    const subEnd = new Date(baseTime + 30 * 24 * 60 * 60 * 1000)
     const reference = 'AGP-' + crypto.randomBytes(4).toString('hex').toUpperCase()
 
     await db.collection('invoices').insertOne({
@@ -92,21 +153,12 @@ export async function POST(request: Request) {
       created_at: now,
     })
 
-    await db.collection('users').updateOne(
-      { _id: uid },
-      {
-        $set: {
-          subscription_status: 'active',
-          subscription_end: subEnd,
-          plan_tier: planTier,
-          monthly_post_count: 0,
-          monthly_post_reset: now,
-        },
-      }
-    )
+    const updateOp: Record<string, unknown> = { $set: userUpdate }
+    if (userUnset) updateOp.$unset = userUnset
+    await db.collection('users').updateOne({ _id: uid }, updateOp)
 
     const sub = await computeSubscriptionState(user.id)
-    return json({ ok: true, reference, subscription: sub, bonus_days: bonusDays, is_renewal: isRenewal, until: subEnd.toISOString() })
+    return json({ ok: true, reference, subscription: sub, bonus_days: bonusDays, is_renewal: isRenewal, scheduled, until: subEnd.toISOString() })
   })
 }
 
