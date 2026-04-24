@@ -13,6 +13,7 @@ const Subscription = {
             this.renderHomeCards();
             this.renderAds();
             this.updateVerifiedBadge();
+            this._updateAdTop();
             return this.state;
         } catch (e) {
             return null;
@@ -106,6 +107,18 @@ const Subscription = {
         if (window.lucide) lucide.createIcons();
         this.startLeafTimer();
         if (useRotator) this.startPlanRotator(); else if (this._planTimer) { clearInterval(this._planTimer); this._planTimer = null; }
+        this._updateAdTop();
+    },
+
+    _updateAdTop() {
+        // Sidebar de ads debe arrancar debajo del nav + banner (si está visible)
+        requestAnimationFrame(() => {
+            const nav = document.querySelector('.app-nav');
+            const banner = document.getElementById('promo-banner');
+            const navH = nav ? nav.offsetHeight : 64;
+            const bannerH = (banner && !banner.classList.contains('hidden') && banner.offsetHeight) ? banner.offsetHeight : 0;
+            document.body.style.setProperty('--ad-top', (navH + bannerH) + 'px');
+        });
     },
 
     _launchFireworks(burstCount = 5, particlesPerBurst = 22) {
