@@ -173,19 +173,13 @@ const Subscription = {
         let bodyHtml = '';
 
         if (inTrial) {
-            statusText = `<strong>${s.trial_days_left}</strong> ${s.trial_days_left === 1 ? 'día' : 'días'} de prueba Pro`;
-            statusClass = 'sub-card-trial';
+            const dayWord = s.trial_days_left === 1 ? 'día' : 'días';
+            const verb = s.trial_days_left === 1 ? 'Queda' : 'Quedan';
+            statusText = `${verb} <strong>${s.trial_days_left}</strong> ${dayWord} de tu suscripción`;
+            statusClass = 'sub-card-trial sub-home-card-slim';
             const trialTotal = Math.max(1, s.trial_days_granted || s.trial_days_left || 1);
-            const trialPct = Math.max(2, Math.round(((trialTotal - s.trial_days_left) / trialTotal) * 100));
-            bodyHtml = `
-                <p class="sub-home-card-hint" style="margin-bottom:8px">
-                    Acceso <strong>ilimitado</strong> a todas las funciones Pro durante tu prueba
-                </p>
-                <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${trialPct}%"></div></div>
-                <p class="sub-home-card-hint" style="margin-top:6px">
-                    Suscríbete antes de que termine y mantén todos los beneficios
-                </p>
-            `;
+            const elapsedPct = Math.max(2, Math.min(100, Math.round(((trialTotal - s.trial_days_left) / trialTotal) * 100)));
+            bodyHtml = `<div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${elapsedPct}%"></div></div>`;
         } else if (s.status === 'expired') {
             statusText = `Tu prueba gratuita terminó`;
             statusClass = 'sub-card-expired';
@@ -233,7 +227,7 @@ const Subscription = {
                     <i data-lucide="sparkles"></i>
                     <span>${statusText}</span>
                 </div>
-                <button class="sub-home-card-action" onclick="Subscription.openPlans()">${inTrial ? 'Suscribirme' : 'Mejorar plan'}</button>
+                ${inTrial ? '' : `<button class="sub-home-card-action" onclick="Subscription.openPlans()">${s.status === 'expired' ? 'Suscribirme' : 'Mejorar plan'}</button>`}
             </div>
             <div class="sub-home-card-body">${bodyHtml}</div>
         `;
