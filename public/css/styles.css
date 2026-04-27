@@ -762,6 +762,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     background: none;
     border: none;
     font-family: 'DM Sans', sans-serif;
+    min-height: 32px;
+    padding: 4px 6px;
 }
 .section-more svg { width: 14px; height: 14px; }
 
@@ -4108,29 +4110,44 @@ body.no-scroll { overflow: hidden; }
 /* Promo banner — mobile compact */
 @media (max-width: 640px) {
     .promo-banner {
-        padding: 6px 10px;
+        padding: 8px 10px;
     }
     .promo-banner-inner {
         font-size: 0.72rem;
         gap: 6px;
+        overflow: hidden;
     }
-    .promo-banner-text { gap: 3px; }
+    .promo-banner-text {
+        gap: 3px;
+        justify-content: flex-start;
+        flex: 1 1 0;
+        min-width: 0;
+    }
     .promo-banner-text strong { font-weight: 600; }
+    /* Hide noisy items on mobile to keep banner readable */
+    .promo-banner-text s { display: none; }
+    .promo-banner-text .promo-grab { display: none; }
+    .promo-banner-text .promo-rotator { display: none; }
+    .promo-banner-text .promo-tag { display: none; }
     .promo-tag {
         font-size: 0.62rem;
         padding: 1px 5px;
         margin-right: 4px;
     }
     .promo-banner-cta {
-        padding: 4px 8px;
+        padding: 7px 10px;
         font-size: 0.72rem;
         border-radius: 6px;
+        min-height: 32px;
     }
     .promo-banner-cta svg { width: 12px; height: 12px; }
+    .promo-banner-close {
+        width: 32px; height: 32px;
+    }
 }
 @media (max-width: 380px) {
     .promo-banner-inner { font-size: 0.66rem; }
-    .promo-banner-cta { padding: 3px 7px; font-size: 0.66rem; }
+    .promo-banner-cta { padding: 6px 8px; font-size: 0.66rem; min-height: 30px; }
 }
 
 
