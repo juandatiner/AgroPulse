@@ -1035,6 +1035,25 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .market-list { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px; }
 
 /* Market view toggle (Lista/Mapa) */
+.sort-view-row {
+    display: flex !important;
+    grid-template-columns: none !important;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.filter-sort-compact {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 150px;
+    padding-right: 26px;
+}
+.sort-view-row .view-toggle-group { flex: 0 0 auto; }
+.sort-view-row .clear-filters { margin-left: auto; flex-shrink: 0; }
+@media (max-width: 420px) {
+    .filter-sort-compact { max-width: 130px; font-size: 0.75rem; }
+}
 .market-view-toggle {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; padding: 8px 20px 4px;
@@ -1203,6 +1222,50 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     transition: background 0.15s;
 }
 .market-popup-cta:hover { background: var(--earth-mid); }
+
+/* Locate-me control */
+.market-locate-btn {
+    width: 34px; height: 34px;
+    background: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--earth);
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+}
+.market-locate-btn:hover { background: var(--cream); color: var(--field); }
+.market-locate-btn svg { width: 18px; height: 18px; }
+.market-locate-btn.locating { animation: pulse 1.2s ease-in-out infinite; color: var(--field); }
+
+/* User pin (current location) */
+.market-user-pin-wrap { background: transparent !important; border: none !important; }
+.market-user-pin {
+    position: relative;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+}
+.market-user-pin-inner {
+    width: 14px; height: 14px;
+    background: #2980b9;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 2;
+}
+.market-user-pin-pulse {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: rgba(41,128,185,0.35);
+    animation: userPulse 2s ease-out infinite;
+    z-index: 1;
+}
+@keyframes userPulse {
+    0% { transform: scale(0.6); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+}
 
 .market-item {
     background: var(--white);

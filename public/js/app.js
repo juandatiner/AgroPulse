@@ -672,6 +672,58 @@ const App = {
 
     _marketMap: null,
     _marketMarkersLayer: null,
+    _marketUserMarker: null,
+
+    async _centerMarketOnUser() {
+        if (!this._marketMap) return;
+        const btn = document.querySelector('.market-locate-btn');
+        if (btn) btn.classList.add('locating');
+        try {
+            const pos = await Geo.getCurrentPosition();
+            if (!pos) {
+                this.showToast('No se pudo obtener tu ubicación. Activa el GPS.', 'error');
+                return;
+            }
+            const latlng = [pos.latitude, pos.longitude];
+            const map = this._marketMap;
+            const targetZoom = 14;
+            const currentZoom = map.getZoom();
+            const currentCenter = map.getCenter();
+            const dist = map.distance(currentCenter, latlng); // metros
+
+            if (this._marketUserMarker) {
+                try { this._marketUserMarker.remove(); } catch {}
+            }
+            const userIcon = L.divIcon({
+                className: 'market-user-pin-wrap',
+                html: '<div class="market-user-pin"><div class="market-user-pin-inner"></div><div class="market-user-pin-pulse"></div></div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+            });
+            this._marketUserMarker = L.marker(latlng, { icon: userIcon, interactive: false }).addTo(map);
+
+            // Distancia muy corta → un solo flyTo. Lejos → zoom out primero, luego zoom in (efecto Google Maps).
+            if (dist < 2000) {
+                map.flyTo(latlng, targetZoom, { duration: 1.1, easeLinearity: 0.25 });
+            } else {
+                const outZoom = Math.max(map.getMinZoom() || 3, Math.min(currentZoom, targetZoom) - 3);
+                const midPoint = [
+                    (currentCenter.lat + latlng[0]) / 2,
+                    (currentCenter.lng + latlng[1]) / 2,
+                ];
+                map.flyTo(midPoint, outZoom, { duration: 0.9, easeLinearity: 0.3 });
+                setTimeout(() => {
+                    if (this._marketMap === map) {
+                        map.flyTo(latlng, targetZoom, { duration: 1.4, easeLinearity: 0.2 });
+                    }
+                }, 950);
+            }
+        } catch (e) {
+            this.showToast('Error obteniendo ubicación', 'error');
+        } finally {
+            if (btn) btn.classList.remove('locating');
+        }
+    },
 
     renderMarketMap(resources) {
         const wrap = document.getElementById('market-map-wrap');
@@ -687,6 +739,26 @@ const App = {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap',
             }).addTo(this._marketMap);
+
+            // Locate-me control
+            const LocateBtn = L.Control.extend({
+                options: { position: 'topleft' },
+                onAdd: () => {
+                    const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control market-locate-btn');
+                    btn.type = 'button';
+                    btn.title = 'Centrar en mi ubicación';
+                    btn.setAttribute('aria-label', 'Centrar en mi ubicación');
+                    btn.innerHTML = '<i data-lucide="locate-fixed"></i>';
+                    L.DomEvent.disableClickPropagation(btn);
+                    L.DomEvent.on(btn, 'click', (e) => {
+                        L.DomEvent.stop(e);
+                        App._centerMarketOnUser();
+                    });
+                    setTimeout(() => { if (window.lucide) lucide.createIcons({ nodes: [btn] }); }, 0);
+                    return btn;
+                },
+            });
+            new LocateBtn().addTo(this._marketMap);
             const useCluster = typeof L.markerClusterGroup === 'function';
             this._marketMarkersLayer = useCluster
                 ? L.markerClusterGroup({
