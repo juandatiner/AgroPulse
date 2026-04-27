@@ -217,7 +217,7 @@ const Chat = {
         if (!file) return;
         if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
             event.target.value = '';
-            Subscription.openPaywall('Enviar fotos en el chat está disponible solo en el plan Pro.');
+            Subscription.openPlans();
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
@@ -246,7 +246,7 @@ const Chat = {
     async sendLocation() {
         if (!this.currentAgreementId) return;
         if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
-            Subscription.openPaywall('Compartir ubicación en el chat está disponible solo en el plan Pro.');
+            Subscription.openPlans();
             return;
         }
         App.showToast('Detectando ubicación...');

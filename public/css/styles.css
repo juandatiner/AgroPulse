@@ -1693,6 +1693,8 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     gap: 6px;
 }
 .status-tab:hover { color: var(--text); }
+.status-tab.status-tab-empty { opacity: 0.55; }
+.status-tab.status-tab-empty .count { opacity: 0.7; }
 .status-tab.active { color: var(--earth); border-bottom-color: var(--field); }
 .status-tab[data-status="pending"].active  { color: #d68910; border-bottom-color: #d68910; }
 .status-tab[data-status="pending"].active .count { background: rgba(214,137,16,0.15); color: #d68910; }

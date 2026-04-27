@@ -934,7 +934,7 @@ const Subscription = {
 
     async openMatches() {
         if (!this.isPro()) {
-            this.openPaywall('Las alertas inteligentes cruzan tus publicaciones con las de otros productores. Disponibles solo en el plan Pro.');
+            this.openPlans();
             return;
         }
         this._openOverlay('matches-overlay', `
@@ -1211,7 +1211,7 @@ const Subscription = {
 
     async downloadCsv() {
         if (!this.isPro()) {
-            this.openPaywall('La exportación a CSV está disponible solo en el plan Pro.');
+            this.openPlans();
             return;
         }
         try {

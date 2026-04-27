@@ -599,6 +599,9 @@ const App = {
         const mapWrap = document.getElementById('market-map-wrap');
         if (list) list.style.display = v === 'list' ? '' : 'none';
         if (mapWrap) mapWrap.style.display = v === 'map' ? '' : 'none';
+        // Sort no aplica en mapa — ocultarlo
+        const sortEl = document.getElementById('filter-sort');
+        if (sortEl) sortEl.style.display = v === 'map' ? 'none' : '';
         this.loadMarket();
     },
 
@@ -2305,14 +2308,18 @@ const App = {
     },
 
     updateAgreementTabs(all) {
+        const counts = { todos: all.length, pending: 0, active: 0, completed: 0, cancelled: 0 };
+        all.forEach(a => {
+            // 'rejected' agrupa con 'cancelled' visualmente
+            const key = a.status === 'rejected' ? 'cancelled' : a.status;
+            if (counts[key] !== undefined) counts[key]++;
+        });
         document.querySelectorAll('.status-tab .count').forEach(el => {
             const status = el.parentElement.dataset.status;
-            if (status === 'todos') {
-                el.textContent = all.length;
-                el.style.display = '';
-            } else {
-                el.style.display = 'none';
-            }
+            const n = counts[status] || 0;
+            el.textContent = n;
+            el.style.display = '';
+            el.parentElement.classList.toggle('status-tab-empty', n === 0 && status !== 'todos');
         });
     },
 
