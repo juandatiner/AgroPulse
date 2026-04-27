@@ -2624,6 +2624,31 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     /* Extra tiny screens: stack detail actions horizontally collapsed */
     .tab-btn-publish .tab-icon-wrap { width: 20px; height: 20px; border-radius: 6px; }
     .tab-btn-publish svg { width: 16px; height: 16px; }
+
+    /* Espacio entre título "Mis publicaciones" y los chips de filtros */
+    .my-pub-filters { padding-top: 6px; }
+
+    /* Comunidad: misma forma que "Mis publicaciones" en móvil (grid 2-col) */
+    .resource-scroll {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        overflow: visible;
+    }
+    .resource-card {
+        min-width: 0;
+        max-width: none;
+        width: auto;
+    }
+
+    /* Promo banner: ocultar texto a la izquierda del icono y reducir precios */
+    .promo-banner-countdown,
+    .promo-banner-sep { display: none; }
+    .promo-rotator { font-size: 0.78rem; }
+    .promo-tag { font-size: 0.66rem; padding: 2px 7px; margin-right: 4px; }
+    .promo-grab { display: none; }
+    .promo-banner { padding: 10px 12px; gap: 6px; }
+    .promo-banner-cta { padding: 5px 9px; font-size: 0.78rem; }
 }
 
 /* ===== TOUR / TUTORIAL ===== */
@@ -3002,11 +3027,11 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .ad-infeed-cta:hover { background: var(--harvest-light); }
 
 /* Sticky bottom banner (panel publicar móvil) */
-#sub-ads-sticky {
+.sub-ads-sticky {
     display: none;
 }
 @media (max-width: 520px) {
-    #sub-ads-sticky {
+    .sub-ads-sticky {
         display: block;
         position: fixed;
         left: 8px;
@@ -3017,21 +3042,40 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
         border: 1px solid var(--cream-dark);
         border-radius: 12px;
         box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-        padding: 6px 10px;
+        padding: 2px 28px 2px 6px;
         animation: stickyAdRise 0.3s ease-out;
     }
-    #sub-ads-sticky .ad-infeed {
+    .sub-ads-sticky .ad-infeed {
         margin: 0;
-        padding: 6px 4px;
+        padding: 2px 4px;
         border: none;
         border-left: none;
         background: transparent;
         box-shadow: none;
     }
-    #sub-ads-sticky .ad-infeed-tag { margin-bottom: 2px; }
-    #sub-ads-sticky .ad-infeed-icon { width: 32px; height: 32px; font-size: 1.3rem; }
-    #sub-ads-sticky .ad-infeed-text strong { font-size: 0.78rem; }
-    #sub-ads-sticky .ad-infeed-text span { font-size: 0.68rem; }
+    .sub-ads-sticky .ad-infeed-tag { display: none; }
+    .sub-ads-sticky .ad-infeed-icon { width: 30px; height: 30px; font-size: 1.2rem; }
+    .sub-ads-sticky .ad-infeed-text strong { font-size: 0.78rem; }
+    .sub-ads-sticky .ad-infeed-text span { font-size: 0.68rem; }
+    .sub-ads-sticky-close {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.08);
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+        color: var(--text-muted);
+        z-index: 2;
+    }
+    .sub-ads-sticky-close:hover { background: rgba(0,0,0,0.16); }
+    .sub-ads-sticky-close svg { width: 12px; height: 12px; }
 }
 @keyframes stickyAdRise {
     from { transform: translateY(100%); opacity: 0; }

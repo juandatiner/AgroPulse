@@ -74,7 +74,8 @@ const Subscription = {
             useRotator = true;
             this._setupBannerPlans(s);
             const tag = s.promo_active ? `<span class="promo-tag">${discount}% OFF</span> ` : '';
-            mainText = ` · ${tag}<span class="promo-rotator" data-idx="0">${this._planRotText(this._bannerPlans[0])}</span> <span class="promo-grab">¡Aprovéchalo!</span>`;
+            countdown = `${countdown}<span class="promo-banner-sep"> · </span>`;
+            mainText = `${tag}<span class="promo-rotator" data-idx="0">${this._planRotText(this._bannerPlans[0])}</span> <span class="promo-grab">¡Aprovéchalo!</span>`;
         } else {
             // sin suscripción (expired, trial 0, o sin trial) → rotador de planes
             useRotator = true;
@@ -105,7 +106,7 @@ const Subscription = {
                 <span>🌿</span><span>🥕</span><span>🍅</span><span>🌽</span>
             </div>
             <div class="promo-banner-inner">
-                <span class="promo-banner-text">${countdown}${mainText}</span>
+                <span class="promo-banner-text">${countdown ? `<span class="promo-banner-countdown">${countdown}</span>` : ''}${mainText}</span>
                 <button class="promo-banner-cta">${ctaText} <i data-lucide="chevron-right"></i></button>
             </div>
             ${closeBtn}
@@ -355,11 +356,11 @@ const Subscription = {
     },
     // Mobile (≤520px): tipo de slot por panel
     _mobileSlot: {
-        inicio: 'native',       // tarjeta nativa después del hero
-        mercado: 'skip',        // in-feed (manejado por App.loadMarket)
-        publicar: 'sticky',     // banner sticky bottom
-        intercambios: 'skip',   // in-feed
-        perfil: 'native-end',   // tarjeta nativa al final
+        inicio: 'sticky',
+        mercado: 'sticky',
+        publicar: 'sticky',
+        intercambios: 'sticky',
+        perfil: 'sticky',
     },
     _adRotationIdx: 0,
     _adRotationTimer: null,
@@ -408,8 +409,7 @@ const Subscription = {
         };
         if (this.isPro()) {
             panels.forEach(cleanupPanel);
-            const sticky = document.getElementById('sub-ads-sticky');
-            if (sticky) sticky.remove();
+            document.querySelectorAll('[id^="sub-ads-sticky"]').forEach(el => el.remove());
             const legacy = document.getElementById('sub-ads-bar');
             if (legacy) legacy.remove();
             document.body.classList.remove('has-right-ad');
@@ -421,8 +421,7 @@ const Subscription = {
         if (legacy) legacy.remove();
 
         const isMobile = this._isMobileAds();
-        const stickyOld = document.getElementById('sub-ads-sticky');
-        if (stickyOld) stickyOld.remove();
+        document.querySelectorAll('[id^="sub-ads-sticky"]').forEach(el => el.remove());
 
         panels.forEach((panelName, idx) => {
             const host = document.getElementById('panel-' + panelName);
@@ -437,9 +436,14 @@ const Subscription = {
                 if (kind === 'skip') return; // in-feed lo maneja app.js
                 if (kind === 'sticky') {
                     const stickyEl = document.createElement('div');
-                    stickyEl.id = 'sub-ads-sticky';
-                    stickyEl.innerHTML = this.adCardHtml(idx);
+                    stickyEl.id = 'sub-ads-sticky-' + panelName;
+                    stickyEl.className = 'sub-ads-sticky';
+                    stickyEl.innerHTML = `
+                        <button class="sub-ads-sticky-close" aria-label="Cerrar publicidad" onclick="event.stopPropagation(); this.parentElement.remove();"><i data-lucide="x"></i></button>
+                        ${this.adCardHtml(idx)}
+                    `;
                     host.appendChild(stickyEl);
+                    if (window.lucide) lucide.createIcons({ nodes: [stickyEl] });
                     return;
                 }
                 slot = document.createElement('div');
