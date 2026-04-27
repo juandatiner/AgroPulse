@@ -2652,7 +2652,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     }
 
     /* Reservar espacio para sticky ad arriba del tab-bar + pequeño respiro arriba */
-    .app-content { padding-bottom: 130px; padding-top: 4px; }
+    .app-content { padding-bottom: 130px; padding-top: 0; }
 
     /* Sticky ad pegado a la tab-bar (sin hueco entre ambas) */
     .sub-ads-sticky { bottom: 60px !important; left: 0 !important; right: 0 !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
@@ -3590,13 +3590,19 @@ body.no-scroll { overflow: hidden; }
 .plan-card-tag { font-size: 0.72rem; color: var(--text-muted); margin: 0; }
 .plan-card-price {
     text-align: center;
-    padding: 8px 0;
+    padding: 10px 8px;
     border-top: 1px solid var(--cream-dark);
     border-bottom: 1px solid var(--cream-dark);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px 6px;
+    line-height: 1.1;
 }
-.plan-card-price s { opacity: 0.5; font-size: 0.8rem; margin-right: 4px; }
+.plan-card-price s { opacity: 0.5; font-size: 0.8rem; }
 .plan-card-price strong { font-size: 1.6rem; color: var(--earth); font-weight: 800; }
-.plan-card-price span { color: var(--text-muted); font-size: 0.78rem; margin-left: 2px; }
+.plan-card-price span { color: var(--text-muted); font-size: 0.78rem; }
 .plan-card-disc {
     display: inline-block;
     background: var(--harvest);
@@ -3604,8 +3610,26 @@ body.no-scroll { overflow: hidden; }
     border-radius: 6px;
     padding: 2px 6px;
     font-size: 0.7rem;
-    margin-left: 6px;
     font-weight: 700;
+    flex-basis: 100%;
+    margin-top: 2px;
+    align-self: center;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (max-width: 480px) {
+    .plan-card-price {
+        flex-direction: column;
+        gap: 2px;
+        padding: 12px 6px;
+    }
+    .plan-card-price > .plan-card-price-row {
+        display: flex; align-items: baseline; justify-content: center; gap: 4px;
+    }
+    .plan-card-price s { font-size: 0.75rem; }
+    .plan-card-price strong { font-size: 1.5rem; }
+    .plan-card-disc { margin-top: 4px; }
 }
 .plan-card-features {
     list-style: none;

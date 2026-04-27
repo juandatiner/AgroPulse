@@ -737,14 +737,14 @@ const App = {
                         <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
                         <div class="detail-section-body">${this.esc(r.descripcion)}</div>
                     </div>` : ''}
-                    <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile('${r.owner_id}')` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
+                    ${isOwner ? '' : `<div class="detail-owner" onclick="App.showUserProfile('${r.owner_id}')" style="cursor:pointer">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
                             <h4>${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}</h4>
                             <p>${this.esc(r.user_tipo || '')}${r.user_municipio ? ' · ' + this.esc(r.user_municipio) : ''}</p>
                         </div>
                         <div class="detail-owner-rating"><i data-lucide="star"></i> ${(r.user_reputation || 5).toFixed(1)}</div>
-                    </div>
+                    </div>`}
                 </div>
                 <div class="detail-actions">
                     ${isOwner
