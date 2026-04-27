@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=6">
+    <link rel="stylesheet" href="/css/styles.css?v=19">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
@@ -40,7 +40,7 @@
 
         <div class="landing-ctas">
             <button class="btn landing-btn-primary" onclick="App.showScreen('screen-register')">
-                <i data-lucide="user-plus"></i> Crear cuenta gratuita
+                <i data-lucide="user-plus"></i> Crear cuenta
             </button>
             <button class="btn landing-btn-secondary" onclick="App.showScreen('screen-login')">
                 <i data-lucide="log-in"></i> Ya tengo cuenta
@@ -53,9 +53,9 @@
                 <div class="stat-label">Tipos de intercambio</div>
             </div>
             <div class="stat-divider"></div>
-            <div class="stat-item">
-                <div class="stat-value">100%</div>
-                <div class="stat-label">Gratuito</div>
+            <div class="stat-item" id="landing-stat-trial">
+                <div class="stat-value">—</div>
+                <div class="stat-label">Cargando…</div>
             </div>
             <div class="stat-divider"></div>
             <div class="stat-item">
@@ -265,6 +265,10 @@
         <!-- HOME -->
         <div id="panel-inicio" class="panel active">
             <div class="home-hero">
+                <div class="hero-float hf-1">🌱</div>
+                <div class="hero-float hf-2">🌾</div>
+                <div class="hero-float hf-3">🚜</div>
+                <div class="hero-float hf-4">🌿</div>
                 <div class="hero-publish-header">
                     <span class="hero-publish-name" id="home-name"></span>
                     <span class="hero-publish-question">¿Qué quieres publicar hoy?</span>
@@ -292,6 +296,13 @@
                 <div class="section-header" id="section-mis-pub">
                     <h3 class="section-title">Mis publicaciones</h3>
                     <button class="section-more" onclick="App.switchTab('publicar')">Publicar <i data-lucide="plus"></i></button>
+                </div>
+                <div class="my-pub-filters" id="my-pub-filters">
+                    <button class="my-pub-chip active" data-mfilter="todos" onclick="App.setMyPubFilter('todos')">Todas</button>
+                    <button class="my-pub-chip" data-mfilter="oferta" onclick="App.setMyPubFilter('oferta')" title="Ofertas"><i data-lucide="package-check"></i></button>
+                    <button class="my-pub-chip" data-mfilter="solicitud" onclick="App.setMyPubFilter('solicitud')" title="Solicitudes"><i data-lucide="hand"></i></button>
+                    <button class="my-pub-chip" data-mfilter="prestamo" onclick="App.setMyPubFilter('prestamo')" title="Préstamos"><i data-lucide="key"></i></button>
+                    <button class="my-pub-chip" data-mfilter="trueque" onclick="App.setMyPubFilter('trueque')" title="Trueques"><i data-lucide="repeat"></i></button>
                 </div>
                 <div class="my-resources-list" id="my-resources"></div>
             </div>
@@ -400,9 +411,10 @@
                 <p class="profile-location" id="profile-location"></p>
             </div>
             <div class="profile-stats">
-                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label">Acuerdos</div></div>
-                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-suscripcion">—</div><div class="profile-stat-label">Suscripción</div></div>
-                <div class="profile-stat"><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label">Publicaciones</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="handshake"></i></div><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label">Acuerdos</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="package"></i></div><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label">Publicaciones</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="star"></i></div><div class="profile-stat-value" id="profile-stat-rating">5.0</div><div class="profile-stat-label">Calificación</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="crown"></i></div><div class="profile-stat-value" id="profile-stat-suscripcion">—</div><div class="profile-stat-label">Suscripción</div></div>
             </div>
 
             <div class="profile-section">
@@ -439,9 +451,9 @@
                     <div class="profile-menu-text"><h4>Alertas de match</h4><p>Cruza tus publicaciones con demanda <span class="pro-chip">Pro</span></p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
-                <button class="profile-menu-item" onclick="Subscription.downloadCsv()">
+                <button class="profile-menu-item" id="export-csv-btn" onclick="Subscription.downloadCsv()">
                     <div class="profile-menu-icon green"><i data-lucide="download"></i></div>
-                    <div class="profile-menu-text"><h4>Exportar acuerdos</h4><p>Descarga tu historial en CSV <span class="pro-chip">Pro</span></p></div>
+                    <div class="profile-menu-text"><h4>Exportar acuerdos</h4><p id="export-csv-sub">Descarga tu historial en CSV <span class="pro-chip">Pro</span></p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
                 <button class="profile-menu-item" onclick="Subscription.openInvoices()">
@@ -683,9 +695,9 @@
 <script src="/js/api.js?v=4"></script>
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=6"></script>
-<script src="/js/subscription.js?v=17"></script>
-<script src="/js/app.js?v=7"></script>
-<script src="/js/tour.js?v=8"></script>
+<script src="/js/subscription.js?v=21"></script>
+<script src="/js/app.js?v=16"></script>
+<script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();

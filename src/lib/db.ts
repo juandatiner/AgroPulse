@@ -25,7 +25,7 @@ async function ensureIndexes(db: Db): Promise<void> {
   await db.collection('users').createIndex({ email: 1 }, { unique: true })
   await db.collection('users').createIndex(
     { telefono: 1 },
-    { unique: true, partialFilterExpression: { telefono: { $type: 'string', $ne: '' } } }
+    { unique: true, partialFilterExpression: { telefono: { $type: 'string', $gt: '' } } }
   )
   await db.collection('users').createIndex({ last_seen: -1 })
 

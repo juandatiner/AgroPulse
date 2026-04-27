@@ -325,9 +325,16 @@ const Tour = {
     },
 
     _applySpotlight(el, spotlight, tooltip) {
-        const r = el.getBoundingClientRect();
-        // Pad reducido para no invadir espacio vertical/horizontal del vecino
+        let r = el.getBoundingClientRect();
         const pad = 3;
+        // .tab-btn-publish elevado top:-12 + tamaño distinto. Copiar dimensiones de otro tab-btn hermano para que el spotlight luzca igual.
+        if (el.classList && el.classList.contains('tab-btn-publish')) {
+            const sibling = document.querySelector('.tab-btn:not(.tab-btn-publish)');
+            if (sibling) {
+                const sr = sibling.getBoundingClientRect();
+                r = { top: sr.top, left: r.left + (r.width - sr.width) / 2, width: sr.width, height: sr.height };
+            }
+        }
         const top = r.top - pad;
         const left = r.left - pad;
         const w = r.width + pad * 2;

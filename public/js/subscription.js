@@ -98,6 +98,12 @@ const Subscription = {
 
         el.classList.toggle('promo-banner-locked', cantClose);
         el.innerHTML = `
+            <div class="promo-banner-figs promo-banner-figs-left" aria-hidden="true">
+                <span>🌱</span><span>🌾</span><span>🚜</span><span>🌻</span>
+            </div>
+            <div class="promo-banner-figs promo-banner-figs-right" aria-hidden="true">
+                <span>🌿</span><span>🥕</span><span>🍅</span><span>🌽</span>
+            </div>
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown}${mainText}</span>
                 <button class="promo-banner-cta">${ctaText} <i data-lucide="chevron-right"></i></button>
@@ -615,6 +621,21 @@ const Subscription = {
         const ctaBasic = ctaFor('basic', 'Básico');
         const ctaPro = ctaFor('pro', 'Pro');
 
+        const fmtFecha = (iso) => new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
+        let currentBanner = '';
+        if (s.is_premium && s.subscription_end) {
+            const tier = s.plan_tier === 'pro' ? 'Pro' : (s.plan_tier === 'basic' ? 'Básico' : 'Pro');
+            currentBanner = `<div class="plans-current-info">
+                <i data-lucide="calendar-check"></i>
+                <span>Tu plan <strong>${tier}</strong> está activo hasta el <strong>${fmtFecha(s.subscription_end)}</strong>. Si cambias o renuevas, los días se acumulan.</span>
+            </div>`;
+        } else if (s.status === 'trial' && s.trial_days_left > 0 && s.trial_end) {
+            currentBanner = `<div class="plans-current-info">
+                <i data-lucide="gift"></i>
+                <span>Tu prueba gratuita va hasta el <strong>${fmtFecha(s.trial_end)}</strong>. Suscríbete para no perder los beneficios.</span>
+            </div>`;
+        }
+
         const html = `
             <div class="plans-overlay-inner">
                 <button class="plans-close" onclick="Subscription.closePlans()"><i data-lucide="x"></i></button>
@@ -624,6 +645,7 @@ const Subscription = {
                     <p>Dos opciones pensadas para tu actividad</p>
                     ${promo && s.promo_days_left > 0 ? `<p class="plans-price-promo-hint">🔥 Promo ${discountLabel} termina en ${s.promo_days_left} ${s.promo_days_left === 1 ? 'día' : 'días'}</p>` : ''}
                 </div>
+                ${currentBanner}
 
                 <div class="plan-cards">
                     <div class="plan-card plan-card-basic">
@@ -732,7 +754,7 @@ const Subscription = {
                     <div class="form-group">
                         <label class="form-label">Número de tarjeta</label>
                         <input type="text" id="ck-card" class="form-input" placeholder="1234 5678 9012 3456"
-                               inputmode="numeric" maxlength="23" autocomplete="cc-number"
+                               inputmode="numeric" maxlength="19" autocomplete="cc-number"
                                oninput="Subscription._formatCard(this)">
                         <span class="form-hint" id="ck-brand-hint"></span>
                     </div>
@@ -765,7 +787,7 @@ const Subscription = {
     closeCheckout() { this._closeOverlay('checkout-overlay'); },
 
     _formatCard(input) {
-        let v = input.value.replace(/\D/g, '').slice(0, 19);
+        let v = input.value.replace(/\D/g, '').slice(0, 16);
         input.value = v.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
         const brand = this._detectBrand(v);
         const hint = document.getElementById('ck-brand-hint');
@@ -1111,6 +1133,14 @@ const Subscription = {
             this.openPaywall('La exportación a CSV está disponible solo en el plan Pro.');
             return;
         }
+        try {
+            // Check if user has agreements before exporting
+            const agreements = await API.getAgreements({}).catch(() => []);
+            if (!agreements || agreements.length === 0) {
+                App.showToast('Aún no tienes acuerdos para exportar', 'error');
+                return;
+            }
+        } catch (_) {}
         try {
             const res = await fetch('/api/agreements/export', {
                 headers: { 'Authorization': 'Bearer ' + API.token },

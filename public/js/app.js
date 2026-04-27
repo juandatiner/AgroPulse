@@ -6,6 +6,8 @@ const App = {
     currentSortFilter: 'recent',
     currentAgreementFilter: 'todos',
     currentPublishType: 'oferta',
+    currentMyPubFilter: 'todos',
+    _myResourcesCache: [],
 
     ICONS: {
         'Herramientas y maquinaria': 'wrench',
@@ -25,8 +27,35 @@ const App = {
             this.showApp();
         } else {
             this.showScreen('screen-landing');
+            this.loadLandingTrialInfo();
         }
         this.bindEvents();
+    },
+
+    async loadLandingTrialInfo() {
+        const box = document.getElementById('landing-stat-trial');
+        if (!box) return;
+        try {
+            const r = await fetch('/api/subscription');
+            const d = await r.json();
+            const valEl = box.querySelector('.stat-value');
+            const lblEl = box.querySelector('.stat-label');
+            if (d && typeof d.trial_days === 'number' && d.trial_days > 0) {
+                valEl.textContent = d.trial_days;
+                lblEl.textContent = d.trial_days === 1 ? 'Día Pro gratis' : 'Días Pro gratis';
+            } else if (d && typeof d.free_posts_per_month === 'number' && d.free_posts_per_month > 0) {
+                valEl.textContent = d.free_posts_per_month;
+                lblEl.textContent = d.free_posts_per_month === 1 ? 'Publicación gratis al mes' : 'Publicaciones gratis al mes';
+            } else {
+                valEl.textContent = '0%';
+                lblEl.textContent = 'Comisiones';
+            }
+        } catch (_) {
+            const valEl = box.querySelector('.stat-value');
+            const lblEl = box.querySelector('.stat-label');
+            valEl.textContent = '0%';
+            lblEl.textContent = 'Comisiones';
+        }
     },
 
     // ===== NAVIGATION =====
@@ -62,15 +91,10 @@ const App = {
         if (chatO && chatO.style.display !== 'none') { chatO.style.display = 'none'; Chat.stopPolling && Chat.stopPolling(); }
         if (state.type === 'tab') {
             this.switchTab(state.tab);
-        } else if (state.type === 'detail') {
+        } else if (state.type === 'detail' || state.type === 'userProfile') {
             this.switchTab(state.tab);
-            this.showResourceDetail(state.id);
-        } else if (state.type === 'userProfile') {
-            this.switchTab(state.tab);
-            this.showUserProfile(state.id);
         } else if (state.type === 'chat') {
             this.switchTab(state.tab);
-            this.openAgreementChat(state.id);
         }
         this._skipHistory = false;
     },
@@ -379,6 +403,7 @@ const App = {
         API.logout().catch(() => {});
         API.clearSession();
         this.showScreen('screen-landing');
+        this.loadLandingTrialInfo();
     },
 
     // ===== HOME =====
@@ -396,16 +421,35 @@ const App = {
             ]);
 
             this.renderResourceScroll('recent-resources', otherResources.slice(0, 8));
-            this.renderMyResources('my-resources', myResources);
+            this._myResourcesCache = myResources || [];
+            this.renderMyResources('my-resources', this._myResourcesCache);
         } catch (e) {
             console.error('Error loading home:', e);
         }
     },
 
+    setMyPubFilter(f) {
+        this.currentMyPubFilter = f;
+        document.querySelectorAll('#my-pub-filters .my-pub-chip').forEach(c => c.classList.remove('active'));
+        document.querySelector(`#my-pub-filters [data-mfilter="${f}"]`)?.classList.add('active');
+        this.renderMyResources('my-resources', this._myResourcesCache);
+    },
+
     renderMyResources(containerId, resources) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        if (resources.length === 0) {
+        const filter = this.currentMyPubFilter || 'todos';
+        const filtered = filter === 'todos' ? resources : resources.filter(r => r.tipo === filter);
+        if (filtered.length === 0 && filter !== 'todos') {
+            container.innerHTML = `<div class="empty-state-compact" style="grid-column:1/-1">
+                <i data-lucide="filter"></i>
+                <h3>Sin publicaciones de este tipo</h3>
+                <p>Cambia el filtro o publica algo nuevo</p>
+            </div>`;
+            lucide.createIcons({ nodes: [container] });
+            return;
+        }
+        if (filtered.length === 0) {
             container.innerHTML = `<div class="empty-state-compact">
                 <i data-lucide="sprout"></i>
                 <h3>Tu espacio está listo</h3>
@@ -414,7 +458,7 @@ const App = {
             lucide.createIcons({ nodes: [container] });
             return;
         }
-        container.innerHTML = resources.map(r => {
+        container.innerHTML = filtered.map(r => {
             const now = new Date();
             const scheduledAt = r.scheduled_at ? new Date(r.scheduled_at.replace(' ', 'T') + 'Z') : null;
             const deactivAt = r.deactivation_scheduled_at ? new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z') : null;
@@ -603,16 +647,21 @@ const App = {
             };
             addInfo('tag', 'Categoría', r.categoria);
             addInfo('repeat', 'Modalidad', r.modalidad);
-            const cantidadStr = r.cantidad ? (r.unidad && r.unidad !== 'No aplica' ? `${r.cantidad} ${r.unidad}` : r.cantidad) : '';
-            addInfo('hash', 'Cantidad', cantidadStr);
+            // Cantidad + Unidad lado a lado (mitad y mitad). Si no aplica unidad, mostrarlo en gris.
+            if (r.cantidad) {
+                const isNA = !r.unidad || r.unidad === 'No aplica';
+                infoItems += `<div class="detail-info-pair">
+                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="hash"></i> Cantidad</div><div class="detail-info-value">${this.esc(String(r.cantidad))}</div></div>
+                    <div class="detail-info-item ${isNA ? 'detail-info-na' : ''}"><div class="detail-info-label"><i data-lucide="ruler"></i> Unidad</div><div class="detail-info-value">${isNA ? 'No aplica' : this.esc(r.unidad)}</div></div>
+                </div>`;
+            }
             addInfo('check-circle', 'Condición', r.condicion);
             addInfo('clock', 'Disponibilidad', r.disponibilidad);
-            addInfo('banknote', 'Precio ref.', r.precio_referencia);
+            addInfo('banknote', 'Precio orientativo', r.precio_referencia);
             addInfo('timer', 'Duración préstamo', r.duracion_prestamo);
             addInfo('shield', 'Garantía', r.garantia);
             addInfo('arrow-up-right', 'Ofrece', r.ofrece);
             addInfo('arrow-down-left', 'Recibe', r.recibe);
-            addInfo('map-pin', 'Municipio', r.municipio);
             if (r.scheduled_at) {
                 const sd = new Date(r.scheduled_at.replace(' ', 'T') + 'Z');
                 if (sd > new Date()) addInfo('calendar-clock', 'Se publicará el', this.formatDate(r.scheduled_at));
@@ -621,15 +670,33 @@ const App = {
                 const dd = new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z');
                 if (dd > new Date()) addInfo('calendar-x', 'Se desactivará el', this.formatDate(r.deactivation_scheduled_at));
             }
-            const locationBlock = (r.latitude != null && r.longitude != null)
-                ? `<div class="detail-location-section">
-                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
-                        ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '220px', notes: r.location_notes || '' })}
+            const indicacionesBlock = r.location_notes ? `
+                <div class="detail-info-item detail-indicaciones-item" style="margin-top:10px">
+                    <div class="detail-info-label"><i data-lucide="navigation"></i> Cómo llegar</div>
+                    <div class="detail-info-value" style="white-space:pre-wrap;line-height:1.5">${this.esc(r.location_notes)}</div>
+                </div>` : '';
+            const hasMap = r.latitude != null && r.longitude != null;
+            const hasImg = !!r.image_data;
+            const imageFieldHtml = hasImg
+                ? `<div class="detail-image-field-wrap">
+                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="image"></i> Foto</div>
+                        <div class="detail-image-field" onclick="App.openLightbox('${r.image_data}')">
+                            <img src="${r.image_data}" alt="">
+                            <div class="detail-image-zoom-hint"><i data-lucide="zoom-in"></i> Toca para ver en grande</div>
+                        </div>
                    </div>`
-                : (r.location_notes ? `<div class="detail-location-section">
-                        <div class="detail-info-label"><i data-lucide="navigation"></i> Indicaciones</div>
-                        <p style="font-size:0.85rem;margin-top:4px">${this.esc(r.location_notes)}</p>
-                   </div>` : '');
+                : '';
+            const mapHtml = hasMap
+                ? `<div class="detail-map-field">
+                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
+                        ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '100%' })}
+                   </div>`
+                : '';
+            const mediaRowHtml = (hasImg && hasMap)
+                ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>${indicacionesBlock ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''}`
+                : (hasImg ? imageFieldHtml : '') + (hasMap
+                    ? `<div class="detail-location-section">${mapHtml}${indicacionesBlock}</div>`
+                    : (r.location_notes ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''));
 
             const html = `
                 <div class="detail-header">
@@ -637,18 +704,19 @@ const App = {
                     <h3>Detalle</h3>
                 </div>
                 <div class="detail-body">
-                    <div class="detail-type-badge"><span class="type-badge ${r.tipo}">${this.TYPE_LABELS[r.tipo]}</span></div>
-                    <h2 class="detail-title" style="font-size:1.6rem;line-height:1.15;font-weight:800;margin:6px 0 12px">${this.esc(r.titulo)}</h2>
-                    ${r.image_data ? `<div style="margin-bottom:16px;cursor:zoom-in;border-radius:var(--radius-sm);overflow:hidden" onclick="App.openLightbox('${r.image_data}')">
-                        <img src="${r.image_data}" alt="" style="width:100%;max-height:280px;object-fit:cover;display:block;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                        <div style="text-align:center;font-size:0.72rem;color:var(--text-muted);padding:4px 0;background:var(--cream)"><i data-lucide="zoom-in" style="width:12px;height:12px;vertical-align:middle"></i> Toca para ver en grande</div>
+                    <div class="detail-title-row">
+                        <span class="type-badge ${r.tipo} detail-title-badge">${this.TYPE_LABELS[r.tipo]}</span>
+                        <h2 class="detail-title detail-title-big">${this.esc(r.titulo)}</h2>
+                    </div>
+                    ${mediaRowHtml}
+                    ${infoItems ? `<div class="detail-section">
+                        <div class="detail-section-heading"><i data-lucide="list"></i> Detalles</div>
+                        <div class="detail-info-grid">${infoItems}</div>
                     </div>` : ''}
-                    ${r.descripcion ? `<div class="detail-desc-block" style="background:var(--cream,#fdf8f0);border-left:3px solid var(--earth,#6b8e23);padding:12px 14px;border-radius:8px;margin-bottom:14px">
-                        <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:4px;font-weight:600">Descripción</div>
-                        <p class="detail-desc" style="margin:0;white-space:pre-wrap;line-height:1.5">${this.esc(r.descripcion)}</p>
+                    ${r.descripcion ? `<div class="detail-section">
+                        <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
+                        <div class="detail-section-body">${this.esc(r.descripcion)}</div>
                     </div>` : ''}
-                    <div class="detail-info-grid">${infoItems}</div>
-                    ${locationBlock}
                     <div class="detail-owner" onclick="${!isOwner ? `App.showUserProfile('${r.owner_id}')` : ''}" style="${!isOwner ? 'cursor:pointer' : ''}">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
@@ -688,8 +756,10 @@ const App = {
     },
 
     closeDetail() {
-        document.getElementById('detail-overlay').style.display = 'none';
-        if (!this._skipHistory && history.state?.type !== 'tab') history.back();
+        const overlay = document.getElementById('detail-overlay');
+        const wasOpen = overlay.style.display !== 'none';
+        overlay.style.display = 'none';
+        if (!this._skipHistory && wasOpen && history.state?.type !== 'tab') history.back();
     },
 
     // Custom confirm dialog (replaces browser confirm())
@@ -1096,12 +1166,12 @@ const App = {
                     <div class="form-group">
                         <label class="form-label">Asunto *</label>
                         <input type="text" id="pub-titulo" class="form-input" placeholder="Ej: Tractor disponible fines de semana">
-                        <span class="form-hint">Describe brevemente lo que ofreces</span>
+                        <span class="form-hint">Mínimo 2, máximo 20 palabras. Describe brevemente lo que ofreces</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Descripción *</label>
-                        <textarea id="pub-desc" class="form-input" placeholder="Incluye detalles: estado, condiciones, horarios disponibles..."></textarea>
-                        <span class="form-hint">Entre más detallada, más confianza genera en la comunidad</span>
+                        <textarea id="pub-desc" class="form-input" placeholder="Cuenta qué ofreces, su estado, cómo se entrega, horarios disponibles, formas de pago, garantías... Cualquier detalle que ayude a la otra persona a decidir."></textarea>
+                        <span class="form-hint">Mínimo 10 palabras, máximo 200. Entre más clara, más confianza genera</span>
                     </div>
                 </div>
                 <div class="publish-form-section">
@@ -1109,7 +1179,8 @@ const App = {
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Cantidad *</label>
-                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 50">
+                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 50" inputmode="numeric" pattern="[0-9]*">
+                            <span class="form-hint">Solo números (las unidades van en el campo de al lado)</span>
                         </div>
                         <div class="form-group">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1123,9 +1194,9 @@ const App = {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Condición *</label>
+                        <label class="form-label">Condición de lo que ofreces *</label>
                         <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
-                        <span class="form-hint">Estado actual del recurso</span>
+                        <span class="form-hint">Estado actual del recurso que vas a ofrecer</span>
                     </div>
                     <div class="form-group">
                         <div class="toggle-row">
@@ -1145,8 +1216,7 @@ const App = {
                                 <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                                 <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             </div>
-                            <label class="form-label" style="margin:8px 0 4px;font-size:0.82rem">Valor *</label>
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $50.000/día">
+                            <input type="text" id="pub-precio" class="form-input" style="margin-top:8px" placeholder="Ej: $50.000/día">
                             <span class="form-hint" id="pub-precio-hint">Monto o descripción del pago</span>
                         </div>
                     </div>
@@ -1163,12 +1233,12 @@ const App = {
                     <div class="form-group">
                         <label class="form-label">Asunto *</label>
                         <input type="text" id="pub-titulo" class="form-input" placeholder="Ej: Necesito semillas de papa criolla">
-                        <span class="form-hint">Describe brevemente lo que necesitas</span>
+                        <span class="form-hint">Mínimo 2, máximo 20 palabras. Describe brevemente lo que necesitas</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Descripción detallada *</label>
-                        <textarea id="pub-desc" class="form-input" placeholder="Especifica: cantidad necesaria, calidad esperada, para qué lo necesitas..."></textarea>
-                        <span class="form-hint">Detalla las especificaciones para que te ofrezcan exactamente lo que buscas</span>
+                        <textarea id="pub-desc" class="form-input" placeholder="Especifica qué necesitas, para qué lo usarás, calidad esperada, presupuesto referencial, dónde y cuándo recibirlo... Cualquier detalle ayuda a recibir mejores ofertas."></textarea>
+                        <span class="form-hint">Mínimo 10 palabras, máximo 200. Sé específico para recibir respuestas más útiles</span>
                     </div>
                 </div>
                 <div class="publish-form-section">
@@ -1176,7 +1246,8 @@ const App = {
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Cantidad *</label>
-                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 100">
+                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 100" inputmode="numeric" pattern="[0-9]*">
+                            <span class="form-hint">Solo números (la unidad va al lado)</span>
                         </div>
                         <div class="form-group">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1232,24 +1303,35 @@ const App = {
                     <div class="form-group">
                         <label class="form-label">Asunto *</label>
                         <input type="text" id="pub-titulo" class="form-input" placeholder="Ej: Fumigadora eléctrica disponible">
-                        <span class="form-hint">Nombre de la herramienta o equipo</span>
+                        <span class="form-hint">Mínimo 2, máximo 20 palabras. Nombre de la herramienta o equipo</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Descripción *</label>
-                        <textarea id="pub-desc" class="form-input" placeholder="Marca, modelo, capacidad, accesorios incluidos..."></textarea>
-                        <span class="form-hint">Detalla las características y lo que incluye el préstamo</span>
+                        <textarea id="pub-desc" class="form-input" placeholder="Marca, modelo, capacidad, accesorios incluidos, qué tipo de cultivos sirve, requisitos para el préstamo, lugar de recogida... Mientras más claro, mejor."></textarea>
+                        <span class="form-hint">Mínimo 10 palabras, máximo 200. Incluye todo lo relevante para quien recibe el préstamo</span>
                     </div>
                 </div>
                 <div class="publish-form-section">
                     <div class="publish-form-section-title"><i data-lucide="clock"></i> Condiciones del préstamo</div>
                     <div class="form-group">
-                        <label class="form-label">Condición del equipo *</label>
+                        <label class="form-label">Condición de lo que ofreces *</label>
                         <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
+                        <span class="form-hint">Estado actual del equipo o herramienta</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Duración máxima del préstamo *</label>
-                        <input type="text" id="pub-duracion" class="form-input" placeholder="Ej: Máximo 3 días, 1 semana">
-                        <span class="form-hint">¿Por cuánto tiempo puedes prestarlo?</span>
+                        <div class="form-row" style="grid-template-columns:1fr 1fr;gap:8px">
+                            <input type="text" id="pub-duracion-num" class="form-input" placeholder="Ej: 3" inputmode="numeric" pattern="[0-9]*">
+                            <select id="pub-duracion-unidad" class="form-select">
+                                <option value="">Unidad...</option>
+                                <option value="horas">horas</option>
+                                <option value="días">días</option>
+                                <option value="semanas">semanas</option>
+                                <option value="meses">meses</option>
+                            </select>
+                        </div>
+                        <span class="form-hint">¿Por cuánto tiempo máximo puedes prestarlo?</span>
+                        <input type="hidden" id="pub-duracion">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Garantía o condiciones de devolución</label>
@@ -1298,11 +1380,12 @@ const App = {
                     <div class="form-group">
                         <label class="form-label">Asunto *</label>
                         <input type="text" id="pub-titulo" class="form-input" placeholder="Ej: Cambio guadaña por semillas">
-                        <span class="form-hint">Resume qué das y qué recibes</span>
+                        <span class="form-hint">Mínimo 2, máximo 20 palabras. Resume qué das y qué recibes</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Descripción *</label>
-                        <textarea id="pub-desc" class="form-input" placeholder="Describe detalladamente lo que ofreces y lo que buscas a cambio"></textarea>
+                        <textarea id="pub-desc" class="form-input" placeholder="Describe lo que ofreces, su estado y lo que quieres a cambio. Incluye condiciones, lugar y forma de entrega, posibles flexibilidades..."></textarea>
+                        <span class="form-hint">Mínimo 10 palabras, máximo 200. Sé claro para llegar a un acuerdo más rápido</span>
                     </div>
                 </div>
                 <div class="publish-form-section">
@@ -1317,18 +1400,18 @@ const App = {
                         <select id="pub-condicion" class="form-select"><option value="">Selecciona una categoría primero...</option></select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">¿Qué deseas recibir? *</label>
-                        <input type="text" id="pub-recibe" class="form-input" placeholder="Ej: Semillas de hortalizas o abono orgánico">
-                        <span class="form-hint">Describe lo que te gustaría recibir a cambio</span>
-                    </div>
-                    <div class="form-group">
-                        <div class="toggle-label" style="margin-bottom:8px">¿Qué tipo de intercambio buscas?</div>
+                        <div class="toggle-label" style="margin-bottom:8px">¿Qué tipo de intercambio buscas? *</div>
                         <div class="segmented-control" id="trueque-tipo">
                             <button type="button" class="seg-opt active" data-val="Bien o producto">Bien o producto</button>
                             <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             <button type="button" class="seg-opt" data-val="Monetario">Monetario</button>
                         </div>
-                        <span class="form-hint">¿Recibirías un objeto, un servicio o dinero a cambio?</span>
+                        <span class="form-hint">Elige primero — el campo siguiente se ajusta a tu elección</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">¿Qué deseas recibir? *</label>
+                        <input type="text" id="pub-recibe" class="form-input" placeholder="Ej: Semillas de hortalizas o abono orgánico">
+                        <span class="form-hint" id="pub-recibe-hint">Describe lo que te gustaría recibir a cambio</span>
                     </div>
                     <input type="hidden" id="pub-modalidad" value="Bien o producto">
                 </div>`
@@ -1520,7 +1603,7 @@ const App = {
                 } else {
                     if (modalidad) modalidad.value = 'Monetario';
                     const periodo = document.getElementById('pub-precio-periodo');
-                    if (periodo) periodo.style.display = '';
+                    if (periodo) periodo.style.display = (tipo === 'solicitud' || tipo === 'prestamo') ? '' : 'none';
                 }
             });
         }
@@ -1530,7 +1613,7 @@ const App = {
             const periodoSel = document.createElement('select');
             periodoSel.id = 'pub-precio-periodo';
             periodoSel.className = 'form-select';
-            periodoSel.style.cssText = 'margin-top:8px;display:block';
+            periodoSel.style.cssText = `margin-top:8px;display:${(tipo === 'solicitud' || tipo === 'prestamo') ? 'block' : 'none'}`;
             periodoSel.innerHTML = `
                 <option value="">Sin período específico</option>
                 <option value="por hora">por hora</option>
@@ -1552,6 +1635,33 @@ const App = {
                 <option value="a convenir">a convenir</option>`;
             precioGroup.appendChild(periodoSel);
         }
+        // Cantidad: solo dígitos (texto descriptivo va en Unidad)
+        const cantidadInput = document.getElementById('pub-cantidad');
+        if (cantidadInput) {
+            cantidadInput.setAttribute('inputmode', 'numeric');
+            cantidadInput.addEventListener('input', () => {
+                const cleaned = cantidadInput.value.replace(/\D/g, '');
+                if (cleaned !== cantidadInput.value) cantidadInput.value = cleaned;
+            });
+        }
+        // Préstamo: combinar número + unidad en pub-duracion (hidden)
+        const durNum = document.getElementById('pub-duracion-num');
+        const durUni = document.getElementById('pub-duracion-unidad');
+        const durHidden = document.getElementById('pub-duracion');
+        const syncDuracion = () => {
+            if (!durHidden) return;
+            const n = (durNum?.value || '').replace(/\D/g, '');
+            const u = durUni?.value || '';
+            durHidden.value = (n && u) ? `${n} ${u}` : '';
+        };
+        if (durNum) {
+            durNum.addEventListener('input', () => {
+                const cleaned = durNum.value.replace(/\D/g, '');
+                if (cleaned !== durNum.value) durNum.value = cleaned;
+                syncDuracion();
+            });
+        }
+        if (durUni) durUni.addEventListener('change', syncDuracion);
         // Monetary formatting for pub-precio
         const precioInput = document.getElementById('pub-precio');
         if (precioInput) {
@@ -1561,12 +1671,13 @@ const App = {
                 const pos = precioInput.selectionStart;
                 const prevLen = precioInput.value.length;
                 const raw = precioInput.value.replace(/\D/g, '');
-                if (!raw) return;
+                if (!raw) { precioInput.value = ''; return; }
                 const formatted = parseInt(raw, 10).toLocaleString('es-CO');
                 precioInput.value = formatted;
                 const diff = formatted.length - prevLen;
                 try { precioInput.setSelectionRange(pos + diff, pos + diff); } catch(_) {}
             });
+            precioInput.setAttribute('inputmode', 'numeric');
         }
         // Unit toggle (checked = unit active, unchecked = No aplica)
         const unidadActive = document.getElementById('toggle-unidad-active');
@@ -1595,13 +1706,32 @@ const App = {
             'Bien o producto': { hint: 'Describe qué bien o producto', placeholder: 'Ej: 2 bultos de papa criolla' },
             'Servicio':        { hint: 'Describe el servicio', placeholder: 'Ej: 1 jornada de trabajo' },
         };
+        const recibeHints = {
+            'Bien o producto': { hint: 'Describe el bien o producto que esperas recibir', placeholder: 'Ej: Semillas de hortalizas o abono orgánico' },
+            'Servicio':        { hint: 'Describe el servicio que esperas a cambio', placeholder: 'Ej: 2 jornadas de mano de obra' },
+            'Monetario':       { hint: 'Indica el monto que esperas recibir', placeholder: 'Ej: $150.000' },
+        };
         ['#trueque-tipo', '#oferta-pago-tipo', '#prestamo-pago-tipo', '#solicitud-pago-tipo'].forEach(sel => {
+            const isTrueque = sel === '#trueque-tipo';
             document.querySelectorAll(`${sel} .seg-opt`).forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll(`${sel} .seg-opt`).forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     const modalidad = document.getElementById('pub-modalidad');
                     if (modalidad) modalidad.value = btn.dataset.val;
+                    if (isTrueque) {
+                        const r = recibeHints[btn.dataset.val];
+                        const inp = document.getElementById('pub-recibe');
+                        const hint = document.getElementById('pub-recibe-hint');
+                        if (r && inp) { inp.placeholder = r.placeholder; }
+                        if (r && hint) hint.textContent = r.hint;
+                        if (btn.dataset.val === 'Monetario' && inp) {
+                            inp.setAttribute('inputmode', 'numeric');
+                        } else if (inp) {
+                            inp.removeAttribute('inputmode');
+                        }
+                        return;
+                    }
                     const d = pagoHints[btn.dataset.val];
                     if (d) {
                         const inp = document.getElementById('pub-precio');
@@ -1610,7 +1740,7 @@ const App = {
                         if (hint) hint.textContent = d.hint;
                     }
                     const periodo = document.getElementById('pub-precio-periodo');
-                    if (periodo) periodo.style.display = btn.dataset.val === 'Monetario' ? '' : 'none';
+                    if (periodo) periodo.style.display = (tipo === 'solicitud' || tipo === 'prestamo') && btn.dataset.val === 'Monetario' ? '' : 'none';
                 });
             });
         });
@@ -1694,9 +1824,19 @@ const App = {
         this._setVal('pub-cat', r.categoria);
         this.refreshCondicionOptions();
         this._setVal('pub-condicion', r.condicion);
-        this._setVal('pub-cantidad', r.cantidad);
+        this._setVal('pub-cantidad', String(r.cantidad || '').replace(/\D/g, ''));
         this._setVal('pub-disponibilidad', r.disponibilidad);
         this._setVal('pub-duracion', r.duracion_prestamo);
+        // Split duracion back into number + unidad
+        if (r.duracion_prestamo) {
+            const m = String(r.duracion_prestamo).match(/^(\d+)\s+(horas|días|dias|semanas|meses)$/i);
+            if (m) {
+                let unit = m[2].toLowerCase();
+                if (unit === 'dias') unit = 'días';
+                this._setVal('pub-duracion-num', m[1]);
+                this._setVal('pub-duracion-unidad', unit);
+            }
+        }
         this._setVal('pub-garantia', r.garantia);
         this._setVal('pub-ofrece', r.ofrece);
         this._setVal('pub-recibe', r.recibe);
@@ -1824,14 +1964,34 @@ const App = {
             const ofreceEl = document.getElementById('pub-ofrece');
             const recibeEl = document.getElementById('pub-recibe');
             if (!data.titulo) return this.fieldError('pub-titulo', 'El asunto es obligatorio');
+            const tituloWords = data.titulo.split(/\s+/).filter(Boolean).length;
+            if (tituloWords < 2) return this.fieldError('pub-titulo', 'El asunto debe tener al menos 2 palabras');
+            if (tituloWords > 20) return this.fieldError('pub-titulo', 'El asunto no puede tener más de 20 palabras');
             if (!data.descripcion) return this.fieldError('pub-desc', 'La descripción es obligatoria');
+            const descWords = data.descripcion.split(/\s+/).filter(Boolean).length;
+            if (descWords < 10) return this.fieldError('pub-desc', `La descripción debe tener al menos 10 palabras (lleva ${descWords})`);
+            if (descWords > 200) return this.fieldError('pub-desc', `La descripción no puede tener más de 200 palabras (lleva ${descWords})`);
             if (!data.categoria) return this.fieldError('pub-cat', 'Selecciona una categoría');
             if (cantidadEl && !data.cantidad) return this.fieldError('pub-cantidad', 'La cantidad es obligatoria');
+            if (cantidadEl && data.cantidad && !/^\d+$/.test(data.cantidad)) return this.fieldError('pub-cantidad', 'La cantidad solo puede tener números');
             if (unidadActiva && unidadActiveEl && !document.getElementById('pub-unidad')?.value?.trim()) return this.fieldError('pub-unidad', 'Ingresa la unidad o desactiva el campo');
             if (condicionEl && !data.condicion) return this.fieldError('pub-condicion', 'Selecciona la condición del recurso');
             if (precioActivo && !precioVal) return this.fieldError('pub-precio', 'Ingresa el precio o desactiva el campo');
             if (disponibilidadEl && !data.disponibilidad) return this.fieldError('pub-disponibilidad', 'Selecciona la disponibilidad');
-            if (duracionEl && !data.duracion_prestamo) return this.fieldError('pub-duracion', 'Indica la duración máxima del préstamo');
+            if (duracionEl) {
+                const durNum = (document.getElementById('pub-duracion-num')?.value || '').trim();
+                const durUni = document.getElementById('pub-duracion-unidad')?.value || '';
+                const existing = (duracionEl.value || '').trim();
+                if (durNum && durUni) {
+                    data.duracion_prestamo = `${durNum} ${durUni}`;
+                } else if (existing && !durNum && !durUni) {
+                    data.duracion_prestamo = existing;
+                } else if (!durNum) {
+                    return this.fieldError('pub-duracion-num', 'Indica la cantidad de tiempo del préstamo');
+                } else if (!durUni) {
+                    return this.fieldError('pub-duracion-unidad', 'Selecciona la unidad de tiempo (horas, días...)');
+                }
+            }
             if (ofreceEl && !data.ofrece) return this.fieldError('pub-ofrece', 'Describe lo que ofreces en el trueque');
             if (recibeEl && !data.recibe) return this.fieldError('pub-recibe', 'Describe lo que deseas recibir a cambio');
             if (!data.image_data) return this.fieldError('pub-image-area', 'Agrega una foto del recurso');
@@ -2311,6 +2471,10 @@ const App = {
                 }).join('');
 
             overlay.innerHTML = `
+                <div class="detail-header">
+                    <button class="detail-back" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i></button>
+                    <h3>Perfil de usuario</h3>
+                </div>
                 <div class="detail-body">
                     <div class="user-profile-hero">
                         <div class="user-profile-avatar">${initials}</div>
@@ -2334,9 +2498,6 @@ const App = {
 
                     <div class="profile-section-label" style="margin-top:20px"><i data-lucide="star"></i> Opiniones de la comunidad</div>
                     ${reviewsHtml}
-                </div>
-                <div class="detail-actions">
-                    <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
                 </div>`;
             lucide.createIcons({ nodes: [overlay] });
             if (!this._skipHistory) history.pushState({ type: 'userProfile', tab: this.currentTab, id: userId }, '');
@@ -2365,6 +2526,21 @@ const App = {
             document.getElementById('profile-location').innerHTML = `<i data-lucide="map-pin"></i> ${this.esc(u.municipio)}`;
             document.getElementById('profile-stat-intercambios').textContent = u.stats.total_agreements;
             document.getElementById('profile-stat-publicaciones').textContent = u.stats.total_resources;
+            const ratingEl = document.getElementById('profile-stat-rating');
+            if (ratingEl) ratingEl.textContent = (u.reputation_score || 5).toFixed(1);
+
+            // Export acuerdos: gris si no hay acuerdos
+            const exportBtn = document.getElementById('export-csv-btn');
+            const exportSub = document.getElementById('export-csv-sub');
+            if (exportBtn) {
+                if ((u.stats.total_agreements || 0) === 0) {
+                    exportBtn.classList.add('profile-menu-disabled');
+                    if (exportSub) exportSub.innerHTML = 'Aún no tienes acuerdos para exportar <span class="pro-chip">Pro</span>';
+                } else {
+                    exportBtn.classList.remove('profile-menu-disabled');
+                    if (exportSub) exportSub.innerHTML = 'Descarga tu historial en CSV <span class="pro-chip">Pro</span>';
+                }
+            }
 
             const nameEl = document.getElementById('profile-name');
             const oldTick = nameEl.querySelector('.verified-inline');
@@ -2378,12 +2554,14 @@ const App = {
                 const planTitle = document.getElementById('profile-plan-title');
                 const planSub = document.getElementById('profile-plan-sub');
                 if (sub && planTitle && planSub) {
+                    const fmtFecha = (iso) => new Date(iso).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
                     if (sub.is_premium) {
-                        planTitle.textContent = 'Plan Pro activo';
-                        planSub.textContent = 'Renueva el ' + new Date(sub.subscription_end).toLocaleDateString();
+                        const tier = sub.plan_tier === 'pro' ? 'Pro' : (sub.plan_tier === 'basic' ? 'Básico' : 'Pro');
+                        planTitle.textContent = `Plan ${tier} activo`;
+                        planSub.textContent = sub.subscription_end ? `Vence el ${fmtFecha(sub.subscription_end)}` : 'Renueva cuando quieras';
                     } else if (sub.status === 'trial' && sub.trial_days_left > 0) {
                         planTitle.textContent = `Prueba gratuita (${sub.trial_days_left} ${sub.trial_days_left === 1 ? 'día' : 'días'})`;
-                        planSub.textContent = 'Ver planes y mejorar';
+                        planSub.textContent = sub.trial_end ? `Vence el ${fmtFecha(sub.trial_end)} · Ver planes` : 'Ver planes y mejorar';
                     } else {
                         planTitle.textContent = 'Mejorar a Pro';
                         planSub.textContent = 'Publicaciones ilimitadas + matches';
@@ -2395,24 +2573,30 @@ const App = {
                 const fillEl = document.getElementById('subscription-fill');
                 const hintEl = document.getElementById('subscription-hint');
                 if (sub && statEl && fillEl && hintEl) {
-                    let daysLeft = 0, total = 0, label = 'No hay más', hint = 'Sin suscripción activa';
+                    const fmtDays = (d) => {
+                        if (d == null) return 'Sin sub';
+                        if (d <= 0) return '<1 día';
+                        if (d === 1) return '1 día';
+                        return `${d} días`;
+                    };
+                    let daysLeft = 0, total = 0, label = 'Sin sub', hint = 'Sin suscripción activa';
                     if (sub.status === 'active') {
                         daysLeft = sub.subscription_days_left || 0;
                         total = 30;
-                        label = String(daysLeft);
-                        hint = daysLeft === 0
+                        label = fmtDays(daysLeft);
+                        hint = daysLeft <= 0
                             ? 'Tu suscripción termina hoy'
-                            : `Quedan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de tu suscripción`;
+                            : `Quedan ${label} de tu suscripción`;
                     } else if (sub.status === 'trial' && sub.trial_days_left > 0) {
                         daysLeft = sub.trial_days_left;
                         total = Math.max(daysLeft, sub.trial_days_granted || daysLeft);
-                        label = String(daysLeft);
-                        hint = `Quedan ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de tu prueba gratuita`;
+                        label = fmtDays(daysLeft);
+                        hint = `Quedan ${label} de tu prueba gratuita`;
                     } else if (sub.status === 'expired' || (sub.status === 'trial' && sub.trial_days_left === 0)) {
-                        label = '0';
+                        label = 'Sin sub';
                         hint = 'Se acabó tu suscripción';
                     } else {
-                        label = '—';
+                        label = 'Sin sub';
                         hint = 'No hay suscripción activa';
                     }
                     statEl.textContent = label;
@@ -2497,14 +2681,24 @@ const App = {
     async loadStats() {
         try {
             const profile = await API.getProfile();
+            const cards = [
+                { icon: 'package', color: 'green', value: profile.stats.total_resources, label: 'Publicaciones' },
+                { icon: 'circle-dot', color: 'blue', value: profile.stats.active_resources, label: 'Activas' },
+                { icon: 'handshake', color: 'gold', value: profile.stats.total_agreements, label: 'Acuerdos' },
+                { icon: 'trophy', color: 'gold', value: profile.stats.completed_agreements, label: 'Completados' },
+                { icon: 'star', color: 'gold', value: (profile.reputation_score || 5).toFixed(1), suffix: ' / 5', label: 'Reputación' },
+                { icon: 'users', color: 'blue', value: profile.total_ratings || 0, label: 'Calificaciones' },
+            ];
             document.getElementById('stats-content').innerHTML = `
-                <div class="detail-info-grid">
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="package"></i> Publicaciones</div><div class="detail-info-value">${profile.stats.total_resources}</div></div>
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="check-circle"></i> Activas</div><div class="detail-info-value">${profile.stats.active_resources}</div></div>
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="handshake"></i> Total acuerdos</div><div class="detail-info-value">${profile.stats.total_agreements}</div></div>
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="trophy"></i> Completados</div><div class="detail-info-value">${profile.stats.completed_agreements}</div></div>
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="star"></i> Reputación</div><div class="detail-info-value">${(profile.reputation_score || 5).toFixed(1)} / 5.0</div></div>
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="users"></i> Calificaciones</div><div class="detail-info-value">${profile.total_ratings}</div></div>
+                <div class="stats-grid">
+                    ${cards.map((s, i) => `
+                        <div class="stat-card stat-card-${s.color}" style="animation-delay:${i * 60}ms">
+                            <div class="stat-card-icon"><i data-lucide="${s.icon}"></i></div>
+                            <div class="stat-card-value">${s.value}${s.suffix || ''}</div>
+                            <div class="stat-card-label">${s.label}</div>
+                            <div class="stat-card-deco"></div>
+                        </div>
+                    `).join('')}
                 </div>`;
             lucide.createIcons({ nodes: [document.getElementById('stats-content')] });
         } catch (e) {
