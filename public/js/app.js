@@ -674,6 +674,13 @@ const App = {
     _marketMarkersLayer: null,
     _marketUserMarker: null,
 
+    _openFromMapPopup(id) {
+        if (this._marketMap) {
+            try { this._marketMap.closePopup(); } catch {}
+        }
+        this.showResourceDetail(id);
+    },
+
     async _centerMarketOnUser() {
         if (!this._marketMap) return;
         const btn = document.querySelector('.market-locate-btn');
@@ -822,7 +829,7 @@ const App = {
                     <div class="market-popup-tipo market-popup-tipo-${r.tipo}">${this.TYPE_LABELS[r.tipo] || r.tipo}</div>
                     <strong class="market-popup-title">${this.esc(r.titulo)}</strong>
                     ${r.municipio ? `<div class="market-popup-muni">📍 ${this.esc(r.municipio)}</div>` : ''}
-                    <button class="market-popup-cta" onclick="App.showResourceDetail('${r.id}')">Ver publicación →</button>
+                    <button class="market-popup-cta" onclick="App._openFromMapPopup('${r.id}')">Ver publicación →</button>
                 </div>`;
             marker.bindPopup(popupHtml, { maxWidth: 240, className: 'market-popup-wrap' });
             this._marketMarkersLayer.addLayer(marker);

@@ -1034,25 +1034,113 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 
 .market-list { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px; }
 
-/* Market view toggle (Lista/Mapa) */
-.sort-view-row {
+/* Cat + Sort en una fila (PC y móvil) */
+.filter-row-cat-sort {
     display: flex !important;
     grid-template-columns: none !important;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
-.filter-sort-compact {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 0;
-    max-width: 150px;
-    padding-right: 26px;
+.filter-cat-flex { flex: 1 1 60%; min-width: 0; }
+.filter-sort-flex { flex: 0 0 auto; min-width: 130px; max-width: 170px; }
+@media (max-width: 380px) {
+    .filter-sort-flex { min-width: 110px; max-width: 140px; font-size: 0.75rem; }
 }
-.sort-view-row .view-toggle-group { flex: 0 0 auto; }
-.sort-view-row .clear-filters { margin-left: auto; flex-shrink: 0; }
-@media (max-width: 420px) {
-    .filter-sort-compact { max-width: 130px; font-size: 0.75rem; }
+
+/* Selects bonitos (no grises) */
+.filter-pretty {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: var(--white);
+    background-image: linear-gradient(45deg, transparent 50%, var(--field) 50%),
+                      linear-gradient(135deg, var(--field) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    border: 1.5px solid var(--cream-dark);
+    border-radius: 10px;
+    padding: 9px 32px 9px 12px;
+    color: var(--earth);
+    font-weight: 600;
+    font-size: 0.82rem;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+    box-shadow: 0 2px 6px rgba(44,62,31,0.05);
+    line-height: 1.2;
+}
+.filter-pretty:hover { border-color: var(--field); background-color: var(--cream); }
+.filter-pretty:focus { outline: none; border-color: var(--earth); box-shadow: 0 0 0 3px rgba(44,62,31,0.12); }
+.filter-pretty option { color: var(--text); background: var(--white); padding: 6px; }
+.filter-pretty optgroup {
+    color: var(--earth);
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-style: normal;
+    background: var(--cream);
+}
+
+/* Lista/Mapa centrado debajo */
+.view-toggle-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    position: relative;
+}
+.view-toggle-group-pretty {
+    background: var(--cream);
+    border: 1.5px solid var(--cream-dark);
+    border-radius: 999px;
+    padding: 4px;
+    gap: 0;
+    box-shadow: 0 2px 8px rgba(44,62,31,0.06);
+    display: inline-flex;
+}
+.view-toggle-group-pretty .view-toggle-btn {
+    padding: 8px 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    border-radius: 999px;
+    color: var(--text-muted);
+    transition: all 0.18s;
+    letter-spacing: 0.2px;
+}
+.view-toggle-group-pretty .view-toggle-btn svg { width: 15px; height: 15px; }
+.view-toggle-group-pretty .view-toggle-btn:hover:not(.active) { color: var(--earth); background: rgba(44,62,31,0.04); }
+.view-toggle-group-pretty .view-toggle-btn.active {
+    background: linear-gradient(135deg, var(--earth), var(--earth-mid));
+    color: var(--cream);
+    box-shadow: 0 3px 10px rgba(44,62,31,0.25);
+    transform: translateY(-1px);
+}
+.clear-filters-link {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-family: 'DM Sans', sans-serif;
+}
+.clear-filters-link:hover { color: var(--danger); }
+@media (max-width: 480px) {
+    .clear-filters-link {
+        position: static;
+        transform: none;
+        margin-left: 4px;
+    }
+    .view-toggle-row { flex-wrap: wrap; }
 }
 .market-view-toggle {
     display: flex; align-items: center; justify-content: space-between;
@@ -1320,7 +1408,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .detail-overlay {
     position: fixed;
     inset: 0;
-    z-index: 200;
+    z-index: 1500;
     background: var(--cream);
     overflow-y: auto;
     animation: slideUp 0.35s cubic-bezier(0.16,1,0.3,1);
