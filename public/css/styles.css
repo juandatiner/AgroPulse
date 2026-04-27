@@ -2642,23 +2642,35 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     }
 
     /* Reservar espacio para sticky ad arriba del tab-bar + pequeño respiro arriba */
-    .app-content { padding-bottom: 140px; padding-top: 4px; }
+    .app-content { padding-bottom: 130px; padding-top: 4px; }
 
-    /* Promo banner: ocultar texto a la izquierda del icono y reducir precios */
+    /* Sticky ad pegado a la tab-bar (sin hueco entre ambas) */
+    .sub-ads-sticky { bottom: 60px !important; left: 0 !important; right: 0 !important; border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+
+    /* Promo banner: ocultar countdown a la izquierda y figuras decorativas que roban espacio */
     .promo-banner-countdown,
     .promo-banner-sep { display: none; }
     .promo-grab { display: none; }
-    .promo-banner { padding: 8px 8px; gap: 4px; }
-    .promo-banner-inner { font-size: 0.7rem; gap: 4px; }
-    .promo-banner-text {
-        overflow: visible;
-        text-overflow: clip;
-        white-space: normal;
+    .promo-banner-figs { display: none; }
+    .promo-banner { padding: 6px 8px; gap: 4px; }
+    .promo-banner-inner {
+        font-size: 0.72rem;
+        gap: 4px;
         flex: 1 1 auto;
-        line-height: 1.2;
+        min-width: 0;
+        flex-wrap: nowrap;
     }
-    .promo-banner-text > * { white-space: normal; }
-    .promo-rotator { font-size: 0.7rem; margin: 0 2px; }
+    .promo-banner-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.72rem;
+        color: var(--earth);
+    }
+    .promo-banner-text > * { white-space: nowrap; }
+    .promo-rotator { font-size: 0.72rem; margin: 0 2px; }
     .promo-rotator s { display: none; }
     .promo-tag {
         font-size: 0.6rem;
@@ -2670,6 +2682,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
         padding: 4px 7px;
         font-size: 0.68rem;
         gap: 2px;
+        flex-shrink: 0;
     }
     .promo-banner-cta svg { width: 11px; height: 11px; }
     .promo-banner-close { width: 22px; height: 22px; }
