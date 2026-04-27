@@ -160,12 +160,14 @@ export async function GET(request: Request) {
       {
         $project: {
           tipo: 1, titulo: 1, descripcion: 1, categoria: 1, municipio: 1,
+          latitude: 1, longitude: 1,
           image_data: 1, status: 1, scheduled_at: 1, deactivation_scheduled_at: 1,
           location_notes: 1, created_at: 1, user_id: 1,
           user_nombre: '$_user.nombre',
           user_apellido: '$_user.apellido',
           user_municipio: '$_user.municipio',
           user_reputation: '$_user.reputation_score',
+          user_verified: '$_user.verified',
         },
       },
     ]
@@ -178,6 +180,8 @@ export async function GET(request: Request) {
       descripcion: d.descripcion,
       categoria: d.categoria,
       municipio: d.municipio,
+      latitude: d.latitude ?? null,
+      longitude: d.longitude ?? null,
       image_data: d.image_data || '',
       status: d.status,
       scheduled_at: d.scheduled_at instanceof Date ? d.scheduled_at.toISOString() : d.scheduled_at ?? null,

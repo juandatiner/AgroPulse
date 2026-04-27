@@ -913,6 +913,22 @@ const Subscription = {
     },
 
     // ========== Matches (pro) ==========
+    _matchTypeLabels: { oferta: 'Oferta', solicitud: 'Solicitud', prestamo: 'Préstamo', trueque: 'Trueque' },
+    _matchTypeIcons: { oferta: 'package-check', solicitud: 'hand', prestamo: 'key', trueque: 'repeat' },
+
+    _matchTimeAgo(iso) {
+        if (!iso) return '';
+        const ms = Date.now() - new Date(iso).getTime();
+        const m = Math.floor(ms / 60000);
+        if (m < 1) return 'ahora';
+        if (m < 60) return `hace ${m} min`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `hace ${h} h`;
+        const d = Math.floor(h / 24);
+        if (d < 7) return `hace ${d} ${d === 1 ? 'día' : 'días'}`;
+        return new Date(iso).toLocaleDateString();
+    },
+
     async openMatches() {
         if (!this.isPro()) {
             this.openPaywall('Las alertas inteligentes cruzan tus publicaciones con las de otros productores. Disponibles solo en el plan Pro.');
@@ -921,42 +937,100 @@ const Subscription = {
         this._openOverlay('matches-overlay', `
             <div class="matches-overlay-inner">
                 <button class="plans-close" onclick="Subscription._closeOverlay('matches-overlay')"><i data-lucide="x"></i></button>
-                <h2><i data-lucide="bell-ring"></i> Alertas de match</h2>
-                <p class="matches-intro">Otras publicaciones que coinciden con las tuyas por categoría y municipio</p>
-                <div id="matches-list" class="matches-list"><div class="skeleton-card skeleton"></div></div>
+                <div class="matches-header">
+                    <div class="matches-title-row">
+                        <div class="matches-icon-wrap"><i data-lucide="bell-ring"></i></div>
+                        <div>
+                            <h2>Alertas de match</h2>
+                            <p class="matches-intro">Cruzamos tus publicaciones con las de otros: ofertas ↔ solicitudes, préstamos y trueques que coinciden por categoría y municipio.</p>
+                        </div>
+                    </div>
+                    <div class="matches-filter-row" id="matches-filter-row" style="display:none">
+                        <button class="match-filter-chip active" data-mfilter="todos" onclick="Subscription.setMatchFilter('todos')">Todos <span class="match-filter-count" data-count="todos">0</span></button>
+                        <button class="match-filter-chip" data-mfilter="oferta" onclick="Subscription.setMatchFilter('oferta')"><i data-lucide="package-check"></i> Ofertas <span class="match-filter-count" data-count="oferta">0</span></button>
+                        <button class="match-filter-chip" data-mfilter="solicitud" onclick="Subscription.setMatchFilter('solicitud')"><i data-lucide="hand"></i> Solicitudes <span class="match-filter-count" data-count="solicitud">0</span></button>
+                        <button class="match-filter-chip" data-mfilter="prestamo" onclick="Subscription.setMatchFilter('prestamo')"><i data-lucide="key"></i> Préstamos <span class="match-filter-count" data-count="prestamo">0</span></button>
+                        <button class="match-filter-chip" data-mfilter="trueque" onclick="Subscription.setMatchFilter('trueque')"><i data-lucide="repeat"></i> Trueques <span class="match-filter-count" data-count="trueque">0</span></button>
+                    </div>
+                </div>
+                <div id="matches-list" class="matches-list"><div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div></div>
             </div>
         `);
         try {
             const matches = await API.getMatches();
-            const list = document.getElementById('matches-list');
-            if (!matches.length) {
-                list.innerHTML = `<div class="empty-state">
-                    <i data-lucide="inbox"></i>
-                    <p>Aún no hay coincidencias. Sigue publicando para generar matches.</p>
-                </div>`;
-            } else {
-                list.innerHTML = matches.map(m => `
-                    <div class="match-card">
-                        <div class="match-head">
-                            <span class="match-tipo ${m.match_tipo}">${m.match_tipo}</span>
-                            <small>${m.match_municipio || ''}</small>
-                        </div>
-                        <strong>${this._esc(m.match_titulo)}</strong>
-                        <p>${this._esc((m.match_descripcion || '').slice(0, 140))}</p>
-                        <div class="match-foot">
-                            <span>Publicado por ${this._esc(m.match_user_nombre || '')} ${this._esc(m.match_user_apellido || '')} ${m.match_user_verified ? '<i data-lucide="badge-check" class="verified-inline"></i>' : ''}</span>
-                            <button class="btn btn-outline btn-sm" onclick="Subscription._closeOverlay('matches-overlay'); App.showResourceDetail('${m.match_id}')">
-                                Ver publicación
-                            </button>
-                        </div>
-                        <div class="match-hint">↔ coincide con tu publicación "<em>${this._esc(m.my_resource_titulo)}</em>"</div>
-                    </div>
-                `).join('');
-            }
-            if (window.lucide) lucide.createIcons();
+            this._matchesCache = matches;
+            this._matchFilter = 'todos';
+            this._renderMatches();
         } catch (e) {
             App.showToast(e.message || 'Error al cargar matches', 'error');
         }
+    },
+
+    setMatchFilter(f) {
+        this._matchFilter = f;
+        document.querySelectorAll('.match-filter-chip').forEach(b => b.classList.toggle('active', b.dataset.mfilter === f));
+        this._renderMatches();
+    },
+
+    _renderMatches() {
+        const list = document.getElementById('matches-list');
+        if (!list) return;
+        const all = this._matchesCache || [];
+
+        // Counts per type
+        const counts = { todos: all.length, oferta: 0, solicitud: 0, prestamo: 0, trueque: 0 };
+        all.forEach(m => { counts[m.match_tipo] = (counts[m.match_tipo] || 0) + 1; });
+        const filterRow = document.getElementById('matches-filter-row');
+        if (filterRow) {
+            filterRow.style.display = all.length ? 'flex' : 'none';
+            filterRow.querySelectorAll('.match-filter-count').forEach(el => {
+                el.textContent = counts[el.dataset.count] || 0;
+            });
+        }
+
+        const f = this._matchFilter || 'todos';
+        const filtered = f === 'todos' ? all : all.filter(m => m.match_tipo === f);
+
+        if (!all.length) {
+            list.innerHTML = `<div class="empty-state matches-empty">
+                <i data-lucide="bell-off"></i>
+                <h3>Sin coincidencias todavía</h3>
+                <p>Publica más recursos para generar matches automáticos. Cruzamos tu categoría y municipio con otras publicaciones activas.</p>
+                <button class="btn btn-primary btn-sm" onclick="Subscription._closeOverlay('matches-overlay'); App.switchTab('publicar')"><i data-lucide="plus"></i> Publicar recurso</button>
+            </div>`;
+        } else if (!filtered.length) {
+            list.innerHTML = `<div class="empty-state matches-empty">
+                <i data-lucide="filter"></i>
+                <p>Sin matches de este tipo</p>
+            </div>`;
+        } else {
+            list.innerHTML = filtered.map(m => {
+                const typeLbl = this._matchTypeLabels[m.match_tipo] || m.match_tipo;
+                const typeIcon = this._matchTypeIcons[m.match_tipo] || 'package';
+                const ago = this._matchTimeAgo(m.match_created_at);
+                const repu = (m.match_user_reputation || 5).toFixed(1);
+                const desc = (m.match_descripcion || '').trim();
+                const verified = m.match_user_verified ? '<i data-lucide="badge-check" class="verified-inline"></i>' : '';
+                return `
+                <div class="match-card match-card-${m.match_tipo}" onclick="Subscription._closeOverlay('matches-overlay'); App.showResourceDetail('${m.match_id}')">
+                    <div class="match-card-top">
+                        <span class="match-tipo-pill match-tipo-${m.match_tipo}"><i data-lucide="${typeIcon}"></i> ${typeLbl}</span>
+                        ${m.match_municipio ? `<span class="match-muni"><i data-lucide="map-pin"></i> ${this._esc(m.match_municipio)}</span>` : ''}
+                        <span class="match-ago">${ago}</span>
+                    </div>
+                    <h4 class="match-title">${this._esc(m.match_titulo)}</h4>
+                    ${desc ? `<p class="match-desc">${this._esc(desc.slice(0, 160))}${desc.length > 160 ? '…' : ''}</p>` : ''}
+                    <div class="match-meta-row">
+                        <span class="match-author"><i data-lucide="user"></i> ${this._esc(m.match_user_nombre || '')} ${verified}<span class="match-rating">⭐ ${repu}</span></span>
+                    </div>
+                    <div class="match-hint">↔ coincide con tu publicación "<em>${this._esc(m.my_resource_titulo)}</em>"</div>
+                    <button class="btn btn-primary btn-sm match-cta" onclick="event.stopPropagation(); Subscription._closeOverlay('matches-overlay'); App.showResourceDetail('${m.match_id}')">
+                        Ver publicación <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+        if (window.lucide) lucide.createIcons();
     },
 
     // ========== Support ==========

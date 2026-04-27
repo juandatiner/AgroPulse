@@ -559,10 +559,6 @@ const App = {
                 <h4>${this.esc(r.titulo)}</h4>
                 <p>${this.esc(r.descripcion)}</p>
                 <div class="resource-card-meta">
-                    <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
-                        <i data-lucide="user"></i> ${this.esc(r.user_nombre)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}
-                        <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
-                    </span>
                     ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
                 </div>
             </div>
@@ -571,9 +567,26 @@ const App = {
     },
 
     // ===== MARKETPLACE =====
+    currentMarketView: 'list',
+
+    setMarketView(v) {
+        if (v !== 'list' && v !== 'map') v = 'list';
+        this.currentMarketView = v;
+        document.getElementById('view-toggle-list')?.classList.toggle('active', v === 'list');
+        document.getElementById('view-toggle-map')?.classList.toggle('active', v === 'map');
+        const list = document.getElementById('market-list');
+        const mapWrap = document.getElementById('market-map-wrap');
+        if (list) list.style.display = v === 'list' ? '' : 'none';
+        if (mapWrap) mapWrap.style.display = v === 'map' ? '' : 'none';
+        this.loadMarket();
+    },
+
     async loadMarket() {
+        const isMap = this.currentMarketView === 'map';
         const container = document.getElementById('market-list');
-        container.innerHTML = '<div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div>';
+        if (!isMap) {
+            container.innerHTML = '<div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div>';
+        }
         try {
             const params = { exclude_user: API.user?.id };
             if (this.currentFilter !== 'todos') {
@@ -591,6 +604,12 @@ const App = {
 
             const resources = await API.getResources(params);
             document.getElementById('results-count').textContent = `${resources.length} publicacion${resources.length !== 1 ? 'es' : ''}`;
+
+            if (isMap) {
+                this.renderMarketMap(resources);
+                return;
+            }
+
             if (resources.length === 0) {
                 container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
                     <i data-lucide="compass"></i>
@@ -626,7 +645,75 @@ const App = {
                 : marketItems.join('');
             lucide.createIcons({ nodes: [container] });
         } catch (e) {
-            container.innerHTML = '<div class="empty-state"><p>Error al cargar</p></div>';
+            if (!isMap) container.innerHTML = '<div class="empty-state"><p>Error al cargar</p></div>';
+        }
+    },
+
+    _marketMap: null,
+    _marketMarkersLayer: null,
+
+    renderMarketMap(resources) {
+        const wrap = document.getElementById('market-map-wrap');
+        const mapEl = document.getElementById('market-map');
+        const hint = document.getElementById('market-map-hint');
+        if (!wrap || !mapEl || typeof L === 'undefined') return;
+
+        const withCoords = (resources || []).filter(r => r.latitude != null && r.longitude != null);
+
+        if (!this._marketMap) {
+            // Default to Boyacá centroid (~5.45, -73.36)
+            this._marketMap = L.map(mapEl, { zoomControl: true, scrollWheelZoom: true }).setView([5.45, -73.36], 9);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19, attribution: '© OpenStreetMap',
+            }).addTo(this._marketMap);
+            this._marketMarkersLayer = L.layerGroup().addTo(this._marketMap);
+            setTimeout(() => this._marketMap && this._marketMap.invalidateSize(), 150);
+        } else {
+            this._marketMarkersLayer.clearLayers();
+            setTimeout(() => this._marketMap && this._marketMap.invalidateSize(), 50);
+        }
+
+        if (hint) hint.style.display = withCoords.length === 0 ? 'flex' : 'none';
+
+        if (!withCoords.length) {
+            if (hint && window.lucide) lucide.createIcons({ nodes: [hint] });
+            return;
+        }
+
+        const colorMap = { oferta: '#27ae60', solicitud: '#2980b9', prestamo: '#c8962a', trueque: '#7a9a3c' };
+        const iconHtml = (tipo) => {
+            const color = colorMap[tipo] || '#5a4a3a';
+            return `<div class="market-pin" style="background:${color}"><span class="market-pin-inner"></span></div>`;
+        };
+
+        const bounds = [];
+        withCoords.forEach(r => {
+            const lat = +r.latitude;
+            const lng = +r.longitude;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            const icon = L.divIcon({
+                className: 'market-pin-wrap',
+                html: iconHtml(r.tipo),
+                iconSize: [22, 22],
+                iconAnchor: [11, 11],
+            });
+            const marker = L.marker([lat, lng], { icon });
+            const popupHtml = `
+                <div class="market-popup">
+                    <div class="market-popup-tipo market-popup-tipo-${r.tipo}">${this.TYPE_LABELS[r.tipo] || r.tipo}</div>
+                    <strong class="market-popup-title">${this.esc(r.titulo)}</strong>
+                    ${r.municipio ? `<div class="market-popup-muni">📍 ${this.esc(r.municipio)}</div>` : ''}
+                    <button class="market-popup-cta" onclick="App.showResourceDetail('${r.id}')">Ver publicación →</button>
+                </div>`;
+            marker.bindPopup(popupHtml, { maxWidth: 240, className: 'market-popup-wrap' });
+            this._marketMarkersLayer.addLayer(marker);
+            bounds.push([lat, lng]);
+        });
+
+        if (bounds.length === 1) {
+            this._marketMap.setView(bounds[0], 13);
+        } else if (bounds.length > 1) {
+            this._marketMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         }
     },
 

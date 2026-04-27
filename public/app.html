@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=44">
+    <link rel="stylesheet" href="/css/styles.css?v=45">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
@@ -352,8 +352,24 @@
                     </div>
                 </div>
             </div>
-            <div class="results-count"><span id="results-count">0 publicaciones</span></div>
+            <div class="market-view-toggle">
+                <div class="results-count"><span id="results-count">0 publicaciones</span></div>
+                <div class="view-toggle-group" role="tablist" aria-label="Vista">
+                    <button id="view-toggle-list" class="view-toggle-btn active" onclick="App.setMarketView('list')" aria-label="Vista lista"><i data-lucide="list"></i> Lista</button>
+                    <button id="view-toggle-map" class="view-toggle-btn" onclick="App.setMarketView('map')" aria-label="Vista mapa"><i data-lucide="map"></i> Mapa</button>
+                </div>
+            </div>
             <div class="market-list" id="market-list"></div>
+            <div class="market-map-wrap" id="market-map-wrap" style="display:none">
+                <div class="market-map-legend">
+                    <span class="legend-item"><span class="legend-dot legend-dot-oferta"></span> Ofertas</span>
+                    <span class="legend-item"><span class="legend-dot legend-dot-solicitud"></span> Solicitudes</span>
+                    <span class="legend-item"><span class="legend-dot legend-dot-prestamo"></span> Préstamos</span>
+                    <span class="legend-item"><span class="legend-dot legend-dot-trueque"></span> Trueques</span>
+                </div>
+                <div id="market-map" class="market-map"></div>
+                <p class="market-map-hint" id="market-map-hint" style="display:none"><i data-lucide="map-pin-off"></i> Ninguna publicación tiene ubicación con estos filtros.</p>
+            </div>
         </div>
 
         <!-- PUBLISH -->
@@ -695,8 +711,8 @@
 <script src="/js/api.js?v=4"></script>
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=7"></script>
-<script src="/js/subscription.js?v=24"></script>
-<script src="/js/app.js?v=22"></script>
+<script src="/js/subscription.js?v=25"></script>
+<script src="/js/app.js?v=23"></script>
 <script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
