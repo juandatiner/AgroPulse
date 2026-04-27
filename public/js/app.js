@@ -74,6 +74,15 @@ const App = {
         } catch {}
         history.replaceState({ type: 'tab', tab: initialTab }, '');
         window.addEventListener('popstate', e => this.handlePopState(e));
+        let _resizeT;
+        window.addEventListener('resize', () => {
+            clearTimeout(_resizeT);
+            _resizeT = setTimeout(() => {
+                if (this._recentResourcesCache) {
+                    this.renderResourceScroll('recent-resources', this._recentResourcesCache);
+                }
+            }, 150);
+        });
         this.switchTab(initialTab);
         Chat.startGlobalPolling();
         this.updateNavAvatar();
@@ -420,7 +429,8 @@ const App = {
                 API.getProfile()
             ]);
 
-            this.renderResourceScroll('recent-resources', otherResources.slice(0, 8));
+            this._recentResourcesCache = otherResources || [];
+            this.renderResourceScroll('recent-resources', this._recentResourcesCache);
             this._myResourcesCache = myResources || [];
             this.renderMyResources('my-resources', this._myResourcesCache);
         } catch (e) {
@@ -524,7 +534,16 @@ const App = {
             lucide.createIcons({ nodes: [container] });
             return;
         }
-        container.innerHTML = resources.map(r => `
+        const cs = getComputedStyle(container);
+        const padL = parseFloat(cs.paddingLeft) || 0;
+        const padR = parseFloat(cs.paddingRight) || 0;
+        const gap = parseFloat(cs.columnGap || cs.gap) || 12;
+        const innerW = container.clientWidth - padL - padR;
+        const isMobile = window.matchMedia('(max-width: 520px)').matches;
+        const cardW = isMobile ? 210 : 260;
+        let fit = Math.max(1, Math.floor((innerW + gap) / (cardW + gap)));
+        const visible = resources.slice(0, fit);
+        container.innerHTML = visible.map(r => `
             <div class="resource-card" onclick="App.showResourceDetail('${r.id}')">
                 <div class="resource-card-header">
                     <div class="resource-card-icon ${r.tipo}">
@@ -2073,12 +2092,14 @@ const App = {
     },
 
     updateAgreementTabs(all) {
-        const counts = { pending: 0, active: 0, completed: 0, cancelled: 0 };
-        all.forEach(a => { if (counts[a.status] !== undefined) counts[a.status]++; });
         document.querySelectorAll('.status-tab .count').forEach(el => {
             const status = el.parentElement.dataset.status;
-            if (status === 'todos') el.textContent = all.length;
-            else el.textContent = counts[status] || 0;
+            if (status === 'todos') {
+                el.textContent = all.length;
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
         });
     },
 

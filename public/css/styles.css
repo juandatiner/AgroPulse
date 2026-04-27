@@ -841,9 +841,7 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     display: flex;
     gap: 12px;
     padding: 0 20px 20px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     scrollbar-width: none;
 }
 .resource-scroll .empty-state, .resource-scroll .empty-state-compact { width: 100%; }

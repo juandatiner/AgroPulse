@@ -51,7 +51,7 @@ const Chat = {
             const rated = isProvider ? a.rating_provider : a.rating_requester;
             const rateBtn = rated
                 ? `<span style="font-size:0.78rem;color:var(--text-muted)"><i data-lucide="star"></i> Calificado ${rated}/5</span>`
-                : `<button class="btn btn-earth btn-xs" onclick="App.showRating('${a.id}')"><i data-lucide="star"></i> Calificar</button>`;
+                : `<button class="btn btn-earth btn-xs" onclick="Chat.closeChat();App.showRating('${a.id}')"><i data-lucide="star"></i> Calificar</button>`;
             html = `<div class="csb-info csb-done"><i data-lucide="check-circle"></i> <span>¡Servicio completado!</span></div>
                     <div class="csb-actions">${rateBtn}</div>`;
         } else if (a.status === 'cancelled' || a.status === 'rejected') {
