@@ -540,8 +540,13 @@ const App = {
         const gap = parseFloat(cs.columnGap || cs.gap) || 12;
         const innerW = container.clientWidth - padL - padR;
         const isMobile = window.matchMedia('(max-width: 520px)').matches;
-        const cardW = isMobile ? 210 : 260;
-        let fit = Math.max(1, Math.floor((innerW + gap) / (cardW + gap)));
+        let fit;
+        if (isMobile) {
+            fit = 4;
+        } else {
+            const cardW = 260;
+            fit = Math.max(1, Math.floor((innerW + gap) / (cardW + gap)));
+        }
         const visible = resources.slice(0, fit);
         container.innerHTML = visible.map(r => `
             <div class="resource-card" onclick="App.showResourceDetail('${r.id}')">

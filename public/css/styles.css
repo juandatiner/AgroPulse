@@ -2641,14 +2641,39 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
         width: auto;
     }
 
+    /* Reservar espacio para sticky ad arriba del tab-bar + pequeño respiro arriba */
+    .app-content { padding-bottom: 140px; padding-top: 4px; }
+
     /* Promo banner: ocultar texto a la izquierda del icono y reducir precios */
     .promo-banner-countdown,
     .promo-banner-sep { display: none; }
-    .promo-rotator { font-size: 0.78rem; }
-    .promo-tag { font-size: 0.66rem; padding: 2px 7px; margin-right: 4px; }
     .promo-grab { display: none; }
-    .promo-banner { padding: 10px 12px; gap: 6px; }
-    .promo-banner-cta { padding: 5px 9px; font-size: 0.78rem; }
+    .promo-banner { padding: 8px 8px; gap: 4px; }
+    .promo-banner-inner { font-size: 0.7rem; gap: 4px; }
+    .promo-banner-text {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        flex: 1 1 auto;
+        line-height: 1.2;
+    }
+    .promo-banner-text > * { white-space: normal; }
+    .promo-rotator { font-size: 0.7rem; margin: 0 2px; }
+    .promo-rotator s { display: none; }
+    .promo-tag {
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        margin-right: 3px;
+        letter-spacing: 0;
+    }
+    .promo-banner-cta {
+        padding: 4px 7px;
+        font-size: 0.68rem;
+        gap: 2px;
+    }
+    .promo-banner-cta svg { width: 11px; height: 11px; }
+    .promo-banner-close { width: 22px; height: 22px; }
+    .promo-banner-close svg { width: 11px; height: 11px; }
 }
 
 /* ===== TOUR / TUTORIAL ===== */
