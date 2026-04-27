@@ -14,6 +14,7 @@ const Subscription = {
             this.renderAds();
             this.updateVerifiedBadge();
             this._updateAdTop();
+            if (typeof App !== 'undefined' && App.updateMapLockUI) App.updateMapLockUI();
             return this.state;
         } catch (e) {
             return null;
@@ -590,6 +591,7 @@ const Subscription = {
 
         const basicFeatures = [
             { text: 'Publicaciones ilimitadas', ok: true },
+            { text: 'Vista mapa de publicaciones', ok: true },
             { text: 'Sin anuncios', ok: false },
             { text: 'Alertas de match inteligente', ok: false },
             { text: 'Chat con fotos y ubicación', ok: false },
@@ -598,6 +600,7 @@ const Subscription = {
         ];
         const proFeatures = [
             { text: 'Publicaciones ilimitadas', ok: true },
+            { text: 'Vista mapa de publicaciones', ok: true },
             { text: 'Sin anuncios', ok: true },
             { text: 'Alertas de match inteligente', ok: true },
             { text: 'Chat con fotos y ubicación', ok: true },

@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=45">
+    <link rel="stylesheet" href="/css/styles.css?v=47">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
     <meta name="theme-color" content="#2C3E1F">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -333,13 +336,40 @@
                     </div>
                     <div class="filter-row">
                         <select id="filter-cat" class="filter-select" onchange="App.setCatFilter(this.value)">
-                            <option value="">Categoría</option>
-                            <option>Herramientas y maquinaria</option>
-                            <option>Semillas e insumos</option>
-                            <option>Fertilizantes y abonos</option>
-                            <option>Mano de obra</option>
-                            <option>Ganadería</option>
-                            <option>Excedentes de producción</option>
+                            <option value="">Todas las categorías</option>
+                            <optgroup label="Herramientas y equipos">
+                                <option>Herramientas y maquinaria</option>
+                                <option>Riego y sistemas de agua</option>
+                                <option>Energía (solar, generadores)</option>
+                                <option>Transporte y logística</option>
+                                <option>Empaque y almacenamiento</option>
+                            </optgroup>
+                            <optgroup label="Insumos agrícolas">
+                                <option>Semillas e insumos</option>
+                                <option>Fertilizantes y abonos</option>
+                                <option>Compost y abono orgánico</option>
+                                <option>Control de plagas</option>
+                                <option>Viveros y plántulas</option>
+                            </optgroup>
+                            <optgroup label="Producción">
+                                <option>Frutas y verduras</option>
+                                <option>Granos y cereales</option>
+                                <option>Hortalizas</option>
+                                <option>Tubérculos</option>
+                                <option>Ganadería</option>
+                                <option>Aves de corral</option>
+                                <option>Productos lácteos</option>
+                                <option>Miel y apicultura</option>
+                                <option>Excedentes de producción</option>
+                                <option>Cosecha y postcosecha</option>
+                            </optgroup>
+                            <optgroup label="Servicios y conocimiento">
+                                <option>Mano de obra</option>
+                                <option>Asesoría técnica</option>
+                                <option>Capacitación y cursos</option>
+                                <option>Tierra en arriendo</option>
+                            </optgroup>
+                            <option>Otros recursos</option>
                         </select>
                         <select id="filter-mun" class="filter-select" style="display:none"></select>
                     </div>
@@ -356,7 +386,7 @@
                 <div class="results-count"><span id="results-count">0 publicaciones</span></div>
                 <div class="view-toggle-group" role="tablist" aria-label="Vista">
                     <button id="view-toggle-list" class="view-toggle-btn active" onclick="App.setMarketView('list')" aria-label="Vista lista"><i data-lucide="list"></i> Lista</button>
-                    <button id="view-toggle-map" class="view-toggle-btn" onclick="App.setMarketView('map')" aria-label="Vista mapa"><i data-lucide="map"></i> Mapa</button>
+                    <button id="view-toggle-map" class="view-toggle-btn" onclick="App.setMarketView('map')" aria-label="Vista mapa" title="Vista mapa"><i data-lucide="map"></i> Mapa <i data-lucide="lock" class="view-toggle-lock"></i></button>
                 </div>
             </div>
             <div class="market-list" id="market-list"></div>
@@ -711,8 +741,8 @@
 <script src="/js/api.js?v=4"></script>
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=7"></script>
-<script src="/js/subscription.js?v=25"></script>
-<script src="/js/app.js?v=23"></script>
+<script src="/js/subscription.js?v=26"></script>
+<script src="/js/app.js?v=25"></script>
 <script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

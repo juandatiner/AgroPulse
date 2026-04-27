@@ -1062,6 +1062,10 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
 .view-toggle-btn svg { width: 14px; height: 14px; }
 .view-toggle-btn.active { background: var(--earth); color: var(--cream); }
 .view-toggle-btn:hover:not(.active) { color: var(--earth); }
+.view-toggle-lock { display: none; width: 12px !important; height: 12px !important; opacity: 0.85; margin-left: 2px; }
+.view-toggle-btn.view-toggle-locked { color: var(--text-muted); opacity: 0.85; }
+.view-toggle-btn.view-toggle-locked .view-toggle-lock { display: inline-block; }
+.view-toggle-btn.view-toggle-locked:hover { color: var(--harvest); }
 
 /* Market map */
 .market-map-wrap {
@@ -1124,6 +1128,40 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     background: rgba(255,255,255,0.85);
     border-radius: 50%;
 }
+
+/* Cluster bubbles (overrides MarkerCluster.Default.css) */
+.marker-cluster, .marker-cluster div {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.market-cluster-wrap { background: transparent !important; border: none !important; }
+.market-cluster {
+    border-radius: 50%;
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.32);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 800;
+    transition: transform 0.15s;
+}
+.market-cluster:hover { transform: scale(1.08); }
+.market-cluster::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: inherit;
+    opacity: 0.25;
+    z-index: -1;
+}
+.market-cluster-count {
+    font-size: 0.95rem;
+    line-height: 1;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.market-cluster-wrap { position: relative; }
 
 /* Popup */
 .leaflet-popup-content-wrapper.market-popup-wrap,

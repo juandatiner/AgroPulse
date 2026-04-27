@@ -126,7 +126,7 @@ const App = {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
         if (tab === 'inicio') this.loadHome();
-        if (tab === 'mercado') this.loadMarket();
+        if (tab === 'mercado') { this.updateMapLockUI(); this.loadMarket(); }
         if (tab === 'publicar' && !this._editingResourceId) this.initPublishForm();
         if (tab === 'intercambios') this.loadAgreements();
         if (tab === 'perfil') this.loadProfile();
@@ -569,8 +569,29 @@ const App = {
     // ===== MARKETPLACE =====
     currentMarketView: 'list',
 
+    _canUseMap() {
+        const s = (typeof Subscription !== 'undefined') ? Subscription.state : null;
+        if (!s) return false;
+        // Solo planes pagados (basic o pro). Trial / expired / cancelled / none → bloqueado.
+        return s.status === 'active' && (s.plan_tier === 'basic' || s.plan_tier === 'pro');
+    },
+
+    updateMapLockUI() {
+        const btn = document.getElementById('view-toggle-map');
+        if (!btn) return;
+        const locked = !this._canUseMap();
+        btn.classList.toggle('view-toggle-locked', locked);
+        btn.title = locked ? 'Vista mapa — requiere suscripción Básico o Pro' : 'Vista mapa';
+    },
+
     setMarketView(v) {
         if (v !== 'list' && v !== 'map') v = 'list';
+        if (v === 'map' && !this._canUseMap()) {
+            if (typeof Subscription !== 'undefined' && Subscription.openPaywall) {
+                Subscription.openPaywall('La vista de mapa requiere suscripción Básico o Pro. Suscríbete para ver todas las publicaciones en el mapa con filtros y pines por tipo.');
+            }
+            return;
+        }
         this.currentMarketView = v;
         document.getElementById('view-toggle-list')?.classList.toggle('active', v === 'list');
         document.getElementById('view-toggle-map')?.classList.toggle('active', v === 'map');
@@ -666,7 +687,33 @@ const App = {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19, attribution: '© OpenStreetMap',
             }).addTo(this._marketMap);
-            this._marketMarkersLayer = L.layerGroup().addTo(this._marketMap);
+            const useCluster = typeof L.markerClusterGroup === 'function';
+            this._marketMarkersLayer = useCluster
+                ? L.markerClusterGroup({
+                    showCoverageOnHover: false,
+                    spiderfyOnMaxZoom: true,
+                    zoomToBoundsOnClick: true,
+                    maxClusterRadius: 50,
+                    spiderLegPolylineOptions: { weight: 1.5, color: '#5a4a3a', opacity: 0.6 },
+                    iconCreateFunction: (cluster) => {
+                        const markers = cluster.getAllChildMarkers();
+                        const counts = { oferta: 0, solicitud: 0, prestamo: 0, trueque: 0 };
+                        markers.forEach(m => { const t = m.options._tipo; if (t) counts[t] = (counts[t] || 0) + 1; });
+                        const total = cluster.getChildCount();
+                        const dominant = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+                        const colorMap = { oferta: '#27ae60', solicitud: '#2980b9', prestamo: '#c8962a', trueque: '#7a9a3c' };
+                        const color = colorMap[dominant] || '#5a4a3a';
+                        const size = total < 10 ? 36 : total < 50 ? 42 : total < 100 ? 48 : 54;
+                        return L.divIcon({
+                            className: 'market-cluster-wrap',
+                            html: `<div class="market-cluster" style="background:${color};width:${size}px;height:${size}px"><span class="market-cluster-count">${total}</span></div>`,
+                            iconSize: [size, size],
+                            iconAnchor: [size / 2, size / 2],
+                        });
+                    },
+                })
+                : L.layerGroup();
+            this._marketMarkersLayer.addTo(this._marketMap);
             setTimeout(() => this._marketMap && this._marketMap.invalidateSize(), 150);
         } else {
             this._marketMarkersLayer.clearLayers();
@@ -697,7 +744,7 @@ const App = {
                 iconSize: [22, 22],
                 iconAnchor: [11, 11],
             });
-            const marker = L.marker([lat, lng], { icon });
+            const marker = L.marker([lat, lng], { icon, _tipo: r.tipo });
             const popupHtml = `
                 <div class="market-popup">
                     <div class="market-popup-tipo market-popup-tipo-${r.tipo}">${this.TYPE_LABELS[r.tipo] || r.tipo}</div>
