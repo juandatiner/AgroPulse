@@ -107,7 +107,7 @@ const Subscription = {
             </div>
             <div class="promo-banner-inner">
                 <span class="promo-banner-text">${countdown ? `<span class="promo-banner-countdown">${countdown}</span>` : ''}${mainText}</span>
-                <button class="promo-banner-cta">${ctaText} <i data-lucide="chevron-right"></i></button>
+                <button class="promo-banner-cta"><span class="promo-banner-cta-label">${ctaText}</span> <i data-lucide="chevron-right"></i></button>
             </div>
             ${closeBtn}
         `;

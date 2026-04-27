@@ -9,6 +9,16 @@ const Admin = (() => {
   let _refreshTimer = null;
   let _modalOpen = false;
 
+  /* ── DOM helper ── */
+  function setHtmlIfChanged(el, html) {
+    if (!el) return false;
+    if (el.innerHTML !== html) {
+      el.innerHTML = html;
+      return true;
+    }
+    return false;
+  }
+
   /* ── Token ── */
   function getToken() { return _token; }
   function setToken(t) {
@@ -77,7 +87,7 @@ const Admin = (() => {
     loadCurrentTab();
   }
 
-  function loadCurrentTab() {
+  function loadCurrentTab(silent = false) {
     const loaders = {
       dashboard: loadStats,
       users: loadUsers,
@@ -88,7 +98,7 @@ const Admin = (() => {
       config: loadConfig,
     };
     const fn = loaders[_currentTab];
-    if (fn) fn();
+    if (fn) fn(silent);
     refreshSupportBadge();
   }
 
@@ -96,8 +106,8 @@ const Admin = (() => {
   function startAutoRefresh() {
     stopAutoRefresh();
     _refreshInterval = setInterval(() => {
-      if (!_modalOpen) loadCurrentTab();
-    }, 8000);
+      if (!_modalOpen) loadCurrentTab(true);
+    }, 12000);
     startRefreshTimer();
   }
 
@@ -142,67 +152,73 @@ const Admin = (() => {
   }
 
   /* ── Dashboard ── */
-  async function loadStats() {
+  async function loadStats(silent = false) {
     try {
       const d = await apiFetch('/api/admin/stats');
       markRefreshed();
 
-      document.getElementById('stat-online').textContent = d.users_online;
-      document.getElementById('stat-total-users').textContent = d.users_total;
-      document.getElementById('stat-resources-active').textContent = d.resources_active;
-      document.getElementById('stat-agreements-active').textContent = d.agreements_active;
-      document.getElementById('stat-messages-today').textContent = d.messages_today;
-      document.getElementById('stat-agreements-pending').textContent = d.agreements_pending;
+      const setText = (id, v) => { const el = document.getElementById(id); if (el && el.textContent !== String(v)) el.textContent = v; };
+      setText('stat-online', d.users_online);
+      setText('stat-total-users', d.users_total);
+      setText('stat-resources-active', d.resources_active);
+      setText('stat-agreements-active', d.agreements_active);
+      setText('stat-messages-today', d.messages_today);
+      setText('stat-agreements-pending', d.agreements_pending);
 
       renderRecentResources(d.recent_resources || []);
       renderRecentAgreements(d.recent_agreements || []);
     } catch (e) {
-      showToast(e.message, 'error');
+      if (!silent) showToast(e.message, 'error');
     }
   }
 
   function renderRecentResources(items) {
     const el = document.getElementById('recent-resources-list');
-    if (!items.length) { el.innerHTML = '<div class="empty-state">Sin publicaciones recientes</div>'; return; }
-    el.innerHTML = items.map(r => `
-      <div class="list-item list-item-clickable" onclick="Admin.openResourceModal('${esc(r.id)}')">
-        <span class="badge badge-${r.tipo}">${tipoLabel(r.tipo)}</span>
-        <span class="list-item-title">${esc(r.titulo)}</span>
-        <span class="list-item-sub">${esc(r.user_nombre)}</span>
-        <span class="list-item-date">${formatDate(r.created_at)}</span>
-        <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
-      </div>
-    `).join('');
-    if (window.lucide) lucide.createIcons();
+    if (!el) return;
+    const html = !items.length
+      ? '<div class="empty-state">Sin publicaciones recientes</div>'
+      : items.map(r => `
+        <div class="list-item list-item-clickable" onclick="Admin.openResourceModal('${esc(r.id)}')">
+          <span class="badge badge-${r.tipo}">${tipoLabel(r.tipo)}</span>
+          <span class="list-item-title">${esc(r.titulo)}</span>
+          <span class="list-item-sub">${esc(r.user_nombre)}</span>
+          <span class="list-item-date">${formatDate(r.created_at)}</span>
+          <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
+        </div>
+      `).join('');
+    if (setHtmlIfChanged(el, html) && window.lucide) lucide.createIcons();
   }
 
   function renderRecentAgreements(items) {
     const el = document.getElementById('recent-agreements-list');
-    if (!items.length) { el.innerHTML = '<div class="empty-state">Sin acuerdos recientes</div>'; return; }
-    el.innerHTML = items.map(a => `
-      <div class="list-item list-item-clickable" onclick="Admin.openAgreementModal('${esc(a.id)}')">
-        <span class="badge badge-status-${a.status}">${statusLabel(a.status)}</span>
-        <span class="list-item-title">${esc(a.resource_titulo || '—')}</span>
-        <span class="list-item-sub">${esc(a.req_nombre)} → ${esc(a.prov_nombre)}</span>
-        <span class="list-item-date">${formatDate(a.created_at)}</span>
-        <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
-      </div>
-    `).join('');
-    if (window.lucide) lucide.createIcons();
+    if (!el) return;
+    const html = !items.length
+      ? '<div class="empty-state">Sin acuerdos recientes</div>'
+      : items.map(a => `
+        <div class="list-item list-item-clickable" onclick="Admin.openAgreementModal('${esc(a.id)}')">
+          <span class="badge badge-status-${a.status}">${statusLabel(a.status)}</span>
+          <span class="list-item-title">${esc(a.resource_titulo || '—')}</span>
+          <span class="list-item-sub">${esc(a.req_nombre)} → ${esc(a.prov_nombre)}</span>
+          <span class="list-item-date">${formatDate(a.created_at)}</span>
+          <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300);flex-shrink:0;"></i>
+        </div>
+      `).join('');
+    if (setHtmlIfChanged(el, html) && window.lucide) lucide.createIcons();
   }
 
   /* ── Users ── */
-  async function loadUsers() {
+  async function loadUsers(silent = false) {
     const tbody = document.getElementById('users-tbody');
-    tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">Cargando…</td></tr>';
+    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">Cargando…</td></tr>';
     try {
       const users = await apiFetch('/api/admin/users');
       markRefreshed();
+      tbody.dataset.loaded = '1';
       if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="11" class="empty-cell">No hay usuarios</td></tr>';
+        setHtmlIfChanged(tbody, '<tr><td colspan="11" class="empty-cell">No hay usuarios</td></tr>');
         return;
       }
-      tbody.innerHTML = users.map(u => `
+      const html = users.map(u => `
         <tr class="clickable-row" onclick="Admin.openUserModal('${esc(u.id)}')">
           <td class="td-center">
             <span class="online-dot ${u.is_online ? 'online' : 'offline'}" title="${u.is_online ? 'En línea' : 'Desconectado'}"></span>
@@ -233,9 +249,9 @@ const Admin = (() => {
           </td>
         </tr>
       `).join('');
-      if (window.lucide) lucide.createIcons();
+      if (setHtmlIfChanged(tbody, html) && window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="11" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (!silent) tbody.innerHTML = `<tr><td colspan="11" class="error-cell">${esc(e.message)}</td></tr>`;
     }
   }
 
@@ -251,56 +267,100 @@ const Admin = (() => {
   }
 
   /* ── Subscriptions tab ── */
-  async function loadSubscriptions() {
+  let _subsUsers = [];
+  let _subsFilter = { status: 'all', q: '' };
+
+  function setSubsFilter(status) {
+    _subsFilter.status = status;
+    document.querySelectorAll('.subs-filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.status === status);
+    });
+    renderSubsTable();
+  }
+
+  function setSubsSearch(q) {
+    _subsFilter.q = (q || '').trim().toLowerCase();
+    renderSubsTable();
+  }
+
+  function renderSubsTable() {
     const tbody = document.getElementById('subs-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Cargando…</td></tr>';
+    if (!tbody) return;
+    const q = _subsFilter.q;
+    const status = _subsFilter.status;
+    const filtered = _subsUsers.filter(u => {
+      const s = u.subscription_status || 'trial';
+      if (status !== 'all' && s !== status) return false;
+      if (q && !(u.email || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+
+    // Update count badges on filter buttons
+    const counts = { all: _subsUsers.length, trial: 0, active: 0, expired: 0, cancelled: 0 };
+    _subsUsers.forEach(u => { const s = u.subscription_status || 'trial'; counts[s] = (counts[s] || 0) + 1; });
+    document.querySelectorAll('.subs-filter-btn').forEach(b => {
+      const cnt = b.querySelector('.subs-filter-count');
+      if (cnt) cnt.textContent = counts[b.dataset.status] || 0;
+    });
+
+    if (!filtered.length) {
+      setHtmlIfChanged(tbody, '<tr><td colspan="8" class="empty-cell">Sin resultados</td></tr>');
+      return;
+    }
+    const html = filtered.map(u => {
+      const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>` : '';
+      const s = u.subscription_status || 'trial';
+      const daysLeft = computeDaysLeft(u, s);
+      const daysCell = daysLeft === null
+        ? '<span class="muted">—</span>'
+        : daysLeft === 0
+          ? '<span style="color:var(--danger);font-weight:700">0</span>'
+          : `<strong>${daysLeft}</strong>`;
+      return `
+      <tr>
+        <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>
+        <td class="td-small">${esc(u.email)}</td>
+        <td><span class="sub-pill sub-pill-${s}">${s}</span></td>
+        <td class="td-center">${daysCell}</td>
+        <td class="td-center">${u.monthly_post_count || 0}</td>
+        <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
+        <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
+        <td>
+          <button class="quick-btn" title="Ver suscripción y editar" onclick="Admin.openSubModal('${esc(u.id)}')">👁 Ver</button>
+          <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(s)}', ${daysLeft === null ? 'null' : daysLeft})">📅 Cambiar días</button>
+          <button class="quick-btn danger" title="Quitar suscripción (cancelar)" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">🗑 Quitar</button>
+        </td>
+      </tr>
+    `;
+    }).join('');
+    setHtmlIfChanged(tbody, html);
+  }
+
+  async function loadSubscriptions(silent = false) {
+    const tbody = document.getElementById('subs-tbody');
+    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="8" class="loading-cell">Cargando…</td></tr>';
     try {
       const users = await apiFetch('/api/admin/users');
       markRefreshed();
+      tbody.dataset.loaded = '1';
+      _subsUsers = users;
 
       // Stats
       const stats = { trial: 0, active: 0, expired: 0, cancelled: 0 };
       users.forEach(u => { stats[u.subscription_status || 'trial'] = (stats[u.subscription_status || 'trial'] || 0) + 1; });
       const grid = document.getElementById('sub-stats-grid');
-      grid.innerHTML = `
+      const gridHtml = `
         <div class="stat-card"><div class="stat-card-label">En prueba</div><div class="stat-card-value">${stats.trial || 0}</div></div>
         <div class="stat-card highlight"><div class="stat-card-label">Activos (pagando)</div><div class="stat-card-value">${stats.active || 0}</div></div>
         <div class="stat-card amber-card"><div class="stat-card-label">Expirados</div><div class="stat-card-value">${stats.expired || 0}</div></div>
         <div class="stat-card"><div class="stat-card-label">Cancelados</div><div class="stat-card-value">${stats.cancelled || 0}</div></div>
       `;
+      setHtmlIfChanged(grid, gridHtml);
 
-      if (!users.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">Sin usuarios</td></tr>';
-        return;
-      }
-      tbody.innerHTML = users.map(u => {
-        const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>` : '';
-        const status = u.subscription_status || 'trial';
-        const daysLeft = computeDaysLeft(u, status);
-        const daysCell = daysLeft === null
-          ? '<span class="muted">—</span>'
-          : daysLeft === 0
-            ? '<span style="color:var(--danger);font-weight:700">0</span>'
-            : `<strong>${daysLeft}</strong>`;
-        return `
-        <tr>
-          <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>
-          <td class="td-small">${esc(u.email)}</td>
-          <td><span class="sub-pill sub-pill-${status}">${status}</span></td>
-          <td class="td-center">${daysCell}</td>
-          <td class="td-center">${u.monthly_post_count || 0}</td>
-          <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
-          <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
-          <td>
-            <button class="quick-btn" title="Ver suscripción y editar" onclick="Admin.openSubModal('${esc(u.id)}')">👁 Ver</button>
-            <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(status)}', ${daysLeft === null ? 'null' : daysLeft})">📅 Cambiar días</button>
-            <button class="quick-btn danger" title="Quitar suscripción (cancelar)" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">🗑 Quitar</button>
-          </td>
-        </tr>
-      `;
-      }).join('');
+      renderSubsTable();
+      if (window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="8" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (!silent) setHtmlIfChanged(tbody, `<tr><td colspan="8" class="error-cell">${esc(e.message)}</td></tr>`);
     }
   }
 
@@ -474,26 +534,35 @@ const Admin = (() => {
     `;
   }
 
-  async function loadSupport() {
+  async function loadSupport(silent = false) {
     const vipT = document.getElementById('support-vip-tbody');
     const norT = document.getElementById('support-normal-tbody');
-    if (vipT) vipT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
-    if (norT) norT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
+    if (!silent) {
+      if (vipT && !vipT.dataset.loaded) vipT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
+      if (norT && !norT.dataset.loaded) norT.innerHTML = '<tr><td colspan="5" class="loading-cell">Cargando…</td></tr>';
+    }
     try {
       const tickets = await apiFetch('/api/admin/support');
       markRefreshed();
+      if (vipT) vipT.dataset.loaded = '1';
+      if (norT) norT.dataset.loaded = '1';
       const vip = tickets.filter(t => t.priority === 'priority');
       const normal = tickets.filter(t => t.priority !== 'priority');
       const vipCount = document.getElementById('support-vip-count');
       const norCount = document.getElementById('support-normal-count');
-      if (vipCount) vipCount.textContent = vip.length;
-      if (norCount) norCount.textContent = normal.length;
-      if (vipT) vipT.innerHTML = vip.length ? vip.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets VIP</td></tr>';
-      if (norT) norT.innerHTML = normal.length ? normal.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets normales</td></tr>';
-      if (window.lucide) lucide.createIcons();
+      if (vipCount && vipCount.textContent !== String(vip.length)) vipCount.textContent = vip.length;
+      if (norCount && norCount.textContent !== String(normal.length)) norCount.textContent = normal.length;
+      let changed = false;
+      const vipHtml = vip.length ? vip.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets VIP</td></tr>';
+      const norHtml = normal.length ? normal.map(renderSupportRow).join('') : '<tr><td colspan="5" class="empty-cell">Sin tickets normales</td></tr>';
+      if (setHtmlIfChanged(vipT, vipHtml)) changed = true;
+      if (setHtmlIfChanged(norT, norHtml)) changed = true;
+      if (changed && window.lucide) lucide.createIcons();
     } catch (e) {
-      if (vipT) vipT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
-      if (norT) norT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (!silent) {
+        if (vipT) vipT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
+        if (norT) norT.innerHTML = `<tr><td colspan="5" class="error-cell">${esc(e.message)}</td></tr>`;
+      }
     }
   }
 
@@ -604,29 +673,35 @@ const Admin = (() => {
   }
 
   /* ── Config tab ── */
-  async function loadConfig() {
+  async function loadConfig(silent = false) {
     try {
       const c = await apiFetch('/api/admin/config');
       markRefreshed();
-      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      const set = (id, v) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Don't clobber while user is editing the field
+        if (document.activeElement === el) return;
+        if (el.value !== String(v)) el.value = v;
+      };
       set('cfg-trial-days', c.trial_days);
       set('cfg-price-basic', c.price_basic ?? c.subscription_price);
       set('cfg-price-pro', c.price_pro ?? 12900);
       set('cfg-free-posts', c.free_posts_per_month);
       set('cfg-promo-discount', c.promo_discount_percent);
       const promoActive = document.getElementById('cfg-promo-active');
-      if (promoActive) promoActive.checked = !!c.promo_active;
+      if (promoActive && document.activeElement !== promoActive && promoActive.checked !== !!c.promo_active) promoActive.checked = !!c.promo_active;
       const promoEnd = document.getElementById('cfg-promo-end');
-      if (promoEnd) {
+      if (promoEnd && document.activeElement !== promoEnd) {
+        let target = '';
         if (c.promo_end_date) {
           const d = new Date(c.promo_end_date);
           const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
-          promoEnd.value = local.toISOString().slice(0, 16);
-        } else {
-          promoEnd.value = '';
+          target = local.toISOString().slice(0, 16);
         }
+        if (promoEnd.value !== target) promoEnd.value = target;
       }
-    } catch (e) { showToast(e.message, 'error'); }
+    } catch (e) { if (!silent) showToast(e.message, 'error'); }
   }
 
   async function saveConfig() {
@@ -653,17 +728,18 @@ const Admin = (() => {
   }
 
   /* ── Resources ── */
-  async function loadResources() {
+  async function loadResources(silent = false) {
     const tbody = document.getElementById('resources-tbody');
-    tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Cargando…</td></tr>';
+    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="7" class="loading-cell">Cargando…</td></tr>';
     try {
       const resources = await apiFetch('/api/admin/resources');
       markRefreshed();
+      tbody.dataset.loaded = '1';
       if (!resources.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell">No hay publicaciones</td></tr>';
+        setHtmlIfChanged(tbody, '<tr><td colspan="7" class="empty-cell">No hay publicaciones</td></tr>');
         return;
       }
-      tbody.innerHTML = resources.map(r => `
+      const html = resources.map(r => `
         <tr class="clickable-row" onclick="Admin.openResourceModal('${esc(r.id)}')">
           <td><span class="badge badge-${r.tipo}">${tipoLabel(r.tipo)}</span></td>
           <td>
@@ -684,24 +760,25 @@ const Admin = (() => {
           </td>
         </tr>
       `).join('');
-      if (window.lucide) lucide.createIcons();
+      if (setHtmlIfChanged(tbody, html) && window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (!silent) tbody.innerHTML = `<tr><td colspan="7" class="error-cell">${esc(e.message)}</td></tr>`;
     }
   }
 
   /* ── Agreements ── */
-  async function loadAgreements() {
+  async function loadAgreements(silent = false) {
     const tbody = document.getElementById('agreements-tbody');
-    tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Cargando…</td></tr>';
+    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">Cargando…</td></tr>';
     try {
       const agreements = await apiFetch('/api/admin/agreements');
       markRefreshed();
+      tbody.dataset.loaded = '1';
       if (!agreements.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-cell">No hay acuerdos</td></tr>';
+        setHtmlIfChanged(tbody, '<tr><td colspan="6" class="empty-cell">No hay acuerdos</td></tr>');
         return;
       }
-      tbody.innerHTML = agreements.map(a => `
+      const html = agreements.map(a => `
         <tr class="clickable-row" onclick="Admin.openAgreementModal('${esc(a.id)}')">
           <td>${esc(a.resource_titulo || '—')}</td>
           <td class="td-small">
@@ -722,9 +799,9 @@ const Admin = (() => {
           </td>
         </tr>
       `).join('');
-      if (window.lucide) lucide.createIcons();
+      if (setHtmlIfChanged(tbody, html) && window.lucide) lucide.createIcons();
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="6" class="error-cell">${esc(e.message)}</td></tr>`;
+      if (!silent) tbody.innerHTML = `<tr><td colspan="6" class="error-cell">${esc(e.message)}</td></tr>`;
     }
   }
 
@@ -1368,6 +1445,7 @@ const Admin = (() => {
     formatDate, showToast,
     toggleVerify,
     loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays, updateDaysPreview,
+    setSubsFilter, setSubsSearch,
     loadSupport, openTicket, replyTicket, ticketStatus,
     loadConfig, saveConfig,
   };

@@ -315,6 +315,44 @@
     .sub-pill-active { background:#dcfce7; color:var(--green); }
     .sub-pill-expired { background:#fee2e2; color:var(--red); }
     .sub-pill-cancelled { background:#f3f4f6; color:var(--gray500); }
+    .subs-toolbar {
+        display:flex; flex-wrap:wrap; gap:12px;
+        align-items:center; justify-content:space-between;
+        padding:12px 16px;
+        border-bottom:1px solid var(--gray200);
+        background:var(--gray50);
+    }
+    .subs-search {
+        display:flex; align-items:center; gap:6px;
+        background:var(--white); border:1px solid var(--gray200);
+        border-radius:8px; padding:6px 10px;
+        min-width:240px; flex:1 1 240px; max-width:360px;
+        transition:border-color 0.15s, box-shadow 0.15s;
+    }
+    .subs-search:focus-within { border-color:var(--earth); box-shadow:0 0 0 3px rgba(44,62,31,0.08); }
+    .subs-search input {
+        border:none; outline:none; flex:1; font-size:13px; font-family:inherit;
+        background:transparent; color:var(--gray700);
+    }
+    .subs-filters { display:flex; flex-wrap:wrap; gap:6px; }
+    .subs-filter-btn {
+        background:var(--white); color:var(--gray700);
+        border:1px solid var(--gray200);
+        padding:6px 11px; border-radius:999px;
+        font-size:12px; font-weight:500; font-family:inherit;
+        cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+        transition:all 0.15s;
+    }
+    .subs-filter-btn:hover { border-color:var(--earth); color:var(--earth); }
+    .subs-filter-btn.active {
+        background:var(--earth); color:var(--white); border-color:var(--earth);
+    }
+    .subs-filter-count {
+        background:rgba(0,0,0,0.08); color:inherit;
+        padding:1px 7px; border-radius:999px;
+        font-size:11px; font-weight:600; min-width:18px; text-align:center;
+    }
+    .subs-filter-btn.active .subs-filter-count { background:rgba(255,255,255,0.22); }
     .verified-yes { color:var(--blue); }
     .verified-no { color:var(--gray400); }
     .quick-btn {
@@ -1371,8 +1409,18 @@
       </div>
       <div class="stats-grid" id="sub-stats-grid"></div>
       <div class="table-card">
-        <div style="padding:12px 16px;border-bottom:1px solid var(--gray200);font-size:13px;color:var(--gray500)">
-          Filtra y administra el estado de suscripción de cada usuario. Usa los botones rápidos para probar el flujo.
+        <div class="subs-toolbar">
+          <div class="subs-search">
+            <i data-lucide="search" style="width:14px;height:14px;color:var(--gray500)"></i>
+            <input id="subs-search-input" type="search" placeholder="Buscar por correo…" oninput="Admin.setSubsSearch(this.value)" autocomplete="off" />
+          </div>
+          <div class="subs-filters">
+            <button class="subs-filter-btn active" data-status="all" onclick="Admin.setSubsFilter('all')">Todos <span class="subs-filter-count">0</span></button>
+            <button class="subs-filter-btn" data-status="trial" onclick="Admin.setSubsFilter('trial')">En prueba <span class="subs-filter-count">0</span></button>
+            <button class="subs-filter-btn" data-status="active" onclick="Admin.setSubsFilter('active')">Activos <span class="subs-filter-count">0</span></button>
+            <button class="subs-filter-btn" data-status="expired" onclick="Admin.setSubsFilter('expired')">Expirados <span class="subs-filter-count">0</span></button>
+            <button class="subs-filter-btn" data-status="cancelled" onclick="Admin.setSubsFilter('cancelled')">Cancelados <span class="subs-filter-count">0</span></button>
+          </div>
         </div>
         <div class="table-scroll">
           <table>
@@ -1576,7 +1624,7 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<script src="/js/admin.js"></script>
+<script src="/js/admin.js?v=2"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const headerLive = document.getElementById('header-right-live');
