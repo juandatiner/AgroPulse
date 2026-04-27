@@ -50,7 +50,7 @@ async function registerUser() {
 
 async function authedContext(browser: any, vp: { width: number; height: number }, auth: any) {
   const ctx = await browser.newContext({ viewport: vp });
-  await ctx.addInitScript(({ token, user }) => {
+  await ctx.addInitScript(({ token, user }: { token: string; user: any }) => {
     localStorage.setItem('agropulse_token', token);
     localStorage.setItem('agropulse_user', JSON.stringify(user));
     localStorage.setItem('agropulse_tour_completed_v2', '1');
