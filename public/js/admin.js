@@ -207,18 +207,31 @@ const Admin = (() => {
   }
 
   /* ── Users ── */
-  async function loadUsers(silent = false) {
+  let _usersCache = [];
+  let _usersSearch = '';
+
+  function setUsersSearch(q) {
+    _usersSearch = (q || '').trim().toLowerCase();
+    renderUsersTable();
+  }
+
+  function renderUsersTable() {
     const tbody = document.getElementById('users-tbody');
-    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">Cargando…</td></tr>';
-    try {
-      const users = await apiFetch('/api/admin/users');
-      markRefreshed();
-      tbody.dataset.loaded = '1';
-      if (!users.length) {
-        setHtmlIfChanged(tbody, '<tr><td colspan="11" class="empty-cell">No hay usuarios</td></tr>');
-        return;
-      }
-      const html = users.map(u => `
+    if (!tbody) return;
+    const q = _usersSearch;
+    const filtered = q
+      ? _usersCache.filter(u => (u.email || '').toLowerCase().includes(q))
+      : _usersCache;
+    if (!filtered.length) {
+      setHtmlIfChanged(tbody, `<tr><td colspan="11" class="empty-cell">${q ? 'Sin resultados' : 'No hay usuarios'}</td></tr>`);
+      return;
+    }
+    const html = filtered.map(u => renderUserRow(u)).join('');
+    if (setHtmlIfChanged(tbody, html) && window.lucide) lucide.createIcons();
+  }
+
+  function renderUserRow(u) {
+    return `
         <tr class="clickable-row" onclick="Admin.openUserModal('${esc(u.id)}')">
           <td class="td-center">
             <span class="online-dot ${u.is_online ? 'online' : 'offline'}" title="${u.is_online ? 'En línea' : 'Desconectado'}"></span>
@@ -248,8 +261,18 @@ const Admin = (() => {
             </button>
           </td>
         </tr>
-      `).join('');
-      if (setHtmlIfChanged(tbody, html) && window.lucide) lucide.createIcons();
+      `;
+  }
+
+  async function loadUsers(silent = false) {
+    const tbody = document.getElementById('users-tbody');
+    if (!silent && !tbody.dataset.loaded) tbody.innerHTML = '<tr><td colspan="11" class="loading-cell">Cargando…</td></tr>';
+    try {
+      const users = await apiFetch('/api/admin/users');
+      markRefreshed();
+      tbody.dataset.loaded = '1';
+      _usersCache = users;
+      renderUsersTable();
     } catch (e) {
       if (!silent) tbody.innerHTML = `<tr><td colspan="11" class="error-cell">${esc(e.message)}</td></tr>`;
     }
@@ -1446,6 +1469,7 @@ const Admin = (() => {
     toggleVerify,
     loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays, updateDaysPreview,
     setSubsFilter, setSubsSearch,
+    setUsersSearch,
     loadSupport, openTicket, replyTicket, ticketStatus,
     loadConfig, saveConfig,
   };

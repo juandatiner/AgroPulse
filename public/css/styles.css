@@ -916,9 +916,19 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     gap: 12px;
     font-size: 0.75rem;
     color: var(--text-muted);
+    min-width: 0;
+    flex-wrap: nowrap;
 }
-.resource-card-meta span { display: flex; align-items: center; gap: 4px; }
-.resource-card-meta svg { width: 12px; height: 12px; }
+.resource-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.resource-card-meta svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* ===== MARKETPLACE ===== */
 .market-header { padding: 20px 20px 0; }
@@ -4191,6 +4201,9 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 640px) {
     .promo-banner {
         padding: 8px 10px;
+        box-shadow: none;
+        margin-bottom: -1px;
+        border-bottom: none;
     }
     .promo-banner-inner {
         font-size: 0.68rem;
@@ -4210,7 +4223,8 @@ body.no-scroll { overflow: hidden; }
     .promo-banner-text > * { white-space: nowrap; }
     .promo-banner-text strong { font-weight: 600; }
     .promo-rotator { font-size: 0.66rem; margin: 0 2px; }
-    .promo-banner-text s { font-size: 0.62rem; margin-right: 2px; }
+    .promo-banner-text s { font-size: 0.62rem; margin-right: 2px; opacity: 0.6; display: inline; }
+    .promo-banner-text .promo-grab { display: none; }
     .promo-tag {
         font-size: 0.6rem;
         padding: 1px 5px;
@@ -4233,7 +4247,6 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 380px) {
     .promo-banner-inner { font-size: 0.62rem; }
     .promo-rotator { font-size: 0.6rem; }
-    .promo-banner-text .promo-grab { display: none; }
     .promo-banner-cta { padding: 6px 7px; min-height: 30px; }
 }
 

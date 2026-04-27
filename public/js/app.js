@@ -604,26 +604,21 @@ const App = {
                 return;
             }
             const marketItems = resources.map(r => `
-                <div class="market-item" onclick="App.showResourceDetail('${r.id}')">
-                    <div class="market-item-top">
-                        <div class="market-item-icon resource-card-icon ${r.tipo}">
-                            <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
-                        </div>
-                        <div class="market-item-info">
-                            <h4>${this.esc(r.titulo)}</h4>
-                            <p>${this.esc(r.descripcion)}</p>
-                        </div>
+                <div class="my-resource-item" onclick="App.showResourceDetail('${r.id}')">
+                    <div class="resource-card-icon ${r.tipo}" style="width:36px;height:36px;border-radius:10px;flex-shrink:0">
+                        <i data-lucide="${this.ICONS[r.categoria] || 'package'}"></i>
                     </div>
-                    <div class="market-item-footer">
-                        <div class="market-item-meta">
-                            <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')">
-                                <i data-lucide="user"></i> ${this.esc(r.user_nombre)} ${this.esc(r.user_apellido)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}
-                                <span class="card-rating-pill">⭐ ${(r.user_reputation || 5).toFixed(1)}</span>
+                    <div style="flex:1;min-width:0">
+                        <h4 style="font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this.esc(r.titulo)}</h4>
+                        <div class="market-item-meta-row" style="display:flex;align-items:center;gap:6px;font-size:0.7rem;flex-wrap:wrap;color:var(--text-muted);min-width:0">
+                            <span class="type-badge ${r.tipo}" style="font-size:0.6rem;padding:2px 8px">${this.TYPE_LABELS[r.tipo]}</span>
+                            <span class="card-author-link" onclick="event.stopPropagation();App.showUserProfile('${r.user_id}')" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%">
+                                <i data-lucide="user"></i> ${this.esc(r.user_nombre)}${r.user_verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}
                             </span>
-                            ${r.municipio ? `<span><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
+                            ${r.municipio ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%"><i data-lucide="map-pin"></i> ${this.esc(r.municipio)}</span>` : ''}
                         </div>
-                        <span class="type-badge ${r.tipo}">${this.TYPE_LABELS[r.tipo]}</span>
                     </div>
+                    <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
                 </div>
             `);
             container.innerHTML = (window.Subscription && Subscription.injectInFeed)

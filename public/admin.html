@@ -1321,6 +1321,12 @@
         Usuarios registrados
       </div>
       <div class="table-card">
+        <div class="subs-toolbar">
+          <div class="subs-search">
+            <i data-lucide="search" style="width:14px;height:14px;color:var(--gray500)"></i>
+            <input id="users-search-input" type="search" placeholder="Buscar por correo…" oninput="Admin.setUsersSearch(this.value)" autocomplete="off" />
+          </div>
+        </div>
         <div class="table-scroll">
           <table>
             <thead>
@@ -1624,7 +1630,7 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<script src="/js/admin.js?v=2"></script>
+<script src="/js/admin.js?v=3"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const headerLive = document.getElementById('header-right-live');
