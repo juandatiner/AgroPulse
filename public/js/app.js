@@ -690,12 +690,13 @@ const App = {
                 ? `<div class="detail-map-field">
                         <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
                         ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '100%' })}
+                        ${indicacionesBlock}
                    </div>`
                 : '';
             const mediaRowHtml = (hasImg && hasMap)
-                ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>${indicacionesBlock ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''}`
+                ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>`
                 : (hasImg ? imageFieldHtml : '') + (hasMap
-                    ? `<div class="detail-location-section">${mapHtml}${indicacionesBlock}</div>`
+                    ? `<div class="detail-location-section">${mapHtml}</div>`
                     : (r.location_notes ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''));
 
             const html = `
