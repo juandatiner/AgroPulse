@@ -587,8 +587,8 @@ const App = {
     setMarketView(v) {
         if (v !== 'list' && v !== 'map') v = 'list';
         if (v === 'map' && !this._canUseMap()) {
-            if (typeof Subscription !== 'undefined' && Subscription.openPaywall) {
-                Subscription.openPaywall('La vista de mapa requiere suscripción Básico o Pro. Suscríbete para ver todas las publicaciones en el mapa con filtros y pines por tipo.');
+            if (typeof Subscription !== 'undefined' && Subscription.openPlans) {
+                Subscription.openPlans();
             }
             return;
         }
