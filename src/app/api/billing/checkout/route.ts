@@ -38,32 +38,17 @@ export async function POST(request: Request) {
     const db = await getDb()
     const now = new Date()
     const uid = new ObjectId(user.id)
-    const planAmount = planTier === 'pro' ? cfg.price_pro : cfg.price_basic
+    const fullPlanAmount = planTier === 'pro' ? cfg.price_pro : cfg.price_basic
+    const TIER_RANK: Record<'basic' | 'pro', number> = { basic: 1, pro: 2 }
+    const tierPrice = (t: 'basic' | 'pro') => t === 'pro' ? cfg.price_pro : cfg.price_basic
 
-    if (willDecline) {
-      await db.collection('invoices').insertOne({
-        user_id: uid,
-        amount: planAmount,
-        plan_tier: planTier,
-        status: 'declined',
-        card_brand: brand,
-        card_last4: last4,
-        holder,
-        reference: 'AGP-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
-        created_at: now,
-        decline_reason: 'Fondos insuficientes o rechazo del emisor',
-      })
-      return json({
-        error: 'payment_declined',
-        message: 'El pago fue rechazado por el banco emisor. Verifica tus datos o usa otra tarjeta.',
-      }, 402)
-    }
-
-    // Lógica de programación (sin prorratear):
-    //   - Activa mismo tier  → renovar: sub_end += 30d.
-    //   - Activa otro tier   → AGENDAR: actual sigue hasta su fin, nuevo plan arranca cuando termine.
-    //   - Trial              → AGENDAR: prueba sigue hasta trial_end, nuevo plan arranca después.
-    //   - Sin nada           → arranca hoy + 30d.
+    // Lógica de cobro:
+    //   - Activa mismo tier              → renovar: sub_end += 30d, cobro completo.
+    //   - Activa tier MAYOR (upgrade)    → INMEDIATO: subir tier ahora, cobro prorrateado de la diferencia
+    //                                      por los días restantes; sub_end no cambia.
+    //   - Activa tier MENOR (downgrade)  → AGENDAR: actual sigue hasta su fin, plan menor arranca después.
+    //   - Trial                          → AGENDAR: prueba sigue hasta trial_end, plan arranca después.
+    //   - Sin nada                       → arranca hoy + 30d, cobro completo.
     const userDoc = await db.collection('users').findOne({ _id: uid })
     const userSubEnd: Date | null = userDoc?.subscription_end instanceof Date ? userDoc.subscription_end : null
     const userTrialEnd: Date | null = userDoc?.trial_end instanceof Date ? userDoc.trial_end : null
@@ -73,7 +58,9 @@ export async function POST(request: Request) {
     let isRenewal = false
     let bonusDays = 0
     let scheduled: { current_tier: string; current_until: string; next_tier: 'basic' | 'pro'; next_ends: string } | null = null
+    let upgrade: { from: 'basic' | 'pro'; to: 'basic' | 'pro'; days_left: number; charged: number; full_price: number } | null = null
     let subEnd: Date
+    let chargedAmount = fullPlanAmount
 
     const isActive = existing.status === 'active' && userSubEnd && userSubEnd > now
     const isTrial = existing.status === 'trial' && userTrialEnd && userTrialEnd > now
@@ -82,20 +69,41 @@ export async function POST(request: Request) {
     let userUnset: Record<string, ''> | null = null
 
     if (isActive && userPlanTier && userPlanTier !== planTier) {
-      // Agendar nuevo plan
-      const nextStart = userSubEnd!
-      const nextEnd = new Date(nextStart.getTime() + 30 * DAY)
-      subEnd = nextEnd
-      scheduled = {
-        current_tier: userPlanTier,
-        current_until: nextStart.toISOString(),
-        next_tier: planTier,
-        next_ends: nextEnd.toISOString(),
-      }
-      userUpdate = {
-        next_plan_tier: planTier,
-        next_subscription_end: nextEnd,
-        // mantener subscription_end y plan_tier actuales
+      const isUpgrade = TIER_RANK[planTier] > TIER_RANK[userPlanTier]
+      if (isUpgrade) {
+        // Upgrade inmediato con cobro prorrateado por días restantes
+        const daysLeft = Math.max(0, Math.ceil((userSubEnd!.getTime() - now.getTime()) / DAY))
+        const priceDiff = tierPrice(planTier) - tierPrice(userPlanTier)
+        chargedAmount = Math.max(0, Math.round(priceDiff * (daysLeft / 30)))
+        subEnd = userSubEnd!
+        upgrade = {
+          from: userPlanTier,
+          to: planTier,
+          days_left: daysLeft,
+          charged: chargedAmount,
+          full_price: fullPlanAmount,
+        }
+        userUpdate = {
+          subscription_status: 'active',
+          subscription_end: subEnd,
+          plan_tier: planTier,
+        }
+        userUnset = { next_plan_tier: '', next_subscription_end: '' }
+      } else {
+        // Downgrade: agendar plan menor para cuando termine el actual
+        const nextStart = userSubEnd!
+        const nextEnd = new Date(nextStart.getTime() + 30 * DAY)
+        subEnd = nextEnd
+        scheduled = {
+          current_tier: userPlanTier,
+          current_until: nextStart.toISOString(),
+          next_tier: planTier,
+          next_ends: nextEnd.toISOString(),
+        }
+        userUpdate = {
+          next_plan_tier: planTier,
+          next_subscription_end: nextEnd,
+        }
       }
     } else if (isActive && userSubEnd) {
       // Renovación mismo tier
@@ -120,7 +128,6 @@ export async function POST(request: Request) {
         next_tier: planTier,
         next_ends: subEnd.toISOString(),
       }
-      // Mantener trial activo, agendar suscripción para después
       userUpdate = {
         next_plan_tier: planTier,
         next_subscription_end: subEnd,
@@ -137,11 +144,31 @@ export async function POST(request: Request) {
       }
       userUnset = { next_plan_tier: '', next_subscription_end: '' }
     }
+
+    if (willDecline) {
+      await db.collection('invoices').insertOne({
+        user_id: uid,
+        amount: chargedAmount,
+        plan_tier: planTier,
+        status: 'declined',
+        card_brand: brand,
+        card_last4: last4,
+        holder,
+        reference: 'AGP-' + crypto.randomBytes(4).toString('hex').toUpperCase(),
+        created_at: now,
+        decline_reason: 'Fondos insuficientes o rechazo del emisor',
+      })
+      return json({
+        error: 'payment_declined',
+        message: 'El pago fue rechazado por el banco emisor. Verifica tus datos o usa otra tarjeta.',
+      }, 402)
+    }
+
     const reference = 'AGP-' + crypto.randomBytes(4).toString('hex').toUpperCase()
 
     await db.collection('invoices').insertOne({
       user_id: uid,
-      amount: planAmount,
+      amount: chargedAmount,
       plan_tier: planTier,
       status: 'paid',
       card_brand: brand,
@@ -151,6 +178,7 @@ export async function POST(request: Request) {
       period_start: now,
       period_end: subEnd,
       created_at: now,
+      ...(upgrade ? { is_upgrade: true, upgrade_from: upgrade.from, days_prorated: upgrade.days_left } : {}),
     })
 
     const updateOp: Record<string, unknown> = { $set: userUpdate }
@@ -158,7 +186,7 @@ export async function POST(request: Request) {
     await db.collection('users').updateOne({ _id: uid }, updateOp)
 
     const sub = await computeSubscriptionState(user.id)
-    return json({ ok: true, reference, subscription: sub, bonus_days: bonusDays, is_renewal: isRenewal, scheduled, until: subEnd.toISOString() })
+    return json({ ok: true, reference, subscription: sub, bonus_days: bonusDays, is_renewal: isRenewal, scheduled, upgrade, charged: chargedAmount, until: subEnd.toISOString() })
   })
 }
 

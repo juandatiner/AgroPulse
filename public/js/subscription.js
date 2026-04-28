@@ -6,6 +6,22 @@ const Subscription = {
     isPro() { return !!(this.state && this.state.is_pro); },
     isBlocked() { return !!(this.state && this.state.needs_payment); },
 
+    _tierRank(t) { return t === 'pro' ? 2 : (t === 'basic' ? 1 : 0); },
+    // Calcula cobro de upgrade (mejorar a tier mayor) prorrateado por días restantes.
+    // Retorna null si no aplica (sin sub activa, mismo tier, o downgrade).
+    _computeUpgradeCost(targetTier) {
+        const s = this.state || {};
+        if (!s.is_premium || s.status !== 'active') return null;
+        const curTier = s.plan_tier;
+        if (curTier !== 'basic' && curTier !== 'pro') return null;
+        if (this._tierRank(targetTier) <= this._tierRank(curTier)) return null;
+        const curPrice = curTier === 'pro' ? (s.price_pro || 0) : (s.price_basic || 0);
+        const tgtPrice = targetTier === 'pro' ? (s.price_pro || 0) : (s.price_basic || 0);
+        const daysLeft = Math.max(0, s.subscription_days_left || 0);
+        const charged = Math.max(0, Math.round((tgtPrice - curPrice) * (daysLeft / 30)));
+        return { charged, days_left: daysLeft, full_price: tgtPrice, from: curTier, to: targetTier };
+    },
+
     async refresh() {
         try {
             this.state = await API.getSubscription();
@@ -621,6 +637,13 @@ const Subscription = {
                 return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="refresh-cw"></i> Renovar ${label} (+30 días)</button>`;
             }
             if (isActiveSub && currentTier && currentTier !== tier) {
+                const up = this._computeUpgradeCost(tier);
+                if (up) {
+                    const upLabel = up.charged > 0
+                        ? `${this.formatPrice(up.charged)} por ${up.days_left} ${up.days_left === 1 ? 'día' : 'días'}`
+                        : 'sin costo extra';
+                    return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="trending-up"></i> Mejorar a ${label} · ${upLabel}</button>`;
+                }
                 return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="repeat"></i> Cambiar a ${label}</button>`;
             }
             return `<button class="btn btn-primary btn-full" onclick="Subscription.openCheckout('${tier}')"><i data-lucide="credit-card"></i> Suscribirme al ${label}</button>`;
@@ -634,7 +657,7 @@ const Subscription = {
             const tier = s.plan_tier === 'pro' ? 'Pro' : (s.plan_tier === 'basic' ? 'Básico' : 'Pro');
             currentBanner = `<div class="plans-current-info">
                 <i data-lucide="calendar-check"></i>
-                <span>Tu plan <strong>${tier}</strong> está activo hasta el <strong>${fmtFecha(s.subscription_end)}</strong>. Si cambias o renuevas, los días se acumulan.</span>
+                <span>Tu plan <strong>${tier}</strong> está activo hasta el <strong>${fmtFecha(s.subscription_end)}</strong>. Mejorar a un plan mayor solo cobra la diferencia por los días restantes; bajar a uno menor se aplica al terminar.</span>
             </div>`;
         } else if (s.status === 'trial' && s.trial_days_left > 0 && s.trial_end) {
             currentBanner = `<div class="plans-current-info">
@@ -733,8 +756,17 @@ const Subscription = {
         const selectedPlan = plan === 'pro' ? 'pro' : (plan === 'basic' ? 'basic' : 'basic');
         this._selectedPlan = selectedPlan;
         const planLabel = selectedPlan === 'pro' ? 'Pro' : 'Básico';
-        const priceAmount = selectedPlan === 'pro' ? (s.price_pro || 12900) : (s.price_basic || 7900);
+        const upgrade = this._computeUpgradeCost(selectedPlan);
+        const priceAmount = upgrade
+            ? upgrade.charged
+            : (selectedPlan === 'pro' ? (s.price_pro || 12900) : (s.price_basic || 7900));
         const pricePromo = this.formatPrice(priceAmount);
+        const summaryLabel = upgrade
+            ? `Mejora a ${planLabel} · ${upgrade.days_left} ${upgrade.days_left === 1 ? 'día' : 'días'}`
+            : `Plan ${planLabel}`;
+        const upgradeNote = upgrade
+            ? `<p class="checkout-upgrade-note">Pagas solo la diferencia entre tu plan actual y ${planLabel} por los ${upgrade.days_left} ${upgrade.days_left === 1 ? 'día restante' : 'días restantes'} de tu suscripción. Tu fecha de vencimiento no cambia.</p>`
+            : '';
         const html = `
             <div class="checkout-overlay-inner">
                 <button class="plans-close" onclick="Subscription.closeCheckout()"><i data-lucide="x"></i></button>
@@ -748,9 +780,10 @@ const Subscription = {
                     </div>
                 </div>
                 <div class="checkout-summary checkout-summary-slim">
-                    <span>Plan ${planLabel}</span>
+                    <span>${summaryLabel}</span>
                     <strong>${pricePromo}</strong>
                 </div>
+                ${upgradeNote}
                 <form id="checkout-form" class="checkout-form" onsubmit="event.preventDefault(); Subscription.submitCheckout()">
                     <div class="form-group">
                         <label class="form-label">Titular de la tarjeta</label>
@@ -862,9 +895,15 @@ const Subscription = {
             const fmt = (d) => d.toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' });
             const untilStr = fmt(untilDate);
             const sched = result.scheduled;
+            const upg = result.upgrade;
             const tierLabel = (t) => t === 'pro' ? 'Pro' : (t === 'basic' ? 'Básico' : 'Prueba');
             let title, subtitle, bonusLine = '';
-            if (sched) {
+            if (upg) {
+                title = `¡Mejorado a ${tierLabel(upg.to)}!`;
+                subtitle = `Tu plan cambió de <strong>${tierLabel(upg.from)}</strong> a <strong>${tierLabel(upg.to)}</strong> al instante. La fecha de vencimiento no cambia.`;
+                bonusLine = `<div><span>Tipo</span><strong>Upgrade prorrateado</strong></div>
+                             <div><span>Cobro</span><strong>${this.formatPrice(result.charged || 0)} por ${upg.days_left} ${upg.days_left === 1 ? 'día' : 'días'}</strong></div>`;
+            } else if (sched) {
                 const startsStr = fmt(new Date(sched.current_until));
                 title = `¡${tierLabel(sched.next_tier)} agendado!`;
                 subtitle = `Tu ${tierLabel(sched.current_tier)} sigue hasta el <strong>${startsStr}</strong>. Después arranca <strong>${tierLabel(sched.next_tier)}</strong> por 30 días.`;
