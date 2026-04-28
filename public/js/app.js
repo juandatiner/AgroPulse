@@ -872,7 +872,19 @@ const App = {
     },
 
     // ===== RESOURCE DETAIL =====
+    _inflightDetail: null,
     async showResourceDetail(id) {
+        if (this._inflightDetail === id) return;
+        this._inflightDetail = id;
+        const overlay = document.getElementById('detail-overlay');
+        if (overlay && overlay.style.display !== 'block') {
+            overlay.innerHTML = `<div class="detail-body" style="padding:32px 16px;text-align:center">
+                <div class="skeleton-card skeleton" style="height:180px;border-radius:12px;margin-bottom:12px"></div>
+                <div class="skeleton-card skeleton" style="height:20px;max-width:240px;margin:0 auto 8px"></div>
+                <div class="skeleton-card skeleton" style="height:14px;max-width:160px;margin:0 auto"></div>
+            </div>`;
+            overlay.style.display = 'block';
+        }
         try {
             const r = await API.getResource(id);
             const isOwner = API.user && r.owner_id === API.user.id;
@@ -978,6 +990,8 @@ const App = {
         } catch (e) {
             console.error('showResourceDetail error:', e);
             this.showToast(e.message || 'Error al cargar detalle', 'error');
+        } finally {
+            if (this._inflightDetail === id) this._inflightDetail = null;
         }
     },
 
@@ -2663,7 +2677,10 @@ const App = {
         } catch (e) { this.showToast(e.message, 'error'); }
     },
 
+    _inflightProfile: null,
     async showUserProfile(userId) {
+        if (this._inflightProfile === userId) return;
+        this._inflightProfile = userId;
         const overlay = document.getElementById('detail-overlay');
         overlay.innerHTML = `<div class="detail-body" style="padding:32px 16px;text-align:center">
             <div class="skeleton-card skeleton" style="height:80px;border-radius:50%;width:80px;margin:0 auto 12px"></div>
@@ -2747,6 +2764,8 @@ const App = {
         } catch (e) {
             this.showToast('Error al cargar perfil', 'error');
             this.closeDetail();
+        } finally {
+            if (this._inflightProfile === userId) this._inflightProfile = null;
         }
     },
 
