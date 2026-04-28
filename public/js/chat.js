@@ -237,16 +237,69 @@ const Chat = {
         if (input) input.value = '';
     },
 
-    // Location sharing
-    async sendLocation() {
+    // Location sharing — chooser: GPS or map
+    sendLocation() {
         if (!this.currentAgreementId) return;
+        this._openLocationChooser();
+    },
+
+    _openLocationChooser() {
+        const existing = document.getElementById('chat-loc-chooser');
+        if (existing) existing.remove();
+        const sheet = document.createElement('div');
+        sheet.id = 'chat-loc-chooser';
+        sheet.className = 'chat-loc-chooser';
+        sheet.innerHTML = `
+            <div class="chat-loc-chooser-backdrop" onclick="Chat._closeLocationChooser()"></div>
+            <div class="chat-loc-chooser-card">
+                <h4>Compartir ubicación</h4>
+                <button class="chat-loc-opt" onclick="Chat._chooseLocCurrent()">
+                    <i data-lucide="crosshair"></i>
+                    <div>
+                        <strong>Usar mi ubicación actual</strong>
+                        <span>Detecta tu posición por GPS</span>
+                    </div>
+                </button>
+                <button class="chat-loc-opt" onclick="Chat._chooseLocMap()">
+                    <i data-lucide="map-pin"></i>
+                    <div>
+                        <strong>Seleccionar en el mapa</strong>
+                        <span>Toca o busca el lugar exacto</span>
+                    </div>
+                </button>
+                <button class="btn btn-cancel btn-full" onclick="Chat._closeLocationChooser()">Cancelar</button>
+            </div>
+        `;
+        document.body.appendChild(sheet);
+        if (window.lucide) lucide.createIcons({ nodes: [sheet] });
+    },
+
+    _closeLocationChooser() {
+        const el = document.getElementById('chat-loc-chooser');
+        if (el) el.remove();
+    },
+
+    async _chooseLocCurrent() {
+        this._closeLocationChooser();
         App.showToast('Detectando ubicación...');
         const pos = await Geo.getCurrentPosition();
-        if (!pos) {
-            App.showToast('No se pudo obtener la ubicación', 'error');
-            return;
-        }
-        const content = `[ubicacion]${pos.latitude},${pos.longitude}[/ubicacion]`;
+        if (!pos) { App.showToast('No se pudo obtener la ubicación', 'error'); return; }
+        await this._sendLocationCoords(pos.latitude, pos.longitude);
+    },
+
+    _chooseLocMap() {
+        this._closeLocationChooser();
+        const uid = 'chat-loc-pick-' + Date.now();
+        Geo._pickerSetLocation = Geo._pickerSetLocation || {};
+        Geo._pickerSetLocation[uid] = async (lat, lng) => {
+            delete Geo._pickerSetLocation[uid];
+            await this._sendLocationCoords(lat, lng);
+        };
+        Geo._openFullscreenPicker(uid, '__chat_lat_dummy__', '__chat_lng_dummy__', '');
+    },
+
+    async _sendLocationCoords(lat, lng) {
+        const content = `[ubicacion]${lat},${lng}[/ubicacion]`;
         try {
             const msg = await API.sendMessage(this.currentAgreementId, content);
             this.appendMessage(msg);

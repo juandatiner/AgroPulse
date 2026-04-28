@@ -5120,3 +5120,81 @@ body.no-scroll { overflow: hidden; }
 .trim-item-text span { font-size: 0.72rem; color: var(--text-muted); }
 .trim-item-text small { font-size: 0.7rem; color: var(--text-muted); opacity: 0.8; }
 .trim-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== CHAT LOCATION CHOOSER ===== */
+.chat-loc-chooser {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.18s ease;
+}
+.chat-loc-chooser-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 18, 22, 0.55);
+    backdrop-filter: blur(2px);
+}
+.chat-loc-chooser-card {
+    position: relative;
+    background: var(--white);
+    border-radius: 18px 18px 0 0;
+    width: 100%;
+    max-width: 480px;
+    padding: 20px 18px max(20px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.2);
+    animation: slideUp 0.22s cubic-bezier(0.16,1,0.3,1);
+}
+.chat-loc-chooser-card h4 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--earth);
+    margin-bottom: 4px;
+    text-align: center;
+}
+.chat-loc-opt {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--cream);
+    border: 1.5px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+    font-family: 'DM Sans', sans-serif;
+}
+.chat-loc-opt:hover {
+    background: var(--cream-dark);
+    border-color: var(--earth);
+}
+.chat-loc-opt > svg {
+    width: 24px; height: 24px;
+    color: var(--earth);
+    flex-shrink: 0;
+}
+.chat-loc-opt > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.chat-loc-opt strong {
+    font-size: 0.9rem;
+    color: var(--text);
+}
+.chat-loc-opt span {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+@media (min-width: 600px) {
+    .chat-loc-chooser { align-items: center; }
+    .chat-loc-chooser-card { border-radius: 18px; padding: 22px; }
+}
