@@ -544,7 +544,8 @@ const App = {
         if (isMobile) {
             fit = 4;
         } else {
-            const cardW = 260;
+            const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+            const cardW = isDesktop ? 180 : 260;
             fit = Math.max(1, Math.floor((innerW + gap) / (cardW + gap)));
         }
         const visible = resources.slice(0, fit);

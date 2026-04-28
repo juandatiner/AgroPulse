@@ -2440,7 +2440,10 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     .landing-ctas { max-width: 440px; }
     .home-hero { padding: 32px 48px; }
     .home-stats, .section-header, .my-resources-list, .my-pub-filters { padding-left: 48px; padding-right: 48px; }
-    .resource-scroll { padding-left: 48px; padding-right: 48px; }
+    .resource-scroll { padding-left: 48px; padding-right: 48px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .resource-scroll .resource-card { min-width: 0; max-width: none; padding: 12px; }
+    .resource-scroll .resource-card h4 { font-size: 0.92rem; }
+    .resource-scroll .resource-card p { font-size: 0.82rem; }
     .market-header { padding: 20px 48px 0; }
     .market-list { display: grid; grid-template-columns: 1fr 1fr; padding: 0 48px 20px; }
     .results-count { padding: 8px 48px; }
