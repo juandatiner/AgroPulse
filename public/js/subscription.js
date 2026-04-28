@@ -31,9 +31,115 @@ const Subscription = {
             this.updateVerifiedBadge();
             this._updateAdTop();
             if (typeof App !== 'undefined' && App.updateMapLockUI) App.updateMapLockUI();
+            this._maybeShowTrimOverlay();
             return this.state;
         } catch (e) {
             return null;
+        }
+    },
+
+    _maybeShowTrimOverlay() {
+        const s = this.state;
+        if (!s || !s.must_trim_active) return;
+        const existing = document.getElementById('trim-overlay');
+        if (existing && existing.classList.contains('visible')) return;
+        this.openTrimOverlay();
+    },
+
+    _trimSelected: new Set(),
+    async openTrimOverlay() {
+        const s = this.state || {};
+        const limit = s.free_active_limit || 3;
+        const userId = (typeof API !== 'undefined' && API.user) ? API.user.id : null;
+        if (!userId) return;
+        this._trimSelected = new Set();
+        this._openOverlay('trim-overlay', `
+            <div class="trim-overlay-inner">
+                <div class="trim-header">
+                    <div class="trim-icon"><i data-lucide="alert-triangle"></i></div>
+                    <h2>Tu suscripción terminó</h2>
+                    <p class="trim-sub">Sin plan activo solo puedes tener <strong>${limit} publicaciones activas</strong>. Selecciona cuáles conservar; el resto se eliminarán. O reanuda tu plan para mantener todas.</p>
+                </div>
+                <div class="trim-counter" id="trim-counter">Seleccionadas: <strong>0</strong> / ${limit}</div>
+                <div id="trim-list" class="trim-list">
+                    <div class="empty-state"><i data-lucide="loader"></i><p>Cargando publicaciones...</p></div>
+                </div>
+                <div class="trim-actions">
+                    <button class="btn btn-cancel btn-full" onclick="Subscription.openPlans()">
+                        <i data-lucide="credit-card"></i> Reanudar plan y conservar todas
+                    </button>
+                    <button id="trim-confirm" class="btn btn-primary btn-full" disabled onclick="Subscription.confirmTrim()">
+                        <i data-lucide="check"></i> Conservar seleccionadas y eliminar resto
+                    </button>
+                </div>
+            </div>
+        `);
+        try {
+            const list = await API.getResources({ owner: userId });
+            const active = (list || []).filter(r => r.status === 'active');
+            const container = document.getElementById('trim-list');
+            if (!container) return;
+            if (active.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No tienes publicaciones activas.</p></div>';
+                this._closeOverlay('trim-overlay');
+                return;
+            }
+            container.innerHTML = active.map(r => `
+                <label class="trim-item" data-id="${r.id}">
+                    <input type="checkbox" value="${r.id}" onchange="Subscription._toggleTrim(this)">
+                    <div class="trim-item-body">
+                        ${r.image_data ? `<img class="trim-thumb" src="${r.image_data}" alt="">` : `<div class="trim-thumb trim-thumb-empty"><i data-lucide="image"></i></div>`}
+                        <div class="trim-item-text">
+                            <strong>${this._esc(r.titulo || '')}</strong>
+                            <span>${this._esc(r.tipo || '')} · ${this._esc(r.categoria || '')}</span>
+                            <small>${this._esc(r.municipio || '')}</small>
+                        </div>
+                    </div>
+                </label>
+            `).join('');
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            const container = document.getElementById('trim-list');
+            if (container) container.innerHTML = '<div class="empty-state"><p>Error al cargar.</p></div>';
+        }
+    },
+
+    _toggleTrim(input) {
+        const limit = (this.state && this.state.free_active_limit) || 3;
+        const id = input.value;
+        if (input.checked) {
+            if (this._trimSelected.size >= limit) {
+                input.checked = false;
+                if (typeof App !== 'undefined') App.showToast(`Máximo ${limit} publicaciones`, 'error');
+                return;
+            }
+            this._trimSelected.add(id);
+        } else {
+            this._trimSelected.delete(id);
+        }
+        const counter = document.getElementById('trim-counter');
+        if (counter) counter.innerHTML = `Seleccionadas: <strong>${this._trimSelected.size}</strong> / ${limit}`;
+        const btn = document.getElementById('trim-confirm');
+        if (btn) btn.disabled = this._trimSelected.size === 0;
+    },
+
+    async confirmTrim() {
+        const ids = Array.from(this._trimSelected);
+        const btn = document.getElementById('trim-confirm');
+        if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+        try {
+            const res = await API.trimResources(ids);
+            this.state = res.subscription || this.state;
+            this._closeOverlay('trim-overlay');
+            if (typeof App !== 'undefined') {
+                App.showToast(`Se eliminaron ${res.deleted || 0} publicaciones`);
+                if (App.loadMyResources) App.loadMyResources();
+                if (App.loadHome) App.loadHome();
+            }
+            this.refresh();
+        } catch (e) {
+            if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+            if (typeof App !== 'undefined') App.showToast(e.message || 'Error al eliminar', 'error');
         }
     },
 
@@ -608,18 +714,18 @@ const Subscription = {
         const basicFeatures = [
             { text: 'Publicaciones ilimitadas', ok: true },
             { text: 'Vista mapa de publicaciones', ok: true },
+            { text: 'Chat con fotos y ubicación', ok: true },
             { text: 'Sin anuncios', ok: false },
             { text: 'Alertas de match inteligente', ok: false },
-            { text: 'Chat con fotos y ubicación', ok: false },
             { text: 'Exportar acuerdos a CSV', ok: false },
             { text: 'Soporte prioritario', ok: false },
         ];
         const proFeatures = [
             { text: 'Publicaciones ilimitadas', ok: true },
             { text: 'Vista mapa de publicaciones', ok: true },
+            { text: 'Chat con fotos y ubicación', ok: true },
             { text: 'Sin anuncios', ok: true },
             { text: 'Alertas de match inteligente', ok: true },
-            { text: 'Chat con fotos y ubicación', ok: true },
             { text: 'Exportar acuerdos a CSV', ok: true },
             { text: 'Soporte prioritario', ok: true },
         ];

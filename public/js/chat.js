@@ -215,11 +215,6 @@ const Chat = {
     previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-        if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
-            event.target.value = '';
-            Subscription.openPlans();
-            return;
-        }
         if (file.size > 5 * 1024 * 1024) {
             App.showToast('Imagen muy grande (máx 5MB)', 'error');
             return;
@@ -245,10 +240,6 @@ const Chat = {
     // Location sharing
     async sendLocation() {
         if (!this.currentAgreementId) return;
-        if (typeof Subscription !== 'undefined' && !Subscription.isPro()) {
-            Subscription.openPlans();
-            return;
-        }
         App.showToast('Detectando ubicación...');
         const pos = await Geo.getCurrentPosition();
         if (!pos) {

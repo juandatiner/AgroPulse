@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=53">
+    <link rel="stylesheet" href="/css/styles.css?v=54">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -585,29 +585,32 @@
 </div>
 
 <!-- ===== CHAT OVERLAY ===== -->
-<div id="chat-overlay" class="chat-overlay" style="display:none">
-    <div class="chat-header">
-        <button class="chat-back" onclick="Chat.closeChat()"><i data-lucide="arrow-left"></i></button>
-        <div class="chat-header-info">
-            <h4 id="chat-title">Chat</h4>
-            <p id="chat-subtitle"></p>
+<div id="chat-overlay" class="chat-overlay" style="display:none" onclick="if(event.target===this) Chat.closeChat()">
+    <div class="chat-shell">
+        <div class="chat-header">
+            <button class="chat-back" onclick="Chat.closeChat()"><i data-lucide="arrow-left"></i></button>
+            <div class="chat-header-info">
+                <h4 id="chat-title">Chat</h4>
+                <p id="chat-subtitle"></p>
+            </div>
+            <button class="chat-close-desktop" onclick="Chat.closeChat()" title="Cerrar"><i data-lucide="x"></i></button>
         </div>
-    </div>
-    <div id="chat-status-bar" class="chat-status-bar" style="display:none"></div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div id="chat-image-preview" class="image-preview-bar" style="display:none">
-        <img id="chat-preview-img" src="" alt="">
-        <span>Imagen adjunta</span>
-        <button class="remove-preview" onclick="Chat.clearImage()">×</button>
-    </div>
-    <div class="chat-input-bar" id="chat-input-bar">
-        <div class="chat-input-actions">
-            <button class="chat-action-btn" onclick="document.getElementById('chat-file-input').click()" title="Enviar imagen"><i data-lucide="image"></i></button>
-            <button class="chat-action-btn" onclick="Chat.sendLocation()" title="Compartir ubicación"><i data-lucide="map-pin"></i></button>
+        <div id="chat-status-bar" class="chat-status-bar" style="display:none"></div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div id="chat-image-preview" class="image-preview-bar" style="display:none">
+            <img id="chat-preview-img" src="" alt="">
+            <span>Imagen adjunta</span>
+            <button class="remove-preview" onclick="Chat.clearImage()">×</button>
         </div>
-        <input type="text" id="chat-msg-input" placeholder="Escribe un mensaje...">
-        <button class="chat-send-btn" onclick="Chat.sendMessage()"><i data-lucide="send"></i></button>
-        <input type="file" id="chat-file-input" accept="image/*" style="display:none" onchange="Chat.previewImage(event)">
+        <div class="chat-input-bar" id="chat-input-bar">
+            <div class="chat-input-actions">
+                <button class="chat-action-btn" onclick="document.getElementById('chat-file-input').click()" title="Enviar imagen"><i data-lucide="image"></i></button>
+                <button class="chat-action-btn" onclick="Chat.sendLocation()" title="Compartir ubicación"><i data-lucide="map-pin"></i></button>
+            </div>
+            <input type="text" id="chat-msg-input" placeholder="Escribe un mensaje...">
+            <button class="chat-send-btn" onclick="Chat.sendMessage()"><i data-lucide="send"></i></button>
+            <input type="file" id="chat-file-input" accept="image/*" style="display:none" onchange="Chat.previewImage(event)">
+        </div>
     </div>
 </div>
 
@@ -736,11 +739,11 @@
     </div>
 </div>
 
-<script src="/js/api.js?v=4"></script>
+<script src="/js/api.js?v=5"></script>
 <script src="/js/geo.js?v=3"></script>
-<script src="/js/chat.js?v=8"></script>
-<script src="/js/subscription.js?v=28"></script>
-<script src="/js/app.js?v=32"></script>
+<script src="/js/chat.js?v=9"></script>
+<script src="/js/subscription.js?v=29"></script>
+<script src="/js/app.js?v=33"></script>
 <script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

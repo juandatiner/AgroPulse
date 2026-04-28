@@ -79,6 +79,7 @@ const API = {
     createResource(data) { return this.request('POST', '/resources', data); },
     updateResource(id, data) { return this.request('PUT', '/resources/' + id, data); },
     deleteResource(id) { return this.request('DELETE', '/resources/' + id); },
+    trimResources(keep_ids) { return this.request('POST', '/resources/trim', { keep_ids }); },
 
     // Agreements
     getAgreements(params = {}) {

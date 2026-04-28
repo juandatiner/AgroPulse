@@ -407,7 +407,14 @@ const Admin = (() => {
     else if (action === 'resetPosts') { body = { reset_posts: true }; msg = 'Contador reiniciado'; }
     else if (action === 'restorePromise') { body = { restore_promised_trial: true }; msg = 'Trial restaurado al prometido al registrarse'; }
     else if (action === 'cancel') {
-      if (!confirm('¿Quitar la suscripción de este usuario? Pasará a estado cancelado.')) return;
+      const ok = await confirmDialog({
+        title: 'Cancelar suscripción',
+        message: '¿Quitar la suscripción de este usuario? Pasará a estado cancelado.',
+        okText: 'Sí, cancelar',
+        cancelText: 'Volver',
+        danger: true,
+      });
+      if (!ok) return;
       body = { subscription_status: 'cancelled' };
       msg = 'Suscripción cancelada';
     }
@@ -830,7 +837,14 @@ const Admin = (() => {
 
   /* ── Delete actions ── */
   async function deleteUser(id, name) {
-    if (!confirm(`¿Eliminar al usuario "${name}" y todos sus datos? Esta acción no se puede deshacer.`)) return;
+    const ok = await confirmDialog({
+      title: 'Eliminar usuario',
+      message: `¿Eliminar al usuario "${name}" y todos sus datos? Esta acción no se puede deshacer.`,
+      okText: 'Eliminar',
+      cancelText: 'Cancelar',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
       showToast(`Usuario "${name}" eliminado`, 'success');
@@ -841,7 +855,14 @@ const Admin = (() => {
   }
 
   async function deleteResource(id, title) {
-    if (!confirm(`¿Eliminar la publicación "${title}"?`)) return;
+    const ok = await confirmDialog({
+      title: 'Eliminar publicación',
+      message: `¿Eliminar la publicación "${title}"?`,
+      okText: 'Eliminar',
+      cancelText: 'Cancelar',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiFetch(`/api/admin/resources/${id}`, { method: 'DELETE' });
       showToast(`Publicación eliminada`, 'success');
@@ -849,6 +870,38 @@ const Admin = (() => {
     } catch (e) {
       showToast(e.message, 'error');
     }
+  }
+
+  /* ── Confirm dialog ── */
+  let _confirmResolve = null;
+  function confirmDialog({ title = '¿Confirmar?', message = '', okText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}) {
+    return new Promise((resolve) => {
+      _confirmResolve = resolve;
+      const overlay = document.getElementById('confirm-overlay');
+      const card = overlay.querySelector('.confirm-card');
+      card.classList.toggle('danger', !!danger);
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-message').textContent = message;
+      document.getElementById('confirm-ok-btn').textContent = okText;
+      document.getElementById('confirm-cancel-btn').textContent = cancelText;
+      overlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      if (window.lucide) lucide.createIcons({ nodes: [overlay] });
+      setTimeout(() => document.getElementById('confirm-cancel-btn').focus(), 50);
+    });
+  }
+  function confirmOk() { _confirmFinish(true); }
+  function confirmCancel(e) {
+    if (e && e.target && e.target.id !== 'confirm-overlay' && !e.target.matches('#confirm-cancel-btn')) return;
+    _confirmFinish(false);
+  }
+  function _confirmFinish(value) {
+    const overlay = document.getElementById('confirm-overlay');
+    overlay.classList.remove('active');
+    if (!_modalOpen) document.body.style.overflow = '';
+    const r = _confirmResolve;
+    _confirmResolve = null;
+    if (r) r(value);
   }
 
   /* ── Modal core ── */
@@ -1464,6 +1517,7 @@ const Admin = (() => {
     openResourceModal, saveResource,
     openAgreementModal,
     closeModal, closeModalDirect,
+    confirmDialog, confirmOk, confirmCancel,
     startAutoRefresh, stopAutoRefresh,
     formatDate, showToast,
     toggleVerify,

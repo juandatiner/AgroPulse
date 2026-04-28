@@ -238,7 +238,13 @@
       gap: 0;
       padding: 0 16px;
       box-shadow: var(--shadow-sm);
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
     }
+    .tab-bar::-webkit-scrollbar { height: 4px; }
+    .tab-bar::-webkit-scrollbar-thumb { background: var(--gray300); border-radius: 4px; }
 
     .tab-btn {
       padding: 14px 20px;
@@ -255,10 +261,20 @@
       gap: 7px;
       transition: color 0.15s, border-color 0.15s;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     .tab-btn:hover { color: var(--earth); }
     .tab-btn.active { color: var(--earth); border-bottom-color: var(--field); font-weight: 600; }
-    .tab-btn svg { width: 16px; height: 16px; }
+    .tab-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    @media (max-width: 768px) {
+      .tab-bar { padding: 0 8px; }
+      .tab-btn { padding: 12px 12px; font-size: 12.5px; gap: 5px; }
+      .tab-btn svg { width: 15px; height: 15px; }
+    }
+    @media (max-width: 520px) {
+      .tab-btn { padding: 11px 10px; font-size: 12px; }
+    }
 
     /* ── Content ── */
     .content {
@@ -386,6 +402,14 @@
       .recent-grid { grid-template-columns: 1fr; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .content { padding: 16px; }
+      .page-title { font-size: 16px; margin-bottom: 14px; gap: 8px; flex-wrap: wrap; }
+      .page-title svg { width: 18px !important; height: 18px !important; }
+      .section-header { font-size: 12.5px; padding: 12px 14px; }
+      .table-header { font-size: 12.5px; padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+    }
+    @media (max-width: 520px) {
+      .page-title { font-size: 15px; }
+      .section-header svg { width: 14px !important; height: 14px !important; }
     }
 
     .section-card {
@@ -647,6 +671,54 @@
     }
     .modal-overlay.active .modal-card {
       transform: translateY(0) scale(1);
+    }
+
+    /* ── Confirm dialog ── */
+    .confirm-card {
+      max-width: 420px;
+      padding: 28px 24px 22px;
+      text-align: center;
+    }
+    .confirm-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      background: rgba(217, 119, 6, 0.12);
+      color: var(--amber);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-icon svg { width: 28px; height: 28px; }
+    .confirm-card.danger .confirm-icon { background: rgba(220, 38, 38, 0.12); color: var(--red); }
+    .confirm-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--gray900);
+      margin-bottom: 8px;
+    }
+    .confirm-message {
+      font-size: 14px;
+      color: var(--gray500);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    .confirm-actions .btn-primary,
+    .confirm-actions .btn-secondary {
+      flex: 1;
+      max-width: 160px;
+    }
+    .confirm-card.danger #confirm-ok-btn {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .confirm-card.danger #confirm-ok-btn:hover {
+      background: #b91c1c;
     }
 
     /* Modal header */
@@ -1627,10 +1699,23 @@
   <div class="modal-card" id="modal-card"></div>
 </div>
 
+<!-- ── Confirm overlay ── -->
+<div id="confirm-overlay" class="modal-overlay" onclick="Admin.confirmCancel(event)">
+  <div class="modal-card confirm-card">
+    <div class="confirm-icon"><i data-lucide="alert-triangle"></i></div>
+    <h3 class="confirm-title" id="confirm-title">¿Confirmar?</h3>
+    <p class="confirm-message" id="confirm-message"></p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="confirm-cancel-btn" onclick="Admin.confirmCancel()">Cancelar</button>
+      <button class="btn-primary" id="confirm-ok-btn" onclick="Admin.confirmOk()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
-<script src="/js/admin.js?v=3"></script>
+<script src="/js/admin.js?v=4"></script>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
     const headerLive = document.getElementById('header-right-live');

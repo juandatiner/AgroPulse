@@ -2720,9 +2720,9 @@ const App = {
                 </div>
                 <div class="detail-body">
                     <div class="user-profile-hero">
-                        <div class="user-profile-avatar">${initials}</div>
+                        <div class="user-profile-avatar">${initials}${u.verified ? '<span class="avatar-verified-tick" title="Cuenta verificada"><i data-lucide="badge-check"></i></span>' : ''}</div>
                         <div class="user-profile-info">
-                            <h2 class="user-profile-name">${this.esc(u.nombre)} ${this.esc(u.apellido)}</h2>
+                            <h2 class="user-profile-name">${this.esc(u.nombre)} ${this.esc(u.apellido)}${u.verified ? ' <i data-lucide="badge-check" class="verified-inline" title="Cuenta verificada"></i>' : ''}</h2>
                             <p class="user-profile-tipo">${this.esc(u.tipo || '')}</p>
                             ${u.municipio ? `<p class="user-profile-loc"><i data-lucide="map-pin"></i> ${this.esc(u.municipio)}</p>` : ''}
                         </div>
@@ -2763,7 +2763,13 @@ const App = {
             const profile = await API.getProfile();
             const u = profile;
             const initials = (u.nombre[0] + u.apellido[0]).toUpperCase();
-            document.getElementById('profile-avatar').textContent = initials;
+            const avatarEl = document.getElementById('profile-avatar');
+            avatarEl.textContent = initials;
+            const oldAvatarTick = avatarEl.querySelector('.avatar-verified-tick');
+            if (oldAvatarTick) oldAvatarTick.remove();
+            if (u.verified) {
+                avatarEl.insertAdjacentHTML('beforeend', '<span class="avatar-verified-tick" title="Cuenta verificada"><i data-lucide="badge-check"></i></span>');
+            }
             document.getElementById('profile-name').textContent = `${u.nombre} ${u.apellido}`;
             document.getElementById('profile-role').textContent = u.tipo;
             document.getElementById('profile-location').innerHTML = `<i data-lucide="map-pin"></i> ${this.esc(u.municipio)}`;

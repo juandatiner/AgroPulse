@@ -105,6 +105,9 @@ export interface SubscriptionState {
   promo_end_date: string | null
   promo_days_left: number
   pending_change: { tier: 'basic' | 'pro'; starts: string | null; ends: string } | null
+  active_resources_count: number
+  free_active_limit: number
+  must_trim_active: boolean
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -205,6 +208,13 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
 
   const trialGranted = typeof u?.trial_days_granted === 'number' ? u.trial_days_granted : cfg.trial_days
 
+  const freeActiveLimit = cfg.free_posts_per_month
+  const activeResourcesCount = await db.collection('resources').countDocuments({
+    user_id: new ObjectId(userId),
+    status: 'active',
+  })
+  const mustTrimActive = !isPremium && activeResourcesCount > freeActiveLimit
+
   return {
     status,
     is_premium: isPremium,
@@ -238,6 +248,9 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
           ends: u.next_subscription_end.toISOString(),
         }
       : null,
+    active_resources_count: activeResourcesCount,
+    free_active_limit: freeActiveLimit,
+    must_trim_active: mustTrimActive,
   }
 }
 
