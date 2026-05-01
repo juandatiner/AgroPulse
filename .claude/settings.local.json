@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(git checkout *)",
-      "Bash(node -c /c/Users/cosmo/OneDrive/Documentos/development/AgroPulse/public/js/app.js)"
+      "Bash(node -c /c/Users/cosmo/OneDrive/Documentos/development/AgroPulse/public/js/app.js)",
+      "Bash(node -c /c/Users/cosmo/OneDrive/Documentos/development/AgroPulse/public/js/subscription.js)"
     ]
   }
 }

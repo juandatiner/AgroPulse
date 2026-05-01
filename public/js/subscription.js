@@ -396,7 +396,8 @@ const Subscription = {
         let card = document.getElementById('sub-home-card');
         if (!this.state) return;
         const s = this.state;
-        if (s.status === 'active') { if (card) card.remove(); return; }
+        // Pro: sin límite → no mostrar card. Basic: mostrar contador. Trial vigente: ocultar.
+        if (s.status === 'active' && s.plan_tier === 'pro') { if (card) card.remove(); return; }
         if (s.status === 'trial' && s.trial_days_left > 0) { if (card) card.remove(); return; }
 
         if (!card) {
@@ -412,46 +413,40 @@ const Subscription = {
         let statusClass = '';
         let bodyHtml = '';
 
-        if (s.status === 'expired') {
-            statusText = `Tu prueba gratuita terminó`;
-            statusClass = 'sub-card-expired';
-            const remaining = s.posts_remaining;
-            const used = s.monthly_post_count;
-            const total = s.free_posts_per_month;
-            const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
-            bodyHtml = `
-                <div class="sub-posts-line">
-                    <span>Publicaciones de este mes</span>
-                    <span class="sub-posts-count"><strong>${used}</strong> / ${total}</span>
-                </div>
-                <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${pct}%"></div></div>
-                <p class="sub-home-card-hint">
-                    ${remaining > 0
-                        ? `Te quedan <strong>${remaining}</strong> ${remaining === 1 ? 'publicación' : 'publicaciones'} gratuitas este mes`
-                        : `Alcanzaste el límite mensual. Suscríbete para publicar sin límite`}
-                </p>
-            `;
-        } else {
-            statusText = `Plan gratuito`;
-            statusClass = 'sub-card-free';
-            const remaining = s.posts_remaining;
-            const used = s.monthly_post_count;
-            const total = s.free_posts_per_month;
-            const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
-            bodyHtml = `
-                <div class="sub-posts-line">
-                    <span>Publicaciones de este mes</span>
-                    <span class="sub-posts-count"><strong>${used}</strong> / ${total}</span>
-                </div>
-                <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${pct}%"></div></div>
-                <p class="sub-home-card-hint">
-                    ${remaining > 0
-                        ? `Te quedan <strong>${remaining}</strong> ${remaining === 1 ? 'publicación' : 'publicaciones'} gratuitas este mes`
-                        : `Alcanzaste el límite mensual. Suscríbete para publicar sin límite`}
-                </p>
-            `;
-        }
+        const isBasic = s.plan_tier === 'basic' && s.status === 'active';
+        const used = s.monthly_post_count;
+        const total = isBasic ? s.basic_max_posts : s.free_posts_per_month;
+        const remaining = s.posts_remaining;
+        const pct = Math.min(100, Math.round((used / Math.max(1, total)) * 100));
+        const wordPub = (n) => n === 1 ? 'publicación' : 'publicaciones';
+        const limitHint = remaining > 0
+            ? (isBasic
+                ? `Te quedan <strong>${remaining}</strong> ${wordPub(remaining)} este mes`
+                : `Te quedan <strong>${remaining}</strong> ${wordPub(remaining)} gratuitas este mes`)
+            : (isBasic
+                ? `Alcanzaste el límite del Básico. Mejora a Pro para publicar sin límite`
+                : `Alcanzaste el límite mensual. Suscríbete para publicar sin límite`);
 
+        if (isBasic) {
+            statusText = 'Plan Básico';
+            statusClass = 'sub-card-basic';
+        } else if (s.status === 'expired') {
+            statusText = 'Tu prueba gratuita terminó';
+            statusClass = 'sub-card-expired';
+        } else {
+            statusText = 'Plan gratuito';
+            statusClass = 'sub-card-free';
+        }
+        bodyHtml = `
+            <div class="sub-posts-line">
+                <span>Publicaciones de este mes</span>
+                <span class="sub-posts-count"><strong>${used}</strong> / ${total}</span>
+            </div>
+            <div class="sub-posts-bar"><div class="sub-posts-fill" style="width:${pct}%"></div></div>
+            <p class="sub-home-card-hint">${limitHint}</p>
+        `;
+
+        const ctaLabel = isBasic ? 'Mejorar a Pro' : (s.status === 'expired' ? 'Suscribirme' : 'Mejorar plan');
         card.className = 'sub-home-card ' + statusClass;
         card.innerHTML = `
             <div class="sub-home-card-head">
@@ -459,7 +454,7 @@ const Subscription = {
                     <i data-lucide="sparkles"></i>
                     <span>${statusText}</span>
                 </div>
-                <button class="sub-home-card-action" onclick="Subscription.openPlans()">${s.status === 'expired' ? 'Suscribirme' : 'Mejorar plan'}</button>
+                <button class="sub-home-card-action" onclick="Subscription.openPlans()">${ctaLabel}</button>
             </div>
             <div class="sub-home-card-body">${bodyHtml}</div>
         `;
@@ -1061,23 +1056,35 @@ const Subscription = {
                              <div><span>Próximo plan</span><strong>${tierLabel(sched.next_tier)}</strong></div>`;
             } else if (result.is_renewal) {
                 title = '¡Suscripción renovada!';
-                subtitle = 'Extendimos tu suscripción 30 días más';
+                subtitle = `Extendimos tu plan ${tierLabel(this.state.plan_tier)} 30 días más`;
                 bonusLine = `<div><span>Tipo</span><strong>Renovación · +30 días</strong></div>`;
             } else {
-                title = '¡Suscripción activada!';
-                subtitle = 'Gracias por unirte a AgroPulse Pro';
+                title = `¡${tierLabel(this.state.plan_tier)} activado!`;
+                subtitle = `Gracias por unirte a AgroPulse ${tierLabel(this.state.plan_tier)}`;
             }
+            const activeTier = (upg && upg.to) || (this.state && this.state.plan_tier) || this._selectedPlan || 'pro';
+            const featuresByTier = {
+                pro: [
+                    'Publicaciones ilimitadas',
+                    'Alertas de match inteligente',
+                    'Chat con fotos y ubicación',
+                    'Soporte prioritario',
+                    'Sin anuncios',
+                ],
+                basic: [
+                    'Más publicaciones al mes',
+                    'Chat con fotos y ubicación',
+                ],
+            };
+            const featuresList = (featuresByTier[activeTier] || featuresByTier.pro)
+                .map(f => `<li><i data-lucide="check-circle-2"></i> ${f}</li>`).join('');
             this._openOverlay('success-overlay', `
                 <div class="welcome-overlay-inner success-paid-inner">
                     <div class="welcome-gift success-trophy"><i data-lucide="party-popper"></i></div>
                     <h2>${title}</h2>
                     <p class="welcome-sub">${subtitle}</p>
                     <ul class="welcome-features">
-                        <li><i data-lucide="check-circle-2"></i> Publicaciones ilimitadas</li>
-                        <li><i data-lucide="check-circle-2"></i> Alertas de match inteligente</li>
-                        <li><i data-lucide="check-circle-2"></i> Chat con fotos y ubicación</li>
-                        <li><i data-lucide="check-circle-2"></i> Soporte prioritario</li>
-                        <li><i data-lucide="check-circle-2"></i> Sin anuncios</li>
+                        ${featuresList}
                     </ul>
                     <div class="success-receipt">
                         <div><span>Referencia</span><strong>${result.reference}</strong></div>
