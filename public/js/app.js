@@ -1092,7 +1092,7 @@ const App = {
         const actions = {
             oferta: { icon: 'shopping-bag', label: 'Me interesa', msg: '¿Qué mensaje quieres enviarle al oferente?' },
             solicitud: { icon: 'heart-handshake', label: 'Puedo ayudar', msg: '¿Qué mensaje quieres enviarle? Cuéntale cómo puedes ayudar.' },
-            prestamo: { icon: 'key', label: 'Prestar', msg: '¿Para qué necesitas el préstamo? Escribe un mensaje.' },
+            prestamo: { icon: 'key', label: 'Pedir prestado', msg: '¿Para qué necesitas el préstamo? Escribe un mensaje.' },
             trueque: { icon: 'repeat', label: 'Proponer trueque', msg: '¿Qué ofreces a cambio? Escribe tu propuesta.' },
         };
         const a = actions[r.tipo] || actions.oferta;

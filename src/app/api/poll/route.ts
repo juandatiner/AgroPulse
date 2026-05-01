@@ -71,6 +71,8 @@ export async function GET(request: Request) {
       status: 'pending',
     })
 
+    // Solo contar mensajes no leídos de acuerdos activos.
+    // Los pendientes ya cuentan vía pending_agreements; completados/cancelados no notifican.
     const unread = await db.collection('messages').aggregate([
       { $match: { sender_id: { $ne: uid }, read_status: false } },
       {
@@ -84,6 +86,7 @@ export async function GET(request: Request) {
       { $unwind: '$_agr' },
       {
         $match: {
+          '_agr.status': 'active',
           $or: [{ '_agr.requester_id': uid }, { '_agr.provider_id': uid }],
         },
       },
