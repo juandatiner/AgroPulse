@@ -2057,6 +2057,12 @@ textarea.form-input { resize: vertical; min-height: 100px; line-height: 1.5; }
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
+.rv-row-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+@media (max-width: 600px) {
+    .rv-row-3 { grid-template-columns: 1fr; }
+}
 .rv-field {
     display: flex;
     flex-direction: column;

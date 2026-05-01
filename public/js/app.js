@@ -2778,7 +2778,7 @@ const App = {
                         </div>
                    </div>`
                 : '';
-            const mapHtml = (hasMap && window.Geo)
+            const mapHtml = hasMap
                 ? `<div class="detail-map-field">
                         <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
                         ${Geo.buildMapBlock(_lat, _lng, { height: '100%' })}
@@ -2794,10 +2794,11 @@ const App = {
                 : a.status === 'rejected' ? 'Fin (rechazado)'
                 : '';
             const finDate = finLabel ? this.formatDate(a.updated_at) : '';
+            const dealRowClass = finDate ? 'rv-row rv-row-3' : 'rv-row';
             const dealStatusBlock = `
                 <div class="resource-view">
                     <div class="rv-section-title">Acuerdo</div>
-                    <div class="rv-row">
+                    <div class="${dealRowClass}">
                         <div class="rv-field">
                             <label>ESTADO</label>
                             <div class="rv-value"><span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span></div>
@@ -2806,11 +2807,11 @@ const App = {
                             <label>INICIO</label>
                             <div class="rv-value">${this.formatDate(a.created_at)}</div>
                         </div>
+                        ${finDate ? `<div class="rv-field">
+                            <label>${finLabel.toUpperCase()}</label>
+                            <div class="rv-value">${finDate}</div>
+                        </div>` : ''}
                     </div>
-                    ${finDate ? `<div class="rv-field">
-                        <label>${finLabel.toUpperCase()}</label>
-                        <div class="rv-value">${finDate}</div>
-                    </div>` : ''}
                     ${a.cancel_reason ? `<div class="rv-field">
                         <label>MOTIVO${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre).toUpperCase() + ')' : ''}</label>
                         <div class="rv-value rv-textarea">${this.esc(a.cancel_reason)}</div>
