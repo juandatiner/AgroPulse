@@ -171,6 +171,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       const updated = await db.collection('agreements').findOne({ _id: aid })
       if (updated && updated.complete_requester && updated.complete_provider) {
         await db.collection('agreements').updateOne({ _id: aid }, { $set: { status: 'completed', updated_at: now } })
+        if (a.resource_id) {
+          await db.collection('resources').updateOne({ _id: a.resource_id }, { $set: { status: 'completed' } })
+        }
         return json({ ok: true, status: 'completed' })
       }
       return json({ ok: true, status: 'active', waiting: true })
@@ -199,8 +202,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (action === 'active' && rid) {
       await db.collection('resources').updateOne({ _id: rid }, { $set: { status: 'closed' } })
     } else if (action === 'completed' && rid) {
-      await db.collection('agreements').updateMany({ resource_id: rid }, { $set: { resource_id: null } })
-      await db.collection('resources').deleteOne({ _id: rid })
+      // No eliminar el recurso: mantener referencia y marcar como completado
+      // El recurso queda oculto de listados pero su info sigue disponible para el detalle del acuerdo
+      await db.collection('resources').updateOne({ _id: rid }, { $set: { status: 'completed' } })
     } else if (action === 'cancelled' && rid) {
       if (current === 'active') {
         await db.collection('resources').updateOne({ _id: rid }, { $set: { status: 'active' } })

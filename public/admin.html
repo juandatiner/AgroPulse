@@ -4,20 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AgroPulse — Panel de Administración</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon-admin.svg">
+  <link rel="apple-touch-icon" href="/favicon-admin.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
   <script>
-    (function(){
-      try {
-        var t = localStorage.getItem('agropulse_theme') || 'auto';
-        var eff = t === 'auto'
-          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : t;
-        document.documentElement.setAttribute('data-theme', eff);
-      } catch(e){}
-    })();
+    /* Admin siempre en modo claro — ignora preferencia del usuario */
+    document.documentElement.setAttribute('data-theme', 'light');
   </script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">

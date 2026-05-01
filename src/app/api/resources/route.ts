@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       try { ownerId = new ObjectId(params.owner) } catch { return json([]) }
 
       const pipeline: object[] = [
-        { $match: { user_id: ownerId } },
+        { $match: { user_id: ownerId, status: { $ne: 'completed' } } },
         {
           $lookup: {
             from: 'users',

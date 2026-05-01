@@ -36,40 +36,48 @@ const App = {
     },
 
     // ===== TEMA =====
+    // Tema oscuro solo aplica para usuarios logueados (preferencia por perfil).
+    // Landing, login y registro siempre en modo claro.
+    PUBLIC_SCREENS: ['screen-landing', 'screen-login', 'screen-register', 'screen-forgot', 'screen-set-password'],
+
     applyStoredTheme() {
-        let theme = 'light';
-        try {
-            const stored = localStorage.getItem('agropulse_theme');
-            if (stored === 'dark' || stored === 'light') {
-                theme = stored;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                theme = 'dark';
-            }
-        } catch {}
+        const theme = (API.user && API.user.theme === 'dark') ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
         this._currentTheme = theme;
     },
 
+    applyThemeForScreen(screenId) {
+        const isPublic = this.PUBLIC_SCREENS.includes(screenId) || !API.user;
+        const eff = isPublic ? 'light' : (API.user && API.user.theme === 'dark' ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', eff);
+        this._currentTheme = eff;
+        this.refreshThemeUI();
+    },
+
     toggleTheme() {
+        if (!API.user) return;
         const cur = document.documentElement.getAttribute('data-theme') || 'light';
         const next = cur === 'dark' ? 'light' : 'dark';
-        try { localStorage.setItem('agropulse_theme', next); } catch {}
         document.documentElement.setAttribute('data-theme', next);
         this._currentTheme = next;
+        API.user.theme = next;
+        try { localStorage.setItem('agropulse_user', JSON.stringify(API.user)); } catch {}
         this.refreshThemeUI();
+        API.updateProfile({ theme: next }).catch(() => {
+            this.showToast('No se pudo guardar la preferencia', 'error');
+        });
     },
 
     // Compat: si alguien llamaba setTheme directo
     setTheme(theme) {
-        if (theme === 'auto') {
-            try { localStorage.removeItem('agropulse_theme'); } catch {}
-            this.applyStoredTheme();
-        } else if (theme === 'light' || theme === 'dark') {
-            try { localStorage.setItem('agropulse_theme', theme); } catch {}
-            document.documentElement.setAttribute('data-theme', theme);
-            this._currentTheme = theme;
-        }
+        if (!API.user) return;
+        if (theme !== 'light' && theme !== 'dark') return;
+        document.documentElement.setAttribute('data-theme', theme);
+        this._currentTheme = theme;
+        API.user.theme = theme;
+        try { localStorage.setItem('agropulse_user', JSON.stringify(API.user)); } catch {}
         this.refreshThemeUI();
+        API.updateProfile({ theme }).catch(() => {});
     },
 
     refreshThemeUI() {
@@ -116,6 +124,7 @@ const App = {
     showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
+        this.applyThemeForScreen(id);
     },
 
     showApp(opts = {}) {
@@ -142,7 +151,8 @@ const App = {
         this.updateNavAvatar();
         this.refreshAgreementCounts();
         if (typeof Subscription !== 'undefined') Subscription.refresh();
-        if (!opts.skipTour && typeof Tour !== 'undefined') Tour.maybeStart();
+        // Tour solo arranca desde el modal de bienvenida en registro o desde el botón de ayuda.
+        // No mostrarlo automáticamente en cada inicio de sesión.
     },
 
     handlePopState(e) {
@@ -465,8 +475,23 @@ const App = {
         Chat.stopGlobalPolling();
         API.logout().catch(() => {});
         API.clearSession();
+        this.clearAuthForms();
         this.showScreen('screen-landing');
         this.loadLandingTrialInfo();
+    },
+
+    clearAuthForms() {
+        const ids = [
+            'login-email', 'login-pass',
+            'reg-nombre', 'reg-apellido', 'reg-email', 'reg-pass', 'reg-pass-confirm',
+            'reg-tipo', 'reg-telefono', 'reg-lat', 'reg-lng', 'reg-addr',
+            'forgot-email', 'forgot-nombre', 'forgot-apellido', 'forgot-pass', 'forgot-pass-confirm',
+            'set-pass-current', 'set-pass-new', 'set-pass-confirm',
+        ];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
     },
 
     // ===== HOME =====
@@ -524,8 +549,8 @@ const App = {
         }
         container.innerHTML = filtered.map(r => {
             const now = new Date();
-            const scheduledAt = r.scheduled_at ? new Date(r.scheduled_at.replace(' ', 'T') + 'Z') : null;
-            const deactivAt = r.deactivation_scheduled_at ? new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z') : null;
+            const scheduledAt = r.scheduled_at ? this._parseDate(r.scheduled_at) : null;
+            const deactivAt = r.deactivation_scheduled_at ? this._parseDate(r.deactivation_scheduled_at) : null;
             const isScheduled = scheduledAt && scheduledAt > now;
             const hasDeactivSched = deactivAt && deactivAt > now;
 
@@ -927,6 +952,64 @@ const App = {
 
     // ===== RESOURCE DETAIL =====
     _inflightDetail: null,
+    renderResourceFormView(r) {
+        const esc = (v) => this.esc(v == null ? '' : String(v));
+        const cell = (label, value, opts = {}) => {
+            const has = value != null && String(value).trim() !== '';
+            const display = has ? esc(value) : (opts.naIfEmpty ? 'No aplica' : '');
+            const cls = ['rv-field'];
+            if (!has && opts.naIfEmpty) cls.push('rv-na');
+            else if (!has) cls.push('rv-empty');
+            return `<div class="${cls.join(' ')}"><label>${label}</label><div class="rv-value">${display || '&nbsp;'}</div></div>`;
+        };
+        const row = (a, b) => `<div class="rv-row">${a}${b}</div>`;
+        const isNA = (v) => !v || v === 'No aplica';
+
+        let html = '<div class="resource-view">';
+        if (r.descripcion) {
+            html += `<div class="rv-field"><label>DESCRIPCIÓN</label><div class="rv-value rv-textarea">${esc(r.descripcion)}</div></div>`;
+        }
+        html += row(cell('CATEGORÍA', r.categoria), cell('MUNICIPIO', r.municipio));
+        html += '<div class="rv-section-title">Detalles del recurso</div>';
+        if (r.cantidad) {
+            html += row(
+                cell('CANTIDAD', String(r.cantidad)),
+                isNA(r.unidad)
+                    ? `<div class="rv-field rv-na"><label>UNIDAD</label><div class="rv-value">No aplica</div></div>`
+                    : cell('UNIDAD', r.unidad)
+            );
+        }
+        if (r.condicion || r.disponibilidad) {
+            html += row(cell('CONDICIÓN', r.condicion), cell('DISPONIBILIDAD', r.disponibilidad));
+        }
+        if (r.modalidad || r.precio_referencia) {
+            html += row(cell('MODALIDAD', r.modalidad), cell('PRECIO REFERENCIA', r.precio_referencia));
+        }
+        if (r.duracion_prestamo || r.garantia) {
+            html += row(cell('DURACIÓN DEL PRÉSTAMO', r.duracion_prestamo), cell('GARANTÍA / CONDICIONES DEVOLUCIÓN', r.garantia));
+        }
+        if (r.ofrece || r.recibe) {
+            html += row(cell('OFRECE', r.ofrece), cell('RECIBE', r.recibe));
+        }
+        if (r.scheduled_at) {
+            const sd = this._parseDate(r.scheduled_at);
+            if (sd && sd > new Date()) {
+                html += `<div class="rv-field"><label>SE PUBLICARÁ EL</label><div class="rv-value">${esc(this.formatDate(r.scheduled_at))}</div></div>`;
+            }
+        }
+        if (r.deactivation_scheduled_at) {
+            const dd = this._parseDate(r.deactivation_scheduled_at);
+            if (dd && dd > new Date()) {
+                html += `<div class="rv-field"><label>SE DESACTIVARÁ EL</label><div class="rv-value">${esc(this.formatDate(r.deactivation_scheduled_at))}</div></div>`;
+            }
+        }
+        if (r.location_notes) {
+            html += `<div class="rv-field"><label>CÓMO LLEGAR / REFERENCIAS</label><div class="rv-value rv-textarea">${esc(r.location_notes)}</div></div>`;
+        }
+        html += '</div>';
+        return html;
+    },
+
     async showResourceDetail(id) {
         if (this._inflightDetail === id) return;
         this._inflightDetail = id;
@@ -943,40 +1026,6 @@ const App = {
             const r = await API.getResource(id);
             const isOwner = API.user && r.owner_id === API.user.id;
             const initials = (r.user_nombre[0] + r.user_apellido[0]).toUpperCase();
-            let infoItems = '';
-            const addInfo = (icon, label, value) => {
-                if (value) infoItems += `<div class="detail-info-item"><div class="detail-info-label"><i data-lucide="${icon}"></i> ${label}</div><div class="detail-info-value">${this.esc(value)}</div></div>`;
-            };
-            addInfo('tag', 'Categoría', r.categoria);
-            addInfo('repeat', 'Modalidad', r.modalidad);
-            // Cantidad + Unidad lado a lado (mitad y mitad). Si no aplica unidad, mostrarlo en gris.
-            if (r.cantidad) {
-                const isNA = !r.unidad || r.unidad === 'No aplica';
-                infoItems += `<div class="detail-info-pair">
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="hash"></i> Cantidad</div><div class="detail-info-value">${this.esc(String(r.cantidad))}</div></div>
-                    <div class="detail-info-item ${isNA ? 'detail-info-na' : ''}"><div class="detail-info-label"><i data-lucide="ruler"></i> Unidad</div><div class="detail-info-value">${isNA ? 'No aplica' : this.esc(r.unidad)}</div></div>
-                </div>`;
-            }
-            addInfo('check-circle', 'Condición', r.condicion);
-            addInfo('clock', 'Disponibilidad', r.disponibilidad);
-            addInfo('banknote', 'Precio orientativo', r.precio_referencia);
-            addInfo('timer', 'Duración préstamo', r.duracion_prestamo);
-            addInfo('shield', 'Garantía', r.garantia);
-            addInfo('arrow-up-right', 'Ofrece', r.ofrece);
-            addInfo('arrow-down-left', 'Recibe', r.recibe);
-            if (r.scheduled_at) {
-                const sd = new Date(r.scheduled_at.replace(' ', 'T') + 'Z');
-                if (sd > new Date()) addInfo('calendar-clock', 'Se publicará el', this.formatDate(r.scheduled_at));
-            }
-            if (r.deactivation_scheduled_at) {
-                const dd = new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z');
-                if (dd > new Date()) addInfo('calendar-x', 'Se desactivará el', this.formatDate(r.deactivation_scheduled_at));
-            }
-            const indicacionesBlock = r.location_notes ? `
-                <div class="detail-info-item detail-indicaciones-item" style="margin-top:10px">
-                    <div class="detail-info-label"><i data-lucide="navigation"></i> Cómo llegar</div>
-                    <div class="detail-info-value" style="white-space:pre-wrap;line-height:1.5">${this.esc(r.location_notes)}</div>
-                </div>` : '';
             const hasMap = r.latitude != null && r.longitude != null;
             const hasImg = !!r.image_data;
             const imageFieldHtml = hasImg
@@ -992,14 +1041,11 @@ const App = {
                 ? `<div class="detail-map-field">
                         <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
                         ${Geo.buildMapBlock(r.latitude, r.longitude, { height: '100%' })}
-                        ${indicacionesBlock}
                    </div>`
                 : '';
             const mediaRowHtml = (hasImg && hasMap)
                 ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>`
-                : (hasImg ? imageFieldHtml : '') + (hasMap
-                    ? `<div class="detail-location-section">${mapHtml}</div>`
-                    : (r.location_notes ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''));
+                : (hasImg ? imageFieldHtml : '') + (hasMap ? `<div class="detail-location-section">${mapHtml}</div>` : '');
 
             const html = `
                 <div class="detail-header">
@@ -1012,14 +1058,7 @@ const App = {
                         <h2 class="detail-title detail-title-big">${this.esc(r.titulo)}</h2>
                     </div>
                     ${mediaRowHtml}
-                    ${infoItems ? `<div class="detail-section">
-                        <div class="detail-section-heading"><i data-lucide="list"></i> Detalles</div>
-                        <div class="detail-info-grid detail-info-grid-tight">${infoItems}</div>
-                    </div>` : ''}
-                    ${r.descripcion ? `<div class="detail-section">
-                        <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
-                        <div class="detail-section-body">${this.esc(r.descripcion)}</div>
-                    </div>` : ''}
+                    ${this.renderResourceFormView(r)}
                     ${isOwner ? '' : `<div class="detail-owner" onclick="App.showUserProfile('${r.owner_id}')" style="cursor:pointer">
                         <div class="detail-owner-avatar">${initials}</div>
                         <div class="detail-owner-info">
@@ -1163,18 +1202,19 @@ const App = {
 
     renderOwnerDetailActions(r) {
         const now = new Date();
-        const scheduledAt = r.scheduled_at ? new Date(r.scheduled_at.replace(' ', 'T') + 'Z') : null;
-        const deactivAt = r.deactivation_scheduled_at ? new Date(r.deactivation_scheduled_at.replace(' ', 'T') + 'Z') : null;
+        const scheduledAt = r.scheduled_at ? this._parseDate(r.scheduled_at) : null;
+        const deactivAt = r.deactivation_scheduled_at ? this._parseDate(r.deactivation_scheduled_at) : null;
         const isScheduled = scheduledAt && scheduledAt > now;
         const hasDeactivSched = deactivAt && deactivAt > now;
 
         const editBtn = `<button class="btn btn-outline btn-full btn-sm" onclick="App.editResource('${r.id}')"><i data-lucide="edit-3"></i> Editar publicación</button>`;
+        const wrap = (html) => `<div class="owner-actions-grid">${html}</div>`;
 
         if (isScheduled) {
-            return `${editBtn}
+            return wrap(`${editBtn}
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.changeScheduleDate('${r.id}')"><i data-lucide="calendar"></i> Cambiar fecha de publicación</button>
                     <button class="btn btn-primary btn-full btn-sm" onclick="App.publishNow('${r.id}')"><i data-lucide="send"></i> Publicar ya</button>
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`);
         }
 
         let deactivBtns = '';
@@ -1187,26 +1227,26 @@ const App = {
         }
 
         if (r.status === 'active') {
-            return `${editBtn}
+            return wrap(`${editBtn}
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.toggleResource('${r.id}', 'active')"><i data-lucide="eye-off"></i> Desactivar ahora</button>
                     ${deactivBtns}
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`);
         }
 
         // Closed resource — activation options
-        const hasActivSched = r.scheduled_at && new Date(r.scheduled_at.replace(' ', 'T') + 'Z') > now;
+        const hasActivSched = r.scheduled_at && this._parseDate(r.scheduled_at) > now;
         if (hasActivSched) {
             const date = this.formatDate(r.scheduled_at);
-            return `${editBtn}
+            return wrap(`${editBtn}
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.editActivationDate('${r.id}')"><i data-lucide="calendar"></i> Editar activación (${date})</button>
                     <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ya</button>
                     <button class="btn btn-outline btn-full btn-sm" onclick="App.cancelActivationSchedule('${r.id}')"><i data-lucide="x-circle"></i> Cancelar activación programada</button>
-                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`);
         }
-        return `${editBtn}
+        return wrap(`${editBtn}
                 <button class="btn btn-primary btn-full btn-sm" onclick="App.activateNow('${r.id}')"><i data-lucide="eye"></i> Activar ahora</button>
                 <button class="btn btn-outline btn-full btn-sm" onclick="App.scheduleActivation('${r.id}')"><i data-lucide="calendar"></i> Programar activación</button>
-                <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`;
+                <button class="btn btn-danger btn-full btn-sm" onclick="App.deleteResource('${r.id}')"><i data-lucide="trash-2"></i> Eliminar</button>`);
     },
 
     async changeScheduleDate(id) {
@@ -1225,7 +1265,7 @@ const App = {
         });
         if (!date) return;
         try {
-            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            const isoDate = new Date(date).toISOString();
             await API.updateResource(id, { scheduled_at: isoDate });
             this.closeDetail();
             this.showToast('Fecha de publicación actualizada');
@@ -1276,7 +1316,7 @@ const App = {
         });
         if (!date) return;
         try {
-            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            const isoDate = new Date(date).toISOString();
             await API.updateResource(id, { status: 'active', scheduled_at: isoDate });
             this.closeDetail();
             this.showToast('Activación programada');
@@ -1298,7 +1338,7 @@ const App = {
         });
         if (!date) return;
         try {
-            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            const isoDate = new Date(date).toISOString();
             await API.updateResource(id, { scheduled_at: isoDate });
             this.closeDetail();
             this.showToast('Fecha de activación actualizada');
@@ -1334,7 +1374,7 @@ const App = {
         });
         if (!date) return;
         try {
-            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            const isoDate = new Date(date).toISOString();
             await API.updateResource(id, { deactivation_scheduled_at: isoDate });
             this.closeDetail();
             this.showToast('Desactivación programada');
@@ -1356,7 +1396,7 @@ const App = {
         });
         if (!date) return;
         try {
-            const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+            const isoDate = new Date(date).toISOString();
             await API.updateResource(id, { deactivation_scheduled_at: isoDate });
             this.closeDetail();
             this.showToast('Fecha de desactivación actualizada');
@@ -1521,7 +1561,7 @@ const App = {
                                 <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                                 <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             </div>
-                            <input type="text" id="pub-precio" class="form-input" style="margin-top:8px" placeholder="Ej: $50.000/día">
+                            <input type="text" id="pub-precio" class="form-input" style="margin-top:8px" placeholder="Ej: 50.000">
                             <span class="form-hint" id="pub-precio-hint">Monto o descripción del pago</span>
                         </div>
                     </div>
@@ -1594,7 +1634,9 @@ const App = {
                                 <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                                 <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             </div>
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: Hasta $200.000" style="margin-top:10px">
+                            <div id="pub-precio-row" style="display:flex;gap:8px;margin-top:10px;align-items:stretch">
+                                <input type="text" id="pub-precio" class="form-input" placeholder="Ej: 200.000" style="flex:1;min-width:0">
+                            </div>
                             <span class="form-hint" id="pub-precio-hint">Monto aproximado que estás dispuesto a pagar</span>
                         </div>
                     </div>
@@ -1671,7 +1713,9 @@ const App = {
                                 <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                                 <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
                             </div>
-                            <input type="text" id="pub-precio" class="form-input" placeholder="Ej: $30.000/día" style="margin-top:10px">
+                            <div id="pub-precio-row" style="display:flex;gap:8px;margin-top:10px;align-items:stretch">
+                                <input type="text" id="pub-precio" class="form-input" placeholder="Ej: 30.000" style="flex:1;min-width:0">
+                            </div>
                             <span class="form-hint" id="pub-precio-hint">Monto o descripción del cobro</span>
                         </div>
                     </div>
@@ -1709,18 +1753,18 @@ const App = {
                     <div class="form-group">
                         <div class="toggle-label" style="margin-bottom:8px">¿Qué tipo de intercambio buscas? *</div>
                         <div class="segmented-control" id="trueque-tipo">
-                            <button type="button" class="seg-opt active" data-val="Bien o producto">Bien o producto</button>
+                            <button type="button" class="seg-opt active" data-val="Monetario">Monetario</button>
+                            <button type="button" class="seg-opt" data-val="Bien o producto">Bien o producto</button>
                             <button type="button" class="seg-opt" data-val="Servicio">Servicio</button>
-                            <button type="button" class="seg-opt" data-val="Monetario">Monetario</button>
                         </div>
                         <span class="form-hint">Elige primero — el campo siguiente se ajusta a tu elección</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">¿Qué deseas recibir? *</label>
-                        <input type="text" id="pub-recibe" class="form-input" placeholder="Ej: Semillas de hortalizas o abono orgánico">
-                        <span class="form-hint" id="pub-recibe-hint">Describe lo que te gustaría recibir a cambio</span>
+                        <input type="text" id="pub-recibe" class="form-input" inputmode="numeric" placeholder="Ej: 150.000">
+                        <span class="form-hint" id="pub-recibe-hint">Indica el monto que esperas recibir</span>
                     </div>
-                    <input type="hidden" id="pub-modalidad" value="Bien o producto">
+                    <input type="hidden" id="pub-modalidad" value="Monetario">
                 </div>`
         };
         const formContainer = document.getElementById('publish-form-fields');
@@ -1982,33 +2026,43 @@ const App = {
                 }
             });
         }
-        // Inject periodo select inside pub-precio-group (Monetario only)
-        const precioGroup = document.getElementById('pub-precio-group');
-        if (precioGroup && !document.getElementById('pub-precio-periodo')) {
+        // Inject periodo select al lado del input de precio (Monetario en solicitud/préstamo)
+        const precioRow = document.getElementById('pub-precio-row');
+        if (precioRow && !document.getElementById('pub-precio-periodo')) {
             const periodoSel = document.createElement('select');
             periodoSel.id = 'pub-precio-periodo';
             periodoSel.className = 'form-select';
-            periodoSel.style.cssText = `margin-top:8px;display:${(tipo === 'solicitud' || tipo === 'prestamo') ? 'block' : 'none'}`;
+            periodoSel.style.cssText = `flex:1;min-width:0;display:${(tipo === 'solicitud' || tipo === 'prestamo') ? '' : 'none'}`;
             periodoSel.innerHTML = `
-                <option value="">Sin período específico</option>
-                <option value="por hora">por hora</option>
-                <option value="por día">por día</option>
-                <option value="por semana">por semana</option>
-                <option value="por quincena">por quincena</option>
-                <option value="por mes">por mes</option>
-                <option value="por temporada">por temporada</option>
-                <option value="por cosecha">por cosecha</option>
-                <option value="por jornal">por jornal</option>
-                <option value="por kg">por kg</option>
-                <option value="por libra">por libra</option>
-                <option value="por arroba">por arroba</option>
-                <option value="por bulto">por bulto</option>
-                <option value="por hectárea">por hectárea</option>
-                <option value="por fanegada">por fanegada</option>
-                <option value="por lote">por lote</option>
-                <option value="en total">en total</option>
-                <option value="a convenir">a convenir</option>`;
-            precioGroup.appendChild(periodoSel);
+                <option value="">Período...</option>
+                <optgroup label="Tiempo">
+                    <option value="por hora">por hora</option>
+                    <option value="por día">por día</option>
+                    <option value="por semana">por semana</option>
+                    <option value="por quincena">por quincena</option>
+                    <option value="por mes">por mes</option>
+                </optgroup>
+                <optgroup label="Trabajo agrícola">
+                    <option value="por jornal">por jornal</option>
+                    <option value="por temporada">por temporada</option>
+                    <option value="por cosecha">por cosecha</option>
+                </optgroup>
+                <optgroup label="Peso y cantidad">
+                    <option value="por kg">por kg</option>
+                    <option value="por libra">por libra</option>
+                    <option value="por arroba">por arroba</option>
+                    <option value="por bulto">por bulto</option>
+                </optgroup>
+                <optgroup label="Área">
+                    <option value="por hectárea">por hectárea</option>
+                    <option value="por fanegada">por fanegada</option>
+                    <option value="por lote">por lote</option>
+                </optgroup>
+                <optgroup label="Otros">
+                    <option value="en total">en total</option>
+                    <option value="a convenir">a convenir</option>
+                </optgroup>`;
+            precioRow.appendChild(periodoSel);
         }
         // Cantidad: solo dígitos (texto descriptivo va en Unidad)
         const cantidadInput = document.getElementById('pub-cantidad');
@@ -2077,14 +2131,24 @@ const App = {
         }
         // Segmented controls: trueque tipo, and all payment-type controls
         const pagoHints = {
-            'Monetario':       { hint: 'Monto o valor acordado', placeholder: 'Ej: $50.000/día' },
+            'Monetario':       { hint: 'Monto o valor acordado', placeholder: 'Ej: 50.000' },
             'Bien o producto': { hint: 'Describe qué bien o producto', placeholder: 'Ej: 2 bultos de papa criolla' },
             'Servicio':        { hint: 'Describe el servicio', placeholder: 'Ej: 1 jornada de trabajo' },
         };
         const recibeHints = {
             'Bien o producto': { hint: 'Describe el bien o producto que esperas recibir', placeholder: 'Ej: Semillas de hortalizas o abono orgánico' },
             'Servicio':        { hint: 'Describe el servicio que esperas a cambio', placeholder: 'Ej: 2 jornadas de mano de obra' },
-            'Monetario':       { hint: 'Indica el monto que esperas recibir', placeholder: 'Ej: $150.000' },
+            'Monetario':       { hint: 'Indica el monto que esperas recibir', placeholder: 'Ej: 150.000' },
+        };
+        const formatMonetary = (inp) => {
+            const pos = inp.selectionStart;
+            const prevLen = inp.value.length;
+            const raw = inp.value.replace(/\D/g, '');
+            if (!raw) { inp.value = ''; return; }
+            const formatted = parseInt(raw, 10).toLocaleString('es-CO');
+            inp.value = formatted;
+            const diff = formatted.length - prevLen;
+            try { inp.setSelectionRange(pos + diff, pos + diff); } catch(_) {}
         };
         ['#trueque-tipo', '#oferta-pago-tipo', '#prestamo-pago-tipo', '#solicitud-pago-tipo'].forEach(sel => {
             const isTrueque = sel === '#trueque-tipo';
@@ -2100,10 +2164,23 @@ const App = {
                         const hint = document.getElementById('pub-recibe-hint');
                         if (r && inp) { inp.placeholder = r.placeholder; }
                         if (r && hint) hint.textContent = r.hint;
-                        if (btn.dataset.val === 'Monetario' && inp) {
-                            inp.setAttribute('inputmode', 'numeric');
-                        } else if (inp) {
-                            inp.removeAttribute('inputmode');
+                        if (inp) {
+                            const onInput = () => formatMonetary(inp);
+                            if (btn.dataset.val === 'Monetario') {
+                                inp.setAttribute('inputmode', 'numeric');
+                                if (!inp._monetaryHandler) {
+                                    inp._monetaryHandler = onInput;
+                                    inp.addEventListener('input', inp._monetaryHandler);
+                                }
+                                inp.value = inp.value.replace(/\D/g, '');
+                                if (inp.value) inp.value = parseInt(inp.value, 10).toLocaleString('es-CO');
+                            } else {
+                                inp.removeAttribute('inputmode');
+                                if (inp._monetaryHandler) {
+                                    inp.removeEventListener('input', inp._monetaryHandler);
+                                    inp._monetaryHandler = null;
+                                }
+                            }
                         }
                         return;
                     }
@@ -2119,6 +2196,14 @@ const App = {
                 });
             });
         });
+        // Trueque: monetario es default → adjuntar formateador desde el inicio
+        if (tipo === 'trueque') {
+            const recibeInp = document.getElementById('pub-recibe');
+            if (recibeInp && !recibeInp._monetaryHandler) {
+                recibeInp._monetaryHandler = () => formatMonetary(recibeInp);
+                recibeInp.addEventListener('input', recibeInp._monetaryHandler);
+            }
+        }
     },
 
     previewPublishImage(event) {
@@ -2249,6 +2334,25 @@ const App = {
                     b.classList.toggle('active', b.dataset.val === r.modalidad);
                 });
             });
+            // Trueque edit: ajustar listener monetario al modalidad cargado
+            if (r.tipo === 'trueque') {
+                const recibeInp = document.getElementById('pub-recibe');
+                if (recibeInp) {
+                    if (r.modalidad === 'Monetario') {
+                        recibeInp.setAttribute('inputmode', 'numeric');
+                        if (recibeInp.value) {
+                            const raw = recibeInp.value.replace(/\D/g, '');
+                            recibeInp.value = raw ? parseInt(raw, 10).toLocaleString('es-CO') : '';
+                        }
+                    } else {
+                        recibeInp.removeAttribute('inputmode');
+                        if (recibeInp._monetaryHandler) {
+                            recibeInp.removeEventListener('input', recibeInp._monetaryHandler);
+                            recibeInp._monetaryHandler = null;
+                        }
+                    }
+                }
+            }
         }
 
         // Image preview
@@ -2411,7 +2515,7 @@ const App = {
             defaultDate: def
         });
         if (!date) return;
-        const isoDate = new Date(date).toISOString().replace('T', ' ').slice(0, 19);
+        const isoDate = new Date(date).toISOString();
         await this.doPublish(isoDate);
     },
 
@@ -2661,33 +2765,6 @@ const App = {
             };
 
             // === Mismo layout que showResourceDetail ===
-            let infoItems = '';
-            const addInfo = (icon, label, value) => {
-                if (value) infoItems += `<div class="detail-info-item"><div class="detail-info-label"><i data-lucide="${icon}"></i> ${label}</div><div class="detail-info-value">${this.esc(value)}</div></div>`;
-            };
-            addInfo('tag', 'Categoría', res.categoria);
-            addInfo('repeat', 'Modalidad', res.modalidad);
-            if (res.cantidad) {
-                const isNA = !res.unidad || res.unidad === 'No aplica';
-                infoItems += `<div class="detail-info-pair">
-                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="hash"></i> Cantidad</div><div class="detail-info-value">${this.esc(String(res.cantidad))}</div></div>
-                    <div class="detail-info-item ${isNA ? 'detail-info-na' : ''}"><div class="detail-info-label"><i data-lucide="ruler"></i> Unidad</div><div class="detail-info-value">${isNA ? 'No aplica' : this.esc(res.unidad)}</div></div>
-                </div>`;
-            }
-            addInfo('check-circle', 'Condición', res.condicion);
-            addInfo('clock', 'Disponibilidad', res.disponibilidad);
-            addInfo('banknote', 'Precio orientativo', res.precio_referencia);
-            addInfo('timer', 'Duración préstamo', res.duracion_prestamo);
-            addInfo('shield', 'Garantía', res.garantia);
-            addInfo('arrow-up-right', 'Ofrece', res.ofrece);
-            addInfo('arrow-down-left', 'Recibe', res.recibe);
-
-            const indicacionesBlock = res.location_notes ? `
-                <div class="detail-info-item detail-indicaciones-item" style="margin-top:10px">
-                    <div class="detail-info-label"><i data-lucide="navigation"></i> Cómo llegar</div>
-                    <div class="detail-info-value" style="white-space:pre-wrap;line-height:1.5">${this.esc(res.location_notes)}</div>
-                </div>` : '';
-            // Coords: convertir a número y validar
             const _lat = res.latitude != null ? parseFloat(res.latitude) : NaN;
             const _lng = res.longitude != null ? parseFloat(res.longitude) : NaN;
             const hasMap = Number.isFinite(_lat) && Number.isFinite(_lng);
@@ -2705,36 +2782,39 @@ const App = {
                 ? `<div class="detail-map-field">
                         <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
                         ${Geo.buildMapBlock(_lat, _lng, { height: '100%' })}
-                        ${indicacionesBlock}
                    </div>`
                 : '';
             const mediaRowHtml = (hasImg && hasMap)
                 ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>`
-                : (hasImg ? imageFieldHtml : '') + (hasMap
-                    ? `<div class="detail-location-section">${mapHtml}</div>`
-                    : (res.location_notes ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''));
+                : (hasImg ? imageFieldHtml : '') + (hasMap ? `<div class="detail-location-section">${mapHtml}</div>` : '');
 
-            // === Sección extra: estado del acuerdo ===
-            const roleText = isProvider ? 'te solicitó' : 'publica el recurso';
+            // === Sección extra: estado del acuerdo (mismo estilo que form view) ===
+            const finLabel = a.status === 'completed' ? 'Fin (completado)'
+                : a.status === 'cancelled' ? 'Fin (cancelado)'
+                : a.status === 'rejected' ? 'Fin (rechazado)'
+                : '';
+            const finDate = finLabel ? this.formatDate(a.updated_at) : '';
             const dealStatusBlock = `
-                <div class="detail-section detail-section-deal">
-                    <div class="detail-section-heading"><i data-lucide="handshake"></i> Acuerdo</div>
-                    <div class="deal-info-grid">
-                        <div class="deal-info-item">
-                            <span class="deal-info-label">Estado</span>
-                            <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
+                <div class="resource-view">
+                    <div class="rv-section-title">Acuerdo</div>
+                    <div class="rv-row">
+                        <div class="rv-field">
+                            <label>ESTADO</label>
+                            <div class="rv-value"><span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span></div>
                         </div>
-                        <div class="deal-info-item">
-                            <span class="deal-info-label">Solicitado</span>
-                            <span class="deal-info-value">${this.formatDate(a.created_at)}</span>
+                        <div class="rv-field">
+                            <label>INICIO</label>
+                            <div class="rv-value">${this.formatDate(a.created_at)}</div>
                         </div>
-                        ${(a.status === 'active' || a.status === 'completed') ? `
-                        <div class="deal-info-item">
-                            <span class="deal-info-label">${a.status === 'completed' ? 'Terminado' : 'Aceptado'}</span>
-                            <span class="deal-info-value">${this.formatDate(a.updated_at)}</span>
-                        </div>` : ''}
                     </div>
-                    ${a.cancel_reason ? `<div class="agr-card-cancel-reason" style="margin-top:10px"><strong>Motivo${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre) + ')' : ''}:</strong> ${this.esc(a.cancel_reason)}</div>` : ''}
+                    ${finDate ? `<div class="rv-field">
+                        <label>${finLabel.toUpperCase()}</label>
+                        <div class="rv-value">${finDate}</div>
+                    </div>` : ''}
+                    ${a.cancel_reason ? `<div class="rv-field">
+                        <label>MOTIVO${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre).toUpperCase() + ')' : ''}</label>
+                        <div class="rv-value rv-textarea">${this.esc(a.cancel_reason)}</div>
+                    </div>` : ''}
                 </div>`;
 
             // === Botones de acción según estado/rol ===
@@ -2766,14 +2846,7 @@ const App = {
                         <h2 class="detail-title detail-title-big">${this.esc(res.titulo)}</h2>
                     </div>
                     ${mediaRowHtml}
-                    ${infoItems ? `<div class="detail-section">
-                        <div class="detail-section-heading"><i data-lucide="list"></i> Detalles</div>
-                        <div class="detail-info-grid detail-info-grid-tight">${infoItems}</div>
-                    </div>` : ''}
-                    ${res.descripcion ? `<div class="detail-section">
-                        <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
-                        <div class="detail-section-body">${this.esc(res.descripcion)}</div>
-                    </div>` : ''}
+                    ${this.renderResourceFormView(res)}
                     ${dealStatusBlock}
                     <div class="detail-owner" onclick="App.showUserProfile('${otherId}')" style="cursor:pointer">
                         <div class="detail-owner-avatar">${otherInitials}</div>
@@ -3256,6 +3329,14 @@ const App = {
         if (h < 12) return 'Buenos días';
         if (h < 18) return 'Buenas tardes';
         return 'Buenas noches';
+    },
+
+    _parseDate(dateStr) {
+        if (!dateStr) return null;
+        try {
+            const d = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr.replace(' ', 'T') + 'Z');
+            return isNaN(d.getTime()) ? null : d;
+        } catch { return null; }
     },
 
     formatDate(dateStr) {

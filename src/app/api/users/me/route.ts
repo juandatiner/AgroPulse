@@ -45,7 +45,7 @@ export async function PUT(request: Request) {
     const uid = new ObjectId(user.id)
     const data = await request.json()
 
-    const allowed = ['nombre', 'apellido', 'municipio', 'tipo', 'telefono', 'bio', 'latitude', 'longitude']
+    const allowed = ['nombre', 'apellido', 'municipio', 'tipo', 'telefono', 'bio', 'latitude', 'longitude', 'theme']
     const updates: Record<string, unknown> = {}
     const verificationAffecting = ['nombre', 'apellido', 'municipio', 'tipo', 'telefono', 'bio']
     let invalidatesVerification = false
@@ -54,6 +54,13 @@ export async function PUT(request: Request) {
         updates[f] = data[f]
         if (verificationAffecting.includes(f)) invalidatesVerification = true
       }
+    }
+    if ('theme' in updates) {
+      const t = String(updates.theme || '').toLowerCase()
+      if (t !== 'light' && t !== 'dark') {
+        return json({ error: 'Tema inválido' }, 400)
+      }
+      updates.theme = t
     }
     if ('telefono' in updates) {
       const raw = String(updates.telefono || '').trim()
@@ -96,6 +103,7 @@ export async function PUT(request: Request) {
       subscription_status: updated.subscription_status || 'trial',
       trial_end: updated.trial_end instanceof Date ? updated.trial_end.toISOString() : (updated.trial_end ?? null),
       subscription_end: updated.subscription_end instanceof Date ? updated.subscription_end.toISOString() : (updated.subscription_end ?? null),
+      theme: updated.theme || 'light',
     }
     return json(out)
   })
