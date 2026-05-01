@@ -23,6 +23,8 @@ const App = {
 
     // ===== INIT =====
     init() {
+        // Aplicar tema persistido antes de renderizar
+        this.applyStoredTheme();
         if (API.token && API.user) {
             this.showApp();
         } else {
@@ -30,7 +32,59 @@ const App = {
             this.loadLandingTrialInfo();
         }
         this.bindEvents();
+        this.refreshThemeUI();
     },
+
+    // ===== TEMA =====
+    applyStoredTheme() {
+        let theme = 'light';
+        try {
+            const stored = localStorage.getItem('agropulse_theme');
+            if (stored === 'dark' || stored === 'light') {
+                theme = stored;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                theme = 'dark';
+            }
+        } catch {}
+        document.documentElement.setAttribute('data-theme', theme);
+        this._currentTheme = theme;
+    },
+
+    toggleTheme() {
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('agropulse_theme', next); } catch {}
+        document.documentElement.setAttribute('data-theme', next);
+        this._currentTheme = next;
+        this.refreshThemeUI();
+    },
+
+    // Compat: si alguien llamaba setTheme directo
+    setTheme(theme) {
+        if (theme === 'auto') {
+            try { localStorage.removeItem('agropulse_theme'); } catch {}
+            this.applyStoredTheme();
+        } else if (theme === 'light' || theme === 'dark') {
+            try { localStorage.setItem('agropulse_theme', theme); } catch {}
+            document.documentElement.setAttribute('data-theme', theme);
+            this._currentTheme = theme;
+        }
+        this.refreshThemeUI();
+    },
+
+    refreshThemeUI() {
+        const eff = document.documentElement.getAttribute('data-theme') || 'light';
+        const icon = document.getElementById('theme-icon');
+        if (icon) {
+            icon.setAttribute('data-lucide', eff === 'dark' ? 'moon' : 'sun');
+            if (window.lucide) lucide.createIcons({ nodes: [icon.parentElement] });
+        }
+        const label = document.getElementById('theme-current-label');
+        if (label) label.textContent = eff === 'dark' ? 'Modo oscuro activo' : 'Modo claro activo';
+        const row = document.getElementById('theme-toggle-row');
+        if (row) row.classList.toggle('theme-toggle-on', eff === 'dark');
+    },
+
 
     async loadLandingTrialInfo() {
         const box = document.getElementById('landing-stat-trial');
@@ -960,7 +1014,7 @@ const App = {
                     ${mediaRowHtml}
                     ${infoItems ? `<div class="detail-section">
                         <div class="detail-section-heading"><i data-lucide="list"></i> Detalles</div>
-                        <div class="detail-info-grid">${infoItems}</div>
+                        <div class="detail-info-grid detail-info-grid-tight">${infoItems}</div>
                     </div>` : ''}
                     ${r.descripcion ? `<div class="detail-section">
                         <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
@@ -975,11 +1029,10 @@ const App = {
                         <div class="detail-owner-rating"><i data-lucide="star"></i> ${(r.user_reputation || 5).toFixed(1)}</div>
                     </div>`}
                 </div>
-                <div class="detail-actions">
+                <div class="detail-actions detail-actions-centered">
                     ${isOwner
                         ? this.renderOwnerDetailActions(r)
-                        : `<button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
-                           ${this.getActionButton(r)}`
+                        : this.getActionButton(r)
                     }
                 </div>
                 ${isOwner ? '' : `<div class="detail-report-row"><button class="detail-report-btn" onclick="App.openReportModal('resource','${r.id}','${this._escAttr(r.titulo || '')}')"><i data-lucide="flag"></i> Reportar publicación</button></div>`}`;
@@ -2557,60 +2610,189 @@ const App = {
     },
 
     async showAgreementDetail(id) {
+        const overlay = document.getElementById('detail-overlay');
+        if (overlay && overlay.style.display !== 'block') {
+            overlay.innerHTML = `<div class="detail-body" style="padding:32px 16px;text-align:center">
+                <div class="skeleton-card skeleton" style="height:180px;border-radius:12px;margin-bottom:12px"></div>
+                <div class="skeleton-card skeleton" style="height:20px;max-width:240px;margin:0 auto 8px"></div>
+                <div class="skeleton-card skeleton" style="height:14px;max-width:160px;margin:0 auto"></div>
+            </div>`;
+            overlay.style.display = 'block';
+        }
         try {
             const a = await API.getAgreement(id);
-            const isProvider = a.provider_id === API.user.id;
-            const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
-            const otherInitials = isProvider ? `${a.req_nombre[0]}${a.req_apellido[0]}` : `${a.prov_nombre[0]}${a.prov_apellido[0]}`;
-            const statusLabels = { pending: 'Pendiente', active: 'En curso', completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado' };
-            const tipoLabels = { oferta: 'Oferta', solicitud: 'Solicitud', prestamo: 'Préstamo', trueque: 'Trueque' };
-            const tipoIcon = this.TYPE_ICONS[a.resource_tipo] || 'package';
-            const catIcon = this.ICONS[a.resource_cat] || 'package';
 
+            // Cargar el recurso vivo si existe — trae todo lo rico (mapa, condiciones, etc).
+            // Combinar con datos del agreement como fallback (snapshot persistido).
+            let r = null;
+            if (a.resource_id) {
+                try { r = await API.getResource(a.resource_id); } catch { r = null; }
+            }
+
+            const isProvider = a.provider_id === API.user.id;
+            const otherId = isProvider ? a.requester_id : a.provider_id;
+            const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
+            const otherInitials = (((isProvider ? a.req_nombre : a.prov_nombre) || '?')[0] + ((isProvider ? a.req_apellido : a.prov_apellido) || '?')[0]).toUpperCase();
+            const statusLabels = { pending: 'Pendiente', active: 'En curso', completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado' };
+
+            // Merge: primero del recurso vivo (r), luego agreement (a) como fallback
+            const pick = (k) => (r && r[k] != null && r[k] !== '') ? r[k] : a[k];
+            const res = {
+                id: a.resource_id,
+                titulo: pick('titulo') || a.resource_titulo || 'Recurso',
+                descripcion: pick('descripcion') || a.descripcion || '',
+                tipo: pick('tipo') || a.resource_tipo,
+                categoria: pick('categoria') || a.resource_cat,
+                image_data: pick('image_data') || a.image_data || null,
+                municipio: pick('municipio') || a.municipio || '',
+                latitude: (r && r.latitude != null) ? r.latitude : a.latitude,
+                longitude: (r && r.longitude != null) ? r.longitude : a.longitude,
+                location_notes: pick('location_notes') || a.location_notes || '',
+                modalidad: pick('modalidad') || a.modalidad || '',
+                cantidad: pick('cantidad') || a.cantidad || '',
+                unidad: pick('unidad') || a.unidad || '',
+                condicion: pick('condicion') || a.condicion || '',
+                disponibilidad: pick('disponibilidad') || a.disponibilidad || '',
+                precio_referencia: pick('precio_referencia') || a.precio_referencia || '',
+                duracion_prestamo: pick('duracion_prestamo') || a.duracion_prestamo || '',
+                garantia: pick('garantia') || a.garantia || '',
+                ofrece: pick('ofrece') || a.ofrece || '',
+                recibe: pick('recibe') || a.recibe || '',
+            };
+
+            // === Mismo layout que showResourceDetail ===
             let infoItems = '';
             const addInfo = (icon, label, value) => {
                 if (value) infoItems += `<div class="detail-info-item"><div class="detail-info-label"><i data-lucide="${icon}"></i> ${label}</div><div class="detail-info-value">${this.esc(value)}</div></div>`;
             };
-            addInfo('tag', 'Categoría', a.resource_cat);
-            addInfo('package', 'Tipo', tipoLabels[a.resource_tipo] || a.resource_tipo);
-            addInfo('activity', 'Estado', statusLabels[a.status]);
-            addInfo('calendar-plus', 'Solicitado', this.formatDate(a.created_at));
-            if (a.status === 'active' || a.status === 'completed') addInfo('calendar-check', 'Asignado', this.formatDate(a.updated_at));
-            if (a.status === 'completed') addInfo('calendar-x2', 'Terminado', this.formatDate(a.updated_at));
+            addInfo('tag', 'Categoría', res.categoria);
+            addInfo('repeat', 'Modalidad', res.modalidad);
+            if (res.cantidad) {
+                const isNA = !res.unidad || res.unidad === 'No aplica';
+                infoItems += `<div class="detail-info-pair">
+                    <div class="detail-info-item"><div class="detail-info-label"><i data-lucide="hash"></i> Cantidad</div><div class="detail-info-value">${this.esc(String(res.cantidad))}</div></div>
+                    <div class="detail-info-item ${isNA ? 'detail-info-na' : ''}"><div class="detail-info-label"><i data-lucide="ruler"></i> Unidad</div><div class="detail-info-value">${isNA ? 'No aplica' : this.esc(res.unidad)}</div></div>
+                </div>`;
+            }
+            addInfo('check-circle', 'Condición', res.condicion);
+            addInfo('clock', 'Disponibilidad', res.disponibilidad);
+            addInfo('banknote', 'Precio orientativo', res.precio_referencia);
+            addInfo('timer', 'Duración préstamo', res.duracion_prestamo);
+            addInfo('shield', 'Garantía', res.garantia);
+            addInfo('arrow-up-right', 'Ofrece', res.ofrece);
+            addInfo('arrow-down-left', 'Recibe', res.recibe);
+
+            const indicacionesBlock = res.location_notes ? `
+                <div class="detail-info-item detail-indicaciones-item" style="margin-top:10px">
+                    <div class="detail-info-label"><i data-lucide="navigation"></i> Cómo llegar</div>
+                    <div class="detail-info-value" style="white-space:pre-wrap;line-height:1.5">${this.esc(res.location_notes)}</div>
+                </div>` : '';
+            // Coords: convertir a número y validar
+            const _lat = res.latitude != null ? parseFloat(res.latitude) : NaN;
+            const _lng = res.longitude != null ? parseFloat(res.longitude) : NaN;
+            const hasMap = Number.isFinite(_lat) && Number.isFinite(_lng);
+            const hasImg = !!res.image_data;
+            const imageFieldHtml = hasImg
+                ? `<div class="detail-image-field-wrap">
+                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="image"></i> Foto</div>
+                        <div class="detail-image-field" onclick="App.openLightbox('${res.image_data}')">
+                            <img src="${res.image_data}" alt="">
+                            <div class="detail-image-zoom-hint"><i data-lucide="zoom-in"></i> Toca para ver en grande</div>
+                        </div>
+                   </div>`
+                : '';
+            const mapHtml = (hasMap && window.Geo)
+                ? `<div class="detail-map-field">
+                        <div class="detail-info-label" style="margin-bottom:8px"><i data-lucide="map-pin"></i> Ubicación</div>
+                        ${Geo.buildMapBlock(_lat, _lng, { height: '100%' })}
+                        ${indicacionesBlock}
+                   </div>`
+                : '';
+            const mediaRowHtml = (hasImg && hasMap)
+                ? `<div class="detail-media-row">${imageFieldHtml}${mapHtml}</div>`
+                : (hasImg ? imageFieldHtml : '') + (hasMap
+                    ? `<div class="detail-location-section">${mapHtml}</div>`
+                    : (res.location_notes ? `<div class="detail-location-section">${indicacionesBlock}</div>` : ''));
+
+            // === Sección extra: estado del acuerdo ===
+            const roleText = isProvider ? 'te solicitó' : 'publica el recurso';
+            const dealStatusBlock = `
+                <div class="detail-section detail-section-deal">
+                    <div class="detail-section-heading"><i data-lucide="handshake"></i> Acuerdo</div>
+                    <div class="deal-info-grid">
+                        <div class="deal-info-item">
+                            <span class="deal-info-label">Estado</span>
+                            <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
+                        </div>
+                        <div class="deal-info-item">
+                            <span class="deal-info-label">Solicitado</span>
+                            <span class="deal-info-value">${this.formatDate(a.created_at)}</span>
+                        </div>
+                        ${(a.status === 'active' || a.status === 'completed') ? `
+                        <div class="deal-info-item">
+                            <span class="deal-info-label">${a.status === 'completed' ? 'Terminado' : 'Aceptado'}</span>
+                            <span class="deal-info-value">${this.formatDate(a.updated_at)}</span>
+                        </div>` : ''}
+                    </div>
+                    ${a.cancel_reason ? `<div class="agr-card-cancel-reason" style="margin-top:10px"><strong>Motivo${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre) + ')' : ''}:</strong> ${this.esc(a.cancel_reason)}</div>` : ''}
+                </div>`;
+
+            // === Botones de acción según estado/rol ===
+            let actions = `<button class="btn btn-primary btn-full" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>`;
+            if (a.status === 'pending' && isProvider) {
+                actions = `
+                    <button class="btn btn-success btn-full" onclick="App.updateAgreement('${a.id}','active')"><i data-lucide="check"></i> Aceptar solicitud</button>
+                    <button class="btn btn-danger btn-full btn-sm" onclick="App.updateAgreement('${a.id}','rejected')"><i data-lucide="x"></i> Rechazar</button>
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>`;
+            } else if (a.status === 'active' && isProvider) {
+                actions = `
+                    <button class="btn btn-success btn-full" onclick="App.markComplete('${a.id}')"><i data-lucide="check-circle"></i> Marcar completado</button>
+                    <button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>`;
+            } else if (a.status === 'completed') {
+                const rated = isProvider ? a.rating_provider : a.rating_requester;
+                actions = rated
+                    ? `<button class="btn btn-outline btn-full" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Ver chat</button>`
+                    : `<button class="btn btn-earth btn-full" onclick="App.showRating('${a.id}')"><i data-lucide="star"></i> Calificar intercambio</button>`;
+            }
 
             const html = `
                 <div class="detail-header">
                     <button class="detail-back" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i></button>
-                    <h3>Detalle del servicio</h3>
+                    <h3>Detalle del acuerdo</h3>
                 </div>
                 <div class="detail-body">
-                    <div class="detail-type-badge">
-                        <span class="type-badge ${a.resource_tipo}"><i data-lucide="${tipoIcon}" style="width:13px;height:13px;vertical-align:middle"></i> ${tipoLabels[a.resource_tipo] || a.resource_tipo}</span>
+                    <div class="detail-title-row">
+                        <span class="type-badge ${res.tipo} detail-title-badge">${this.TYPE_LABELS[res.tipo] || res.tipo}</span>
+                        <h2 class="detail-title detail-title-big">${this.esc(res.titulo)}</h2>
                     </div>
-                    <h2 class="detail-title">${this.esc(a.resource_titulo || 'Servicio')}</h2>
-                    ${a.image_data ? `<div style="margin:16px 0;cursor:zoom-in;border-radius:var(--radius-sm);overflow:hidden" onclick="App.openLightbox('${a.image_data}')">
-                        <img src="${a.image_data}" alt="" style="width:100%;max-height:300px;object-fit:cover;display:block;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                        <div style="text-align:center;font-size:0.72rem;color:var(--text-muted);padding:4px 0;background:var(--cream)"><i data-lucide="zoom-in" style="width:12px;height:12px;vertical-align:middle"></i> Toca para ver en grande</div>
+                    ${mediaRowHtml}
+                    ${infoItems ? `<div class="detail-section">
+                        <div class="detail-section-heading"><i data-lucide="list"></i> Detalles</div>
+                        <div class="detail-info-grid detail-info-grid-tight">${infoItems}</div>
                     </div>` : ''}
-                    ${a.descripcion ? `<p class="detail-desc">${this.esc(a.descripcion)}</p>` : ''}
-                    <div class="detail-info-grid">${infoItems}</div>
-                    <div class="detail-owner" onclick="App.showUserProfile('${isProvider ? a.requester_id : a.provider_id}')" style="cursor:pointer">
-                        <div class="detail-owner-avatar">${otherInitials.toUpperCase()}</div>
+                    ${res.descripcion ? `<div class="detail-section">
+                        <div class="detail-section-heading"><i data-lucide="file-text"></i> Descripción</div>
+                        <div class="detail-section-body">${this.esc(res.descripcion)}</div>
+                    </div>` : ''}
+                    ${dealStatusBlock}
+                    <div class="detail-owner" onclick="App.showUserProfile('${otherId}')" style="cursor:pointer">
+                        <div class="detail-owner-avatar">${otherInitials}</div>
                         <div class="detail-owner-info">
                             <h4>${this.esc(otherName)}</h4>
                             <p>${isProvider ? 'Solicitante' : 'Publicador'} <i data-lucide="external-link" style="width:11px;height:11px;vertical-align:middle;margin-left:2px"></i></p>
                         </div>
                     </div>
                 </div>
-                <div class="detail-actions">
-                    <button class="btn btn-primary btn-full btn-sm" onclick="App.closeDetail();App.openAgreementChat('${a.id}')"><i data-lucide="message-circle"></i> Abrir chat</button>
+                <div class="detail-actions detail-actions-centered">
+                    ${actions}
                 </div>`;
-            const overlay = document.getElementById('detail-overlay');
             overlay.innerHTML = html;
             overlay.style.display = 'block';
             lucide.createIcons({ nodes: [overlay] });
+            if (!this._skipHistory) history.pushState({ type: 'agreementDetail', tab: this.currentTab, id }, '');
         } catch (e) {
-            this.showToast('Error al cargar detalle', 'error');
+            console.error('showAgreementDetail error:', e);
+            this.showToast(e.message || 'Error al cargar detalle', 'error');
         }
     },
 

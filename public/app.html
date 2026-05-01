@@ -4,7 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=63">
+    <script>
+    /* Aplicar tema desde localStorage antes del primer paint para evitar flash */
+    (function(){
+      try {
+        var t = localStorage.getItem('agropulse_theme') || 'auto';
+        var eff = t === 'auto'
+          ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : t;
+        document.documentElement.setAttribute('data-theme', eff);
+      } catch(e){}
+    })();
+    </script>
+    <link rel="stylesheet" href="/css/styles.css?v=76">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -455,9 +467,9 @@
                 <p class="profile-location" id="profile-location"></p>
             </div>
             <div class="profile-stats">
-                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="handshake"></i></div><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label">Acuerdos</div></div>
-                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="package"></i></div><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label">Publicaciones</div></div>
-                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="star"></i></div><div class="profile-stat-value" id="profile-stat-rating">5.0</div><div class="profile-stat-label">Calificación</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="handshake"></i></div><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label" data-i18n="profile.stat.deals">Acuerdos</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="package"></i></div><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label" data-i18n="profile.stat.posts">Publicaciones</div></div>
+                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="star"></i></div><div class="profile-stat-value" id="profile-stat-rating">5.0</div><div class="profile-stat-label" data-i18n="profile.stat.rating">Calificación</div></div>
             </div>
 
             <div class="profile-section">
@@ -469,16 +481,28 @@
             </div>
 
             <div class="profile-section">
-                <div class="profile-section-title">Cuenta</div>
+                <div class="profile-section-title" data-i18n="profile.section.account">Cuenta</div>
                 <button class="profile-menu-item" onclick="App.openSettings('cuenta')">
                     <div class="profile-menu-icon green"><i data-lucide="settings"></i></div>
-                    <div class="profile-menu-text"><h4>Configuración de cuenta</h4><p>Nombre, ubicación, tipo de productor</p></div>
+                    <div class="profile-menu-text"><h4 data-i18n="profile.account.config">Configuración de cuenta</h4><p data-i18n="profile.account.config.sub">Nombre, ubicación, tipo de productor</p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
                 <button class="profile-menu-item" onclick="App.openSettings('stats')">
                     <div class="profile-menu-icon gold"><i data-lucide="bar-chart-3"></i></div>
-                    <div class="profile-menu-text"><h4>Mis estadísticas</h4><p>Publicaciones, acuerdos, calificaciones</p></div>
+                    <div class="profile-menu-text"><h4 data-i18n="profile.stats.title">Mis estadísticas</h4><p data-i18n="profile.stats.sub">Publicaciones, acuerdos, calificaciones</p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
+                </button>
+                <button class="profile-menu-item" onclick="Subscription.openInvoices()">
+                    <div class="profile-menu-icon gold"><i data-lucide="receipt"></i></div>
+                    <div class="profile-menu-text"><h4>Historial de pagos</h4><p>Facturas y referencias</p></div>
+                    <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
+                </button>
+                <button class="profile-menu-item" onclick="App.toggleTheme()" id="theme-toggle-row">
+                    <div class="profile-menu-icon theme-icon-wrap" id="theme-icon-wrap"><i data-lucide="moon" id="theme-icon"></i></div>
+                    <div class="profile-menu-text"><h4>Apariencia</h4><p id="theme-current-label">Modo claro</p></div>
+                    <div class="theme-toggle-track">
+                        <span class="theme-toggle-thumb"></span>
+                    </div>
                 </button>
             </div>
 
@@ -497,11 +521,6 @@
                 <button class="profile-menu-item" id="export-csv-btn" onclick="Subscription.downloadImage()">
                     <div class="profile-menu-icon green"><i data-lucide="download"></i></div>
                     <div class="profile-menu-text"><h4>Exportar acuerdos</h4><p id="export-csv-sub">Descarga un resumen en imagen <span class="pro-chip">Pro</span></p></div>
-                    <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
-                </button>
-                <button class="profile-menu-item" onclick="Subscription.openInvoices()">
-                    <div class="profile-menu-icon gold"><i data-lucide="receipt"></i></div>
-                    <div class="profile-menu-text"><h4>Historial de pagos</h4><p>Facturas y referencias</p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
             </div>
@@ -529,20 +548,20 @@
     <!-- Tab Bar -->
     <div class="tab-bar">
         <button class="tab-btn active" data-tab="inicio" onclick="App.switchTab('inicio')">
-            <i data-lucide="home"></i><span>Inicio</span>
+            <i data-lucide="home"></i><span data-i18n="nav.inicio">Inicio</span>
         </button>
         <button class="tab-btn" data-tab="mercado" onclick="App.switchTab('mercado')">
-            <i data-lucide="search"></i><span>Buscar</span>
+            <i data-lucide="search"></i><span data-i18n="nav.mercado">Buscar</span>
         </button>
         <button class="tab-btn tab-btn-publish" data-tab="publicar" onclick="App.switchTab('publicar')">
-            <div class="tab-icon-wrap"><i data-lucide="plus"></i></div><span>Publicar</span>
+            <div class="tab-icon-wrap"><i data-lucide="plus"></i></div><span data-i18n="nav.publicar">Publicar</span>
         </button>
         <button class="tab-btn" data-tab="intercambios" onclick="App.switchTab('intercambios')">
-            <i data-lucide="briefcase"></i><span>Acuerdos</span>
+            <i data-lucide="briefcase"></i><span data-i18n="nav.intercambios">Acuerdos</span>
             <span class="badge hidden" id="agreements-badge"></span>
         </button>
         <button class="tab-btn" data-tab="perfil" onclick="App.switchTab('perfil')">
-            <i data-lucide="user"></i><span>Perfil</span>
+            <i data-lucide="user"></i><span data-i18n="nav.perfil">Perfil</span>
         </button>
     </div>
 </div>
@@ -742,7 +761,7 @@
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=10"></script>
 <script src="/js/subscription.js?v=35"></script>
-<script src="/js/app.js?v=44"></script>
+<script src="/js/app.js?v=54"></script>
 <script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

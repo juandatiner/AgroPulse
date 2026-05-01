@@ -62,7 +62,7 @@ const Admin = (() => {
   function showApp() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-screen').style.display = 'flex';
-    const validTabs = ['dashboard', 'users', 'resources', 'agreements', 'subscriptions', 'support', 'config'];
+    const validTabs = ['dashboard', 'users', 'resources', 'agreements', 'subscriptions', 'support', 'control', 'config'];
     let initial = 'dashboard';
     try {
       const saved = localStorage.getItem('agropulse_admin_tab');
@@ -70,6 +70,31 @@ const Admin = (() => {
     } catch {}
     switchTab(initial);
     startAutoRefresh();
+    refreshThemeToggleIcon();
+  }
+
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem('agropulse_theme', next); } catch {}
+    document.documentElement.setAttribute('data-theme', next);
+    refreshThemeToggleIcon();
+    // Redibujar charts y refrescar mapas si están visibles
+    if (_currentTab === 'dashboard') {
+      try { loadCharts(true); } catch {}
+      try {
+        if (_adminUsersMap) _adminUsersMap.invalidateSize();
+        if (_adminResourcesMap) _adminResourcesMap.invalidateSize();
+      } catch {}
+    }
+  }
+
+  function refreshThemeToggleIcon() {
+    const icon = document.getElementById('theme-toggle-icon');
+    if (!icon) return;
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    icon.setAttribute('data-lucide', cur === 'dark' ? 'sun' : 'moon');
+    if (window.lucide) lucide.createIcons({ nodes: [icon.parentElement] });
   }
 
   /* ── Tabs ── */
@@ -255,13 +280,20 @@ const Admin = (() => {
     const allZero = series.every(s => valueOf(s) === 0);
     if (empty) empty.style.display = allZero ? 'flex' : 'none';
 
+    // Detectar tema oscuro para usar paleta apropiada
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const labelColor = isDark ? '#A8A08C' : '#9ca3af';
+    const gridStrong = isDark ? '#3A3530' : '#d1d5db';
+    const gridSoft = isDark ? '#2A2620' : '#f3f4f6';
+    const axisLabelColor = isDark ? '#B5BEA0' : '#6b7280';
+
     // Y axis: ticks adaptativos (4 niveles)
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = labelColor;
     ctx.font = '10px "DM Sans", system-ui, sans-serif';
     const yTicks = [0, 0.25, 0.5, 0.75, 1];
     yTicks.forEach((t, i) => {
       const y = padT + chartH - chartH * t;
-      ctx.strokeStyle = i === 0 ? '#d1d5db' : '#f3f4f6';
+      ctx.strokeStyle = i === 0 ? gridStrong : gridSoft;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(padL, y);
@@ -313,7 +345,7 @@ const Admin = (() => {
     });
 
     // X labels — mostrar cada N para no saturar y clamp para no salir del canvas
-    ctx.fillStyle = '#6b7280';
+    ctx.fillStyle = axisLabelColor;
     ctx.font = '10px "DM Sans", system-ui, sans-serif';
     const labelEvery = series.length > 16 ? Math.ceil(series.length / 8) : (series.length > 8 ? 2 : 1);
     series.forEach((d, i) => {
@@ -2728,6 +2760,7 @@ const Admin = (() => {
   return {
     get token() { return _token; },
     login, logout, init,
+    toggleTheme,
     switchTab,
     loadStats, loadUsers, loadResources, loadAgreements,
     deleteUser, deleteResource,
