@@ -174,16 +174,38 @@ const Subscription = {
         const dayLbl = (n) => n === 1 ? 'día' : 'días';
 
         if (s.status === 'active') {
-            if ((s.subscription_days_left || 0) > 10) { el.classList.add('hidden'); return; }
-            urgentDays = s.subscription_days_left;
-            endTs = s.subscription_end ? new Date(s.subscription_end).getTime() : null;
-            ctaText = 'Renovar';
-            if (s.subscription_days_left === 1 && endTs) {
-                countdown = `⏳ Tu suscripción termina en ${this.leafCountdown(endTs)}`;
-            } else if (s.subscription_days_left > 0) {
-                countdown = `⏳ Tu suscripción termina en <strong>${s.subscription_days_left} ${dayLbl(s.subscription_days_left)}</strong>`;
+            // Aviso de límite Básico: si está al 80%+ del tope mensual, mostrar banner promocionando Pro.
+            const isBasic = s.plan_tier === 'basic';
+            const used = s.monthly_post_count || 0;
+            const max = s.basic_max_posts || 0;
+            const ratio = (isBasic && max > 0) ? used / max : 0;
+            const showBasicLimit = isBasic && max > 0 && ratio >= 0.8;
+            const daysLeft = s.subscription_days_left || 0;
+
+            if (!showBasicLimit && daysLeft > 10) { el.classList.add('hidden'); return; }
+
+            if (showBasicLimit) {
+                ctaText = 'Mejorar a Pro';
+                const remaining = Math.max(0, max - used);
+                if (remaining === 0) {
+                    countdown = `🚜 Llegaste al tope: <strong>${used} / ${max}</strong> publicaciones este mes en plan Básico`;
+                    mainText = ` <span class="promo-grab">Mejora a Pro y publica sin límites.</span>`;
+                } else {
+                    countdown = `📊 Has usado <strong>${used} / ${max}</strong> publicaciones del plan Básico`;
+                    mainText = ` <span class="promo-grab">Te quedan ${remaining}. Pasa a Pro para no parar.</span>`;
+                }
+                urgentDays = remaining === 0 ? 0 : (remaining <= 2 ? 1 : 5);
             } else {
-                countdown = `⏳ Tu suscripción termina hoy`;
+                urgentDays = daysLeft;
+                endTs = s.subscription_end ? new Date(s.subscription_end).getTime() : null;
+                ctaText = 'Renovar';
+                if (daysLeft === 1 && endTs) {
+                    countdown = `⏳ Tu suscripción termina en ${this.leafCountdown(endTs)}`;
+                } else if (daysLeft > 0) {
+                    countdown = `⏳ Tu suscripción termina en <strong>${daysLeft} ${dayLbl(daysLeft)}</strong>`;
+                } else {
+                    countdown = `⏳ Tu suscripción termina hoy`;
+                }
             }
         } else if (s.status === 'trial' && s.trial_days_left > 0) {
             urgentDays = s.trial_days_left;
@@ -711,13 +733,14 @@ const Subscription = {
         const promo = !!s.promo_active;
         const discountLabel = s.promo_discount_percent ? `-${s.promo_discount_percent}%` : '-50%';
 
+        const basicMax = s.basic_max_posts || 20;
         const basicFeatures = [
-            { text: 'Publicaciones ilimitadas', ok: true },
+            { text: `Hasta ${basicMax} publicaciones por mes`, ok: true },
             { text: 'Vista mapa de publicaciones', ok: true },
             { text: 'Chat con fotos y ubicación', ok: true },
             { text: 'Sin anuncios', ok: false },
             { text: 'Alertas de match inteligente', ok: false },
-            { text: 'Exportar acuerdos a CSV', ok: false },
+            { text: 'Exportar resumen de acuerdos en imagen', ok: false },
             { text: 'Soporte prioritario', ok: false },
         ];
         const proFeatures = [
@@ -726,7 +749,7 @@ const Subscription = {
             { text: 'Chat con fotos y ubicación', ok: true },
             { text: 'Sin anuncios', ok: true },
             { text: 'Alertas de match inteligente', ok: true },
-            { text: 'Exportar acuerdos a CSV', ok: true },
+            { text: 'Exportar resumen de acuerdos en imagen', ok: true },
             { text: 'Soporte prioritario', ok: true },
         ];
 
@@ -885,6 +908,14 @@ const Subscription = {
                         <i data-lucide="shield-check"></i> Pago seguro
                     </div>
                 </div>
+                <div class="checkout-test-banner">
+                    <i data-lucide="flask-conical"></i>
+                    <div>
+                        <strong>Modo prueba</strong>
+                        <span>No se cobra dinero real. Usa cualquier número de 16 dígitos o el botón de abajo.</span>
+                    </div>
+                    <button type="button" class="checkout-test-fill" onclick="Subscription._fillTestCard()">Usar tarjeta de prueba</button>
+                </div>
                 <div class="checkout-summary checkout-summary-slim">
                     <span>${summaryLabel}</span>
                     <strong>${pricePromo}</strong>
@@ -933,11 +964,24 @@ const Subscription = {
     closeCheckout() { this._closeOverlay('checkout-overlay'); },
 
     _formatCard(input) {
-        let v = input.value.replace(/\D/g, '').slice(0, 16);
+        let v = input.value.replace(/\D/g, '').slice(0, 19);
         input.value = v.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
         const brand = this._detectBrand(v);
         const hint = document.getElementById('ck-brand-hint');
         if (hint) hint.textContent = brand;
+    },
+
+    _fillTestCard() {
+        const set = (id, val) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.value = val;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        set('ck-holder', 'JUAN PEREZ');
+        set('ck-card', '4242 4242 4242 4242');
+        set('ck-exp', '12 / 30');
+        set('ck-cvv', '123');
     },
 
     _formatExp(input) {
@@ -1159,13 +1203,19 @@ const Subscription = {
                 const repu = (m.match_user_reputation || 5).toFixed(1);
                 const desc = (m.match_descripcion || '').trim();
                 const verified = m.match_user_verified ? '<i data-lucide="badge-check" class="verified-inline"></i>' : '';
+                const keywords = Array.isArray(m.match_keywords) ? m.match_keywords : [];
+                const keywordsHtml = keywords.length
+                    ? `<div class="match-keywords">${keywords.map(k => `<span class="match-kw">${this._esc(k)}</span>`).join('')}</div>`
+                    : '';
+                const muniBadge = m.match_same_municipio ? `<span class="match-muni match-muni-same"><i data-lucide="map-pin"></i> ${this._esc(m.match_municipio)} · mismo municipio</span>` : (m.match_municipio ? `<span class="match-muni"><i data-lucide="map-pin"></i> ${this._esc(m.match_municipio)}</span>` : '');
                 return `
                 <div class="match-card match-card-${m.match_tipo}" onclick="Subscription._closeOverlay('matches-overlay'); App.showResourceDetail('${m.match_id}')">
                     <div class="match-card-top">
                         <span class="match-tipo-pill match-tipo-${m.match_tipo}"><i data-lucide="${typeIcon}"></i> ${typeLbl}</span>
-                        ${m.match_municipio ? `<span class="match-muni"><i data-lucide="map-pin"></i> ${this._esc(m.match_municipio)}</span>` : ''}
+                        ${muniBadge}
                         <span class="match-ago">${ago}</span>
                     </div>
+                    ${keywordsHtml}
                     <h4 class="match-title">${this._esc(m.match_titulo)}</h4>
                     ${desc ? `<p class="match-desc">${this._esc(desc.slice(0, 160))}${desc.length > 160 ? '…' : ''}</p>` : ''}
                     <div class="match-meta-row">
@@ -1228,7 +1278,7 @@ const Subscription = {
                 </div>
                 <div class="form-group">
                     <label class="form-label">Mensaje</label>
-                    <textarea id="nt-message" class="form-input" rows="5" placeholder="Cuéntanos qué ocurre..."></textarea>
+                    <textarea id="nt-message" class="form-input form-input-lg" rows="10" placeholder="Cuéntanos qué ocurre con el mayor detalle posible. Incluye pasos para reproducir, capturas si aplica, y cualquier información relevante." style="min-height:220px;font-size:0.95rem;line-height:1.5;resize:vertical"></textarea>
                 </div>
                 <button class="btn btn-primary btn-full" onclick="Subscription.submitTicket()">
                     <i data-lucide="send"></i> Enviar
@@ -1325,67 +1375,364 @@ const Subscription = {
     },
 
     // ========== Invoices ==========
+    _MONTH_LBL: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+    _formatInvoiceDate(iso) {
+        const d = new Date(iso);
+        const day = String(d.getDate()).padStart(2, '0');
+        const mon = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${day} ${mon} ${d.getFullYear()} · ${hh}:${mm}`;
+    },
+    _planTierLabel(tier) {
+        if (tier === 'pro') return 'Pro';
+        if (tier === 'basic') return 'Básico';
+        return tier ? this._esc(tier) : '';
+    },
+    _copyToClipboard(txt) {
+        try {
+            navigator.clipboard.writeText(txt);
+            App.showToast('Copiado al portapapeles', 'success');
+        } catch { App.showToast('No se pudo copiar', 'error'); }
+    },
+
     async openInvoices() {
         this._openOverlay('invoices-overlay', `
             <div class="invoices-overlay-inner">
                 <button class="plans-close" onclick="Subscription._closeOverlay('invoices-overlay')"><i data-lucide="x"></i></button>
-                <h2><i data-lucide="receipt"></i> Historial de pagos</h2>
-                <div id="invoices-list" class="invoices-list"><div class="skeleton-card skeleton"></div></div>
+                <div class="invoices-header">
+                    <div class="invoices-icon-wrap"><i data-lucide="receipt"></i></div>
+                    <div>
+                        <h2>Historial de pagos</h2>
+                        <p class="invoices-intro">Tus cobros, renovaciones, upgrades e intentos rechazados.</p>
+                    </div>
+                </div>
+                <div id="invoices-summary" class="invoices-summary"></div>
+                <div id="invoices-list" class="invoices-list"><div class="skeleton-card skeleton"></div><div class="skeleton-card skeleton"></div></div>
             </div>
         `);
         try {
             const invoices = await API.getInvoices();
             const host = document.getElementById('invoices-list');
+            const summary = document.getElementById('invoices-summary');
+
             if (!invoices.length) {
-                host.innerHTML = `<div class="empty-state"><i data-lucide="inbox"></i><p>Aún no tienes pagos registrados</p></div>`;
-            } else {
-                host.innerHTML = invoices.map(inv => `
-                    <div class="invoice-item">
-                        <div class="invoice-head">
-                            <strong>${this.formatPrice(inv.amount)}</strong>
-                            <span class="invoice-status invoice-${inv.status}">${inv.status === 'paid' ? 'Pagado' : 'Rechazado'}</span>
-                        </div>
-                        <small>${inv.card_brand} •••• ${inv.card_last4 || '----'} · ${new Date(inv.created_at).toLocaleString()}</small>
-                        <small class="invoice-ref">Ref: ${inv.reference}</small>
-                    </div>
-                `).join('');
+                if (summary) summary.innerHTML = '';
+                host.innerHTML = `<div class="empty-state empty-state-centered"><i data-lucide="inbox"></i><h3>Sin pagos aún</h3><p>Cuando hagas tu primera suscripción, los recibos aparecerán acá.</p></div>`;
+                if (window.lucide) lucide.createIcons();
+                return;
             }
+
+            // Resumen: solo rechazados (si los hay)
+            const declined = invoices.filter(i => i.status === 'declined').length;
+            summary.innerHTML = declined > 0
+                ? `<div class="invoices-summary-card invoices-summary-warn">
+                    <i data-lucide="alert-triangle"></i>
+                    <div>
+                        <strong>${declined} ${declined === 1 ? 'pago rechazado' : 'pagos rechazados'}</strong>
+                        <small>Revisa los detalles más abajo.</small>
+                    </div>
+                </div>`
+                : '';
+
+            // Agrupar por mes (YYYY-MM)
+            const groups = {};
+            for (const inv of invoices) {
+                const d = new Date(inv.created_at);
+                const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, '0')}`;
+                if (!groups[key]) groups[key] = { year: d.getFullYear(), month: d.getMonth(), items: [], total: 0 };
+                groups[key].items.push(inv);
+                if (inv.status === 'paid') groups[key].total += (inv.amount || 0);
+            }
+            const sortedKeys = Object.keys(groups).sort().reverse();
+
+            host.innerHTML = sortedKeys.map(k => {
+                const g = groups[k];
+                const monthName = this._MONTH_LBL[g.month];
+                const itemsHtml = g.items.map(inv => {
+                    const isPaid = inv.status === 'paid';
+                    const statusIcon = isPaid ? 'check-circle-2' : 'x-circle';
+                    const statusLbl = isPaid ? 'Pagado' : 'Rechazado';
+                    const tierLbl = this._planTierLabel(inv.plan_tier);
+                    const tierBadge = tierLbl ? `<span class="invoice-tier invoice-tier-${inv.plan_tier || 'none'}">${tierLbl}</span>` : '';
+                    const upgradeBadge = inv.is_upgrade ? `<span class="invoice-upgrade">Upgrade prorrateado</span>` : '';
+                    const declineMsg = !isPaid && inv.decline_reason
+                        ? `<div class="invoice-decline"><i data-lucide="alert-triangle"></i> ${this._esc(inv.decline_reason)}</div>`
+                        : '';
+                    return `
+                        <div class="invoice-card invoice-${inv.status}">
+                            <div class="invoice-card-row">
+                                <div class="invoice-amount-block">
+                                    <strong class="invoice-amount">${this.formatPrice(inv.amount || 0)}</strong>
+                                    <div class="invoice-tags">${tierBadge}${upgradeBadge}</div>
+                                </div>
+                                <span class="invoice-status invoice-status-${inv.status}">
+                                    <i data-lucide="${statusIcon}"></i> ${statusLbl}
+                                </span>
+                            </div>
+                            <div class="invoice-card-meta">
+                                <span class="invoice-card-meta-item"><i data-lucide="credit-card"></i> ${this._esc(inv.card_brand || 'Tarjeta')} •••• ${this._esc(inv.card_last4 || '----')}</span>
+                                <span class="invoice-card-meta-item"><i data-lucide="calendar"></i> ${this._formatInvoiceDate(inv.created_at)}</span>
+                            </div>
+                            <button class="invoice-ref-btn" onclick="event.stopPropagation(); Subscription._copyToClipboard('${this._esc(inv.reference)}')" title="Copiar referencia">
+                                <i data-lucide="hash"></i> ${this._esc(inv.reference)}
+                                <i data-lucide="copy" class="invoice-ref-copy"></i>
+                            </button>
+                            ${declineMsg}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="invoice-month-group">
+                        <div class="invoice-month-head">
+                            <h3>${monthName} <span class="invoice-month-year">${g.year}</span></h3>
+                            <span class="invoice-month-total">${this.formatPrice(g.total)}</span>
+                        </div>
+                        ${itemsHtml}
+                    </div>
+                `;
+            }).join('');
+
             if (window.lucide) lucide.createIcons();
         } catch (e) { App.showToast(e.message, 'error'); }
     },
 
-    async downloadCsv() {
+    // Genera imagen PNG con resumen de acuerdos.
+    async downloadImage() {
         if (!this.isPro()) {
             this.openPlans();
             return;
         }
+        let agreements;
         try {
-            // Check if user has agreements before exporting
-            const agreements = await API.getAgreements({}).catch(() => []);
-            if (!agreements || agreements.length === 0) {
-                App.showToast('Aún no tienes acuerdos para exportar', 'error');
-                return;
-            }
-        } catch (_) {}
+            agreements = await API.getAgreements({}).catch(() => []);
+        } catch (_) { agreements = []; }
+        if (!agreements || agreements.length === 0) {
+            App.showToast('Aún no tienes acuerdos para exportar', 'error');
+            return;
+        }
         try {
-            const res = await fetch('/api/agreements/export', {
-                headers: { 'Authorization': 'Bearer ' + API.token },
-            });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || err.error || 'Error al exportar');
-            }
-            const blob = await res.blob();
+            App.showToast('Generando imagen...', 'success');
+            const canvas = this._renderAgreementsCanvas(agreements);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
+            const fname = `agropulse-acuerdos-${new Date().toISOString().slice(0, 10)}.png`;
             a.href = url;
-            a.download = 'agropulse-acuerdos.csv';
+            a.download = fname;
             a.click();
             URL.revokeObjectURL(url);
-            App.showToast('CSV descargado');
+            App.showToast('Imagen descargada', 'success');
         } catch (e) {
-            App.showToast(e.message, 'error');
+            App.showToast(e.message || 'Error al generar imagen', 'error');
         }
+    },
+    // Alias compat
+    async downloadCsv() { return this.downloadImage(); },
+
+    _renderAgreementsCanvas(agreements) {
+        // Layout grid modular — cards tipo "box de inicio"
+        const W = 720;
+        const PAD = 22;
+        const HEADER_H = 110;
+        const FOOTER_H = 56;
+        const COLS = 3;
+        const GAP = 12;
+        const CARD_H = 138;
+        const MAX_CARDS = 30;
+
+        const items = agreements.slice(0, MAX_CARDS);
+        const rows = Math.max(1, Math.ceil(items.length / COLS));
+        const cardW = (W - PAD * 2 - GAP * (COLS - 1)) / COLS;
+        const gridH = rows * CARD_H + (rows - 1) * GAP;
+        const H = HEADER_H + gridH + PAD * 2 + FOOTER_H;
+
+        const dpr = window.devicePixelRatio || 1;
+        const canvas = document.createElement('canvas');
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        // BG general
+        ctx.fillStyle = '#FAF8F1';
+        ctx.fillRect(0, 0, W, H);
+
+        // Header gradient verde
+        const grad = ctx.createLinearGradient(0, 0, W, HEADER_H);
+        grad.addColorStop(0, '#2C3E1F');
+        grad.addColorStop(1, '#7A9A3C');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, HEADER_H);
+
+        // Patrón decorativo
+        ctx.globalAlpha = 0.07;
+        ctx.fillStyle = '#fff';
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(W - 50 - i * 70, 26 + (i % 2) * 38, 30, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // Logo / título
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 26px "DM Sans", system-ui, sans-serif';
+        ctx.fillText('🌱 AgroPulse', PAD, 42);
+        ctx.font = '600 16px "DM Sans", system-ui, sans-serif';
+        ctx.globalAlpha = 0.95;
+        ctx.fillText('Resumen de mis acuerdos', PAD, 66);
+
+        // Subtitle
+        ctx.font = '12px "DM Sans", system-ui, sans-serif';
+        ctx.globalAlpha = 0.78;
+        const userName = (API.user && API.user.nombre)
+            ? `${API.user.nombre} ${API.user.apellido || ''}`.trim()
+            : 'Usuario';
+        const dateStr = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+        ctx.fillText(`${userName} · Generado el ${dateStr}`, PAD, 90);
+        ctx.globalAlpha = 1;
+
+        // Body: grid de cards
+        const TYPE_COLORS = {
+            oferta:    { bg: '#dcfce7', fg: '#166534', accent: '#16a34a' },
+            solicitud: { bg: '#dbeafe', fg: '#1e40af', accent: '#2563eb' },
+            prestamo:  { bg: '#fed7aa', fg: '#9a3412', accent: '#ea580c' },
+            trueque:   { bg: '#e9d5ff', fg: '#6b21a8', accent: '#9333ea' },
+        };
+        const STATUS_COLORS = {
+            pending:   { bg: '#fef3c7', fg: '#92400e', lbl: 'Pendiente' },
+            active:    { bg: '#d1fae5', fg: '#065f46', lbl: 'En curso' },
+            completed: { bg: '#dbeafe', fg: '#1e40af', lbl: 'Completado' },
+            cancelled: { bg: '#f3f4f6', fg: '#4b5563', lbl: 'Cancelado' },
+            rejected:  { bg: '#fee2e2', fg: '#991b1b', lbl: 'Rechazado' },
+        };
+        const TYPE_LABELS = { oferta: 'Oferta', solicitud: 'Solicitud', prestamo: 'Préstamo', trueque: 'Trueque' };
+
+        const truncate = (s, max) => {
+            s = String(s || '');
+            return s.length > max ? s.slice(0, max - 1) + '…' : s;
+        };
+        const fmtDate = (iso) => {
+            if (!iso) return '—';
+            const d = new Date(iso);
+            return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        };
+
+        const gridY = HEADER_H + PAD;
+
+        items.forEach((a, idx) => {
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
+            const x = PAD + col * (cardW + GAP);
+            const y = gridY + row * (CARD_H + GAP);
+
+            const tipo = a.resource_tipo || 'oferta';
+            const tColor = TYPE_COLORS[tipo] || TYPE_COLORS.oferta;
+            const stat = STATUS_COLORS[a.status] || STATUS_COLORS.pending;
+
+            // Card sin fondo (transparente sobre cream). Solo borde sutil.
+            ctx.strokeStyle = 'rgba(44,62,31,0.08)';
+            ctx.lineWidth = 1;
+            this._roundRect(ctx, x, y, cardW, CARD_H, 10);
+            ctx.stroke();
+
+            // Borde left accent (más prominente)
+            ctx.fillStyle = tColor.accent;
+            this._roundRect(ctx, x, y, 4, CARD_H, 10);
+            ctx.fill();
+
+            const innerX = x + 14;
+            const innerW = cardW - 22;
+
+            // Tipo pill
+            ctx.fillStyle = tColor.bg;
+            ctx.font = '700 9.5px "DM Sans", system-ui, sans-serif';
+            const tipoLbl = (TYPE_LABELS[tipo] || tipo).toUpperCase();
+            const tipoW = ctx.measureText(tipoLbl).width + 14;
+            this._roundRect(ctx, innerX, y + 12, tipoW, 18, 9);
+            ctx.fill();
+            ctx.fillStyle = tColor.fg;
+            ctx.fillText(tipoLbl, innerX + 7, y + 24);
+
+            // Status pill (a la derecha)
+            ctx.font = '700 9.5px "DM Sans", system-ui, sans-serif';
+            const sLbl = stat.lbl.toUpperCase();
+            const sw = ctx.measureText(sLbl).width + 14;
+            ctx.fillStyle = stat.bg;
+            this._roundRect(ctx, x + cardW - sw - 12, y + 12, sw, 18, 9);
+            ctx.fill();
+            ctx.fillStyle = stat.fg;
+            ctx.fillText(sLbl, x + cardW - sw - 5, y + 24);
+
+            // Título (puede tener 2 líneas)
+            ctx.fillStyle = '#2C3E1F';
+            ctx.font = 'bold 13.5px "DM Sans", system-ui, sans-serif';
+            const title = a.resource_titulo || 'Recurso';
+            const titleLine1 = truncate(title, Math.floor(innerW / 7.2));
+            ctx.fillText(titleLine1, innerX, y + 50);
+
+            // Contraparte
+            const isProvider = a.provider_id === API.user.id;
+            const otherName = isProvider
+                ? `${a.req_nombre || ''} ${a.req_apellido || ''}`.trim()
+                : `${a.prov_nombre || ''} ${a.prov_apellido || ''}`.trim();
+            const role = isProvider ? '←' : '→';
+            ctx.fillStyle = '#5C6660';
+            ctx.font = '11.5px "DM Sans", system-ui, sans-serif';
+            ctx.fillText(`${role} ${truncate(otherName || '—', Math.floor(innerW / 6))}`, innerX, y + 72);
+
+            // Categoría / municipio (sutil)
+            const meta = [a.resource_cat, a.resource_municipio].filter(Boolean).join(' · ');
+            if (meta) {
+                ctx.fillStyle = '#94a09a';
+                ctx.font = '10.5px "DM Sans", system-ui, sans-serif';
+                ctx.fillText(truncate(meta, Math.floor(innerW / 5.5)), innerX, y + 92);
+            }
+
+            // Footer card: fecha + rating
+            ctx.fillStyle = '#7C8073';
+            ctx.font = '10.5px "DM Sans", system-ui, sans-serif';
+            ctx.fillText(fmtDate(a.created_at), innerX, y + CARD_H - 14);
+
+            const rating = isProvider ? a.rating_provider : a.rating_requester;
+            if (a.status === 'completed' && rating) {
+                ctx.fillStyle = '#C8962A';
+                ctx.font = 'bold 11px "DM Sans", system-ui, sans-serif';
+                const ratingTxt = `★ ${rating}/5`;
+                const rw = ctx.measureText(ratingTxt).width;
+                ctx.fillText(ratingTxt, x + cardW - rw - 12, y + CARD_H - 14);
+            }
+        });
+
+        // Footer
+        const fy = H - FOOTER_H;
+        ctx.fillStyle = '#2C3E1F';
+        ctx.fillRect(0, fy, W, FOOTER_H);
+        ctx.fillStyle = '#fff';
+        ctx.font = '600 12px "DM Sans", system-ui, sans-serif';
+        const totalTxt = agreements.length > MAX_CARDS
+            ? `Mostrando ${MAX_CARDS} de ${agreements.length} acuerdos · agropulse.company`
+            : `${agreements.length} ${agreements.length === 1 ? 'acuerdo' : 'acuerdos'} en total · agropulse.company`;
+        ctx.fillText(totalTxt, PAD, fy + 24);
+        ctx.globalAlpha = 0.55;
+        ctx.font = '10.5px "DM Sans", system-ui, sans-serif';
+        ctx.fillText('Conectando comunidades agrícolas', PAD, fy + 42);
+        ctx.globalAlpha = 1;
+
+        return canvas;
+    },
+
+    _roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
     },
 
     // ========== Helpers ==========

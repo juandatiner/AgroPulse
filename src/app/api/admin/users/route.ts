@@ -64,11 +64,14 @@ export async function GET(request: Request) {
         agreements_count: agrMap.get(uid) || 0,
         verified: !!u.verified,
         subscription_status: u.subscription_status || 'trial',
+        plan_tier: u.plan_tier || (u.subscription_status === 'trial' ? 'trial' : 'none'),
         trial_start: toIso(u.trial_start),
         trial_end: toIso(u.trial_end),
         trial_days_granted: u.trial_days_granted ?? null,
         promo_applied: !!u.promo_applied,
         subscription_end: toIso(u.subscription_end),
+        next_plan_tier: u.next_plan_tier || null,
+        next_subscription_end: toIso(u.next_subscription_end),
         monthly_post_count: u.monthly_post_count ?? 0,
       }
     }))

@@ -116,4 +116,7 @@ const API = {
     getSupportTicket(id) { return this.request('GET', '/support/' + id); },
     createSupportTicket(data) { return this.request('POST', '/support', data); },
     replySupport(id, message) { return this.request('POST', '/support/' + id, { message }); },
+
+    // Reports
+    createReport(data) { return this.request('POST', '/reports', data); },
 };

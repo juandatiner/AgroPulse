@@ -573,8 +573,8 @@ const App = {
     _canUseMap() {
         const s = (typeof Subscription !== 'undefined') ? Subscription.state : null;
         if (!s) return false;
-        // Solo planes pagados (basic o pro). Trial / expired / cancelled / none → bloqueado.
-        return s.status === 'active' && (s.plan_tier === 'basic' || s.plan_tier === 'pro');
+        // Premium incluye prueba gratuita Pro y planes pagados (basic/pro).
+        return !!s.is_premium;
     },
 
     updateMapLockUI() {
@@ -582,7 +582,7 @@ const App = {
         if (!btn) return;
         const locked = !this._canUseMap();
         btn.classList.toggle('view-toggle-locked', locked);
-        btn.title = locked ? 'Vista mapa — requiere suscripción Básico o Pro' : 'Vista mapa';
+        btn.title = locked ? 'Vista mapa — requiere prueba activa o suscripción Básico/Pro' : 'Vista mapa';
     },
 
     setMarketView(v) {
@@ -636,7 +636,7 @@ const App = {
             }
 
             if (resources.length === 0) {
-                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                container.innerHTML = `<div class="empty-state empty-state-centered" style="grid-column:1/-1">
                     <i data-lucide="compass"></i>
                     <h3>Nada por aquí... todavía</h3>
                     <p>Sé el primero en publicar algo o intenta con otros filtros</p>
@@ -981,7 +981,8 @@ const App = {
                         : `<button class="btn btn-outline btn-full btn-sm" onclick="App.closeDetail()"><i data-lucide="arrow-left"></i> Volver</button>
                            ${this.getActionButton(r)}`
                     }
-                </div>`;
+                </div>
+                ${isOwner ? '' : `<div class="detail-report-row"><button class="detail-report-btn" onclick="App.openReportModal('resource','${r.id}','${this._escAttr(r.titulo || '')}')"><i data-lucide="flag"></i> Reportar publicación</button></div>`}`;
             const overlay = document.getElementById('detail-overlay');
             overlay.innerHTML = html;
             overlay.style.display = 'block';
@@ -1497,8 +1498,8 @@ const App = {
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Cantidad *</label>
-                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 100" inputmode="numeric" pattern="[0-9]*">
-                            <span class="form-hint">Solo números (la unidad va al lado)</span>
+                            <input type="text" id="pub-cantidad" class="form-input" placeholder="Ej: 100 ó 2.5" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
+                            <span class="form-hint">Números (acepta decimales: 2.5, 1,75). La unidad va al lado.</span>
                         </div>
                         <div class="form-group">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
@@ -1508,7 +1509,9 @@ const App = {
                                     <span class="toggle-thumb"></span>
                                 </label>
                             </div>
-                            <input type="text" id="pub-unidad" class="form-input" placeholder="Ej: kg, bultos">
+                            <input type="text" id="pub-unidad" class="form-input" placeholder="Selecciona categoría primero" list="pub-unidad-list" autocomplete="off">
+                            <datalist id="pub-unidad-list"></datalist>
+                            <span class="form-hint" id="pub-unidad-hint">Las sugerencias se ajustan a la categoría que elijas.</span>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1768,6 +1771,70 @@ const App = {
                 <option>Otros recursos</option>`;
     },
 
+    UNITS_BY_CAT: {
+        // Maquinaria y equipos: por uso (alquiler) o unidad
+        'Herramientas y maquinaria':    ['unidad', 'hora', 'día', 'jornada', 'semana', 'mes'],
+        'Riego y sistemas de agua':     ['unidad', 'metro', 'metro lineal', 'metro cuadrado', 'litro', 'galón'],
+        'Energía (solar, generadores)': ['unidad', 'kWh', 'panel', 'batería', 'hora', 'día'],
+        'Transporte y logística':       ['viaje', 'hora', 'día', 'kilómetro', 'tonelada', 'unidad'],
+        'Empaque y almacenamiento':     ['unidad', 'caja', 'bulto', 'saco', 'rollo', 'paquete'],
+
+        // Insumos: por peso, volumen o unidad
+        'Semillas e insumos':           ['kg', 'libra', 'gramo', 'bulto', 'saco', 'sobre', 'unidad'],
+        'Fertilizantes y abonos':       ['kg', 'bulto', 'saco', 'tonelada', 'libra', 'litro'],
+        'Compost y abono orgánico':     ['kg', 'bulto', 'saco', 'tonelada', 'metro cúbico', 'arroba'],
+        'Control de plagas':            ['litro', 'galón', 'kg', 'gramo', 'sobre', 'unidad'],
+        'Viveros y plántulas':          ['unidad', 'plántula', 'docena', 'ciento', 'bandeja'],
+
+        // Producción agrícola: peso típico CO
+        'Frutas y verduras':            ['kg', 'libra', 'arroba', 'bulto', 'caja', 'racimo', 'docena'],
+        'Granos y cereales':            ['kg', 'bulto', 'arroba', 'tonelada', 'saco', 'libra'],
+        'Hortalizas':                   ['kg', 'libra', 'manojo', 'atado', 'bulto', 'caja'],
+        'Tubérculos':                   ['kg', 'arroba', 'bulto', 'libra', 'tonelada'],
+        'Ganadería':                    ['cabeza', 'animal', 'kg', 'arroba', 'lote'],
+        'Aves de corral':               ['unidad', 'ave', 'docena', 'kg', 'huevo', 'cubeta'],
+        'Productos lácteos':            ['litro', 'kg', 'libra', 'unidad', 'cantina'],
+        'Miel y apicultura':            ['kg', 'litro', 'frasco', 'libra', 'colmena'],
+        'Excedentes de producción':     ['kg', 'arroba', 'bulto', 'caja', 'libra', 'unidad'],
+        'Cosecha y postcosecha':        ['kg', 'arroba', 'bulto', 'tonelada', 'caja'],
+
+        // Servicios y conocimiento: tiempo o entregables
+        'Mano de obra':                 ['jornada', 'hora', 'día', 'semana', 'mes', 'tarea'],
+        'Asesoría técnica':             ['hora', 'sesión', 'visita', 'jornada', 'proyecto'],
+        'Capacitación y cursos':        ['hora', 'sesión', 'taller', 'curso', 'jornada'],
+        'Tierra en arriendo':           ['hectárea', 'metro cuadrado', 'fanegada', 'cuadra', 'plaza'],
+
+        'Otros recursos':               ['unidad', 'kg', 'litro', 'paquete'],
+    },
+
+    getUnitsForCategory(cat) {
+        return this.UNITS_BY_CAT[cat] || [];
+    },
+
+    refreshUnidadOptions() {
+        const cat = document.getElementById('pub-cat')?.value || '';
+        const dl = document.getElementById('pub-unidad-list');
+        const inp = document.getElementById('pub-unidad');
+        const hint = document.getElementById('pub-unidad-hint');
+        if (!dl || !inp) return;
+        const units = this.getUnitsForCategory(cat);
+        if (!cat) {
+            dl.innerHTML = '';
+            inp.placeholder = 'Selecciona categoría primero';
+            if (hint) hint.textContent = 'Las sugerencias se ajustan a la categoría que elijas.';
+            return;
+        }
+        if (!units.length) {
+            dl.innerHTML = '';
+            inp.placeholder = 'Ej: unidad, paquete';
+            if (hint) hint.textContent = 'Escribe una unidad libre.';
+            return;
+        }
+        dl.innerHTML = units.map(u => `<option value="${u}">`).join('');
+        inp.placeholder = `Sugerencias: ${units.slice(0, 3).join(', ')}`;
+        if (hint) hint.textContent = `Sugerencias para ${cat}: ${units.join(', ')}. Si no encaja, escribe la tuya.`;
+    },
+
     CONDITIONS_BY_CAT: {
         'Herramientas y maquinaria':    ['Nuevo','Sellado / Empacado','Seminuevo','Excelente','Buen estado','Usado','Regular','Requiere mantenimiento menor','Requiere reparación','Para repuestos / piezas'],
         'Riego y sistemas de agua':     ['Nuevo','Sellado','Excelente','Buen estado','Funcional','Usado','Regular','Requiere mantenimiento','Requiere reparación'],
@@ -1834,11 +1901,15 @@ const App = {
 
     bindExchangeOptions() {
         const tipo = this.currentPublishType;
-        // Category → dynamic condition options
+        // Category → dynamic condition options + unit suggestions
         const catEl = document.getElementById('pub-cat');
         if (catEl) {
-            catEl.addEventListener('change', () => this.refreshCondicionOptions());
+            catEl.addEventListener('change', () => {
+                this.refreshCondicionOptions();
+                this.refreshUnidadOptions();
+            });
             this.refreshCondicionOptions();
+            this.refreshUnidadOptions();
         }
         // Toggle precio on/off
         const toggle = document.getElementById('toggle-precio');
@@ -2224,7 +2295,9 @@ const App = {
             if (descWords > 200) return this.fieldError('pub-desc', `La descripción no puede tener más de 200 palabras (lleva ${descWords})`);
             if (!data.categoria) return this.fieldError('pub-cat', 'Selecciona una categoría');
             if (cantidadEl && !data.cantidad) return this.fieldError('pub-cantidad', 'La cantidad es obligatoria');
-            if (cantidadEl && data.cantidad && !/^\d+$/.test(data.cantidad)) return this.fieldError('pub-cantidad', 'La cantidad solo puede tener números');
+            // Acepta enteros y decimales (con punto o coma): 100, 2.5, 1,75
+            if (cantidadEl && data.cantidad && !/^\d+([.,]\d+)?$/.test(data.cantidad)) return this.fieldError('pub-cantidad', 'La cantidad debe ser un número (ej: 100, 2.5)');
+            if (cantidadEl && data.cantidad) data.cantidad = data.cantidad.replace(',', '.');
             if (unidadActiva && unidadActiveEl && !document.getElementById('pub-unidad')?.value?.trim()) return this.fieldError('pub-unidad', 'Ingresa la unidad o desactiva el campo');
             if (condicionEl && !data.condicion) return this.fieldError('pub-condicion', 'Selecciona la condición del recurso');
             if (precioActivo && !precioVal) return this.fieldError('pub-precio', 'Ingresa el precio o desactiva el campo');
@@ -2300,12 +2373,12 @@ const App = {
             const filtered = this.currentAgreementFilter === 'todos' ? allAgreements
                 : allAgreements.filter(a => a.status === this.currentAgreementFilter);
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-                    <i data-lucide="briefcase"></i>
-                    <h3>Sin servicios aún</h3>
-                    <p>Cuando solicites o te soliciten un recurso, tus servicios aparecerán aquí</p>
+                container.innerHTML = `<div class="empty-state empty-state-centered" style="grid-column:1/-1">
+                    <i data-lucide="handshake"></i>
+                    <h3>Sin acuerdos aún</h3>
+                    <p>Cuando aceptes una solicitud o alguien acepte la tuya, los acuerdos aparecerán aquí.</p>
                     <button class="btn btn-secondary" onclick="App.switchTab('mercado')" style="margin-top:10px;padding:7px 16px;font-size:0.78rem">
-                        <i data-lucide="search"></i> Explorar recursos
+                        <i data-lucide="search"></i> Explorar publicaciones
                     </button>
                 </div>`;
                 lucide.createIcons({ nodes: [container] });
@@ -2318,7 +2391,7 @@ const App = {
             lucide.createIcons({ nodes: [container] });
         } catch (e) {
             console.error('Error loading agreements:', e);
-            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>Error al cargar servicios</p></div>';
+            container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><p>Error al cargar acuerdos</p></div>';
         }
     },
 
@@ -2352,15 +2425,22 @@ const App = {
     renderAgreementCard(a) {
         const isProvider = a.provider_id === API.user.id;
         const otherName = isProvider ? `${a.req_nombre} ${a.req_apellido}` : `${a.prov_nombre} ${a.prov_apellido}`;
+        const otherInitials = isProvider
+            ? `${(a.req_nombre || '?')[0]}${(a.req_apellido || '?')[0]}`
+            : `${(a.prov_nombre || '?')[0]}${(a.prov_apellido || '?')[0]}`;
+        const otherVerified = isProvider ? !!a.req_verified : !!a.prov_verified;
+        const otherRepu = (isProvider ? a.req_reputation : a.prov_reputation) ?? 5;
         const nameParts = otherName.trim().split(' ');
         const shortName = nameParts[0] + (nameParts[1] ? ' ' + nameParts[1][0] + '.' : '');
         const statusLabels = { pending: 'Pendiente', active: 'En curso', completed: 'Completado', rejected: 'Rechazado', cancelled: 'Cancelado' };
         const catIcon = this.ICONS[a.resource_cat] || 'package';
         const catShort = (a.resource_cat || '').split(/[\(,]/)[0].trim();
-        const catDisplay = catShort.length > 16 ? catShort.slice(0, 14) + '…' : catShort;
+        const catDisplay = catShort.length > 18 ? catShort.slice(0, 16) + '…' : catShort;
         const roleText = isProvider ? `${this.esc(shortName)} te solicitó` : `Solicitaste a ${this.esc(shortName)}`;
         const dateStr = this.formatDateShort(a.created_at);
         const updStr = a.updated_at && a.updated_at !== a.created_at ? this.formatDateShort(a.updated_at) : null;
+        const desc = (a.resource_desc || '').trim();
+        const descShort = desc.length > 140 ? desc.slice(0, 138) + '…' : desc;
 
         let btns = '';
         const chatLabel = a.unread_count > 0 ? `Chat (${a.unread_count})` : 'Chat';
@@ -2384,27 +2464,41 @@ const App = {
         }
 
         const cancelBlock = (a.status === 'cancelled' || a.status === 'rejected') && a.cancel_reason
-            ? `<div class="agr-card-cancel-reason" style="margin-top:4px;padding:6px 8px;background:#fbeaea;border-left:2px solid #c0392b;font-size:0.76rem;border-radius:6px;color:#7a1a1a"><strong>Motivo${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre) + ')' : ''}:</strong> ${this.esc(a.cancel_reason)}</div>`
+            ? `<div class="agr-card-cancel-reason"><strong>Motivo${a.cancelled_by_nombre ? ' (' + this.esc(a.cancelled_by_nombre) + ')' : ''}:</strong> ${this.esc(a.cancel_reason)}</div>`
             : '';
 
+        const mediaHtml = a.resource_image
+            ? `<div class="agr-card-media" style="background-image:url('${a.resource_image}')"></div>`
+            : `<div class="agr-card-media agr-card-media-icon ${a.resource_tipo || ''}"><i data-lucide="${catIcon}"></i></div>`;
+
+        const verifiedBadge = otherVerified ? '<i data-lucide="badge-check" class="agr-card-verified" title="Verificado"></i>' : '';
+
         return `
-            <div class="agreement-card ${a.status}" onclick="App.showAgreementDetail('${a.id}')">
-                <div class="agr-card-row1">
-                    <div class="agr-card-cat-icon"><i data-lucide="${catIcon}"></i></div>
-                    <h4 class="agr-card-title">${this.esc(a.resource_titulo || 'Servicio')}</h4>
-                    <span class="agr-card-date-top">${dateStr}</span>
+            <div class="agreement-card agreement-card-v2 ${a.status}" onclick="App.showAgreementDetail('${a.id}')">
+                ${mediaHtml}
+                <div class="agr-card-body">
+                    <div class="agr-card-head">
+                        ${a.resource_tipo ? `<span class="type-badge ${a.resource_tipo}">${this.TYPE_LABELS[a.resource_tipo] || a.resource_tipo}</span>` : ''}
+                        <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
+                        ${catDisplay ? `<span class="agr-cat-chip"><i data-lucide="${catIcon}"></i> ${this.esc(catDisplay)}</span>` : ''}
+                        <span class="agr-card-date-top">${dateStr}</span>
+                    </div>
+                    <h4 class="agr-card-title">${this.esc(a.resource_titulo || 'Recurso')}</h4>
+                    ${descShort ? `<p class="agr-card-desc">${this.esc(descShort)}</p>` : ''}
+                    <div class="agr-card-meta">
+                        ${a.resource_municipio ? `<span class="agr-card-meta-item"><i data-lucide="map-pin"></i> ${this.esc(a.resource_municipio)}</span>` : ''}
+                        ${updStr ? `<span class="agr-card-meta-item"><i data-lucide="clock"></i> ${updStr}</span>` : ''}
+                    </div>
+                    <div class="agr-card-author">
+                        <span class="agr-card-avatar">${this.esc(otherInitials.toUpperCase())}</span>
+                        <span class="agr-card-author-info">
+                            <span class="agr-card-author-name">${roleText} ${verifiedBadge}</span>
+                            <span class="agr-card-author-rating"><i data-lucide="star"></i> ${(otherRepu).toFixed(1)}</span>
+                        </span>
+                    </div>
+                    ${cancelBlock}
+                    <div class="agr-card-btns">${btns}</div>
                 </div>
-                <div class="agr-card-row2">
-                    ${a.resource_tipo ? `<span class="tipo-badge ${a.resource_tipo}">${this.TYPE_LABELS[a.resource_tipo] || a.resource_tipo}</span>` : ''}
-                    <span class="status-badge ${a.status}">${statusLabels[a.status] || a.status}</span>
-                    ${catDisplay ? `<span class="agr-cat-badge">${this.esc(catDisplay)}</span>` : ''}
-                </div>
-                <div class="agr-card-role-row">
-                    <span class="agr-card-sub">${roleText}</span>
-                    ${updStr ? `<span class="agr-card-upd"><i data-lucide="clock" style="width:10px;height:10px;vertical-align:middle"></i> ${updStr}</span>` : ''}
-                </div>
-                ${cancelBlock}
-                <div class="agr-card-btns">${btns}</div>
             </div>`;
     },
 
@@ -2758,6 +2852,8 @@ const App = {
 
                     <div class="profile-section-label" style="margin-top:20px"><i data-lucide="star"></i> Opiniones de la comunidad</div>
                     ${reviewsHtml}
+
+                    ${API.user && API.user.id !== userId ? `<div class="detail-report-row"><button class="detail-report-btn" onclick="App.openReportModal('user','${userId}','${this._escAttr(u.nombre + ' ' + u.apellido)}')"><i data-lucide="flag"></i> Reportar usuario</button></div>` : ''}
                 </div>`;
             lucide.createIcons({ nodes: [overlay] });
             if (!this._skipHistory) history.pushState({ type: 'userProfile', tab: this.currentTab, id: userId }, '');
@@ -2806,7 +2902,7 @@ const App = {
                     if (exportSub) exportSub.innerHTML = 'Aún no tienes acuerdos para exportar <span class="pro-chip">Pro</span>';
                 } else {
                     exportBtn.classList.remove('profile-menu-disabled');
-                    if (exportSub) exportSub.innerHTML = 'Descarga tu historial en CSV <span class="pro-chip">Pro</span>';
+                    if (exportSub) exportSub.innerHTML = 'Descarga un resumen en imagen <span class="pro-chip">Pro</span>';
                 }
             }
 
@@ -2836,11 +2932,10 @@ const App = {
                     }
                 }
 
-                // Stat + barra de suscripción
-                const statEl = document.getElementById('profile-stat-suscripcion');
+                // Barra de suscripción (la box del stat se removió, queda solo la barra de progreso)
                 const fillEl = document.getElementById('subscription-fill');
                 const hintEl = document.getElementById('subscription-hint');
-                if (sub && statEl && fillEl && hintEl) {
+                if (sub && fillEl && hintEl) {
                     const fmtDays = (d) => {
                         if (d == null) return 'Sin sub';
                         if (d <= 0) return '<1 día';
@@ -2867,7 +2962,6 @@ const App = {
                         label = 'Sin sub';
                         hint = 'No hay suscripción activa';
                     }
-                    statEl.textContent = label;
                     const pct = total > 0 ? Math.max(2, Math.min(100, Math.round((daysLeft / total) * 100))) : 0;
                     fillEl.style.width = pct + '%';
                     hintEl.textContent = hint;
@@ -3019,6 +3113,124 @@ const App = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    _escAttr(text) {
+        // Escape para uso dentro de atributos HTML con comillas simples
+        return String(text || '').replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '\\&#39;',
+        })[c]).replace(/\n/g, ' ');
+    },
+
+    // ===== REPORTES =====
+    _REPORT_REASONS: {
+        resource: [
+            { value: 'spam_ad', label: 'Spam o publicidad engañosa', icon: 'megaphone' },
+            { value: 'misleading_photo', label: 'La foto no coincide con lo que ofrece', icon: 'image-off' },
+            { value: 'fake_info', label: 'Información falsa o engañosa', icon: 'help-circle' },
+            { value: 'unauthorized_sale', label: 'Venta de productos restringidos o sin permiso', icon: 'ban' },
+            { value: 'illegal_product', label: 'Producto peligroso o ilegal', icon: 'alert-triangle' },
+            { value: 'misleading_price', label: 'Precio engañoso o poco claro', icon: 'dollar-sign' },
+            { value: 'duplicate', label: 'Publicación duplicada o repetida', icon: 'copy' },
+            { value: 'inappropriate_content', label: 'Contenido inapropiado u ofensivo', icon: 'alert-octagon' },
+            { value: 'other_resource', label: 'Otro motivo', icon: 'more-horizontal' },
+        ],
+        user: [
+            { value: 'harassment', label: 'Acoso o lenguaje violento', icon: 'shield-x' },
+            { value: 'impersonation', label: 'Suplantación de identidad', icon: 'user-x' },
+            { value: 'fake_account', label: 'Cuenta falsa o bot', icon: 'user-minus' },
+            { value: 'fraud_scam', label: 'Estafa o intento de fraude', icon: 'alert-triangle' },
+            { value: 'inappropriate_behavior', label: 'Comportamiento inapropiado', icon: 'alert-octagon' },
+            { value: 'no_show', label: 'No respondió o no entregó tras acuerdo', icon: 'clock-alert' },
+            { value: 'abusive_language', label: 'Lenguaje ofensivo en chat', icon: 'message-square-x' },
+            { value: 'other_user', label: 'Otro motivo', icon: 'more-horizontal' },
+        ],
+    },
+
+    openReportModal(type, targetId, targetName) {
+        const isUser = type === 'user';
+        const reasons = isUser ? this._REPORT_REASONS.user : this._REPORT_REASONS.resource;
+        const title = isUser ? 'Reportar usuario' : 'Reportar publicación';
+        const subtitle = isUser
+            ? `Vas a reportar a <strong>${this.esc(targetName)}</strong>. Tu reporte es anónimo para el reportado.`
+            : `Vas a reportar la publicación <strong>"${this.esc(targetName)}"</strong>. Tu reporte es anónimo para el dueño.`;
+
+        const reasonsHtml = reasons.map(r => `
+            <label class="report-reason-option" onclick="App._selectReason(this)">
+                <input type="radio" name="report-reason" value="${r.value}">
+                <span class="report-reason-icon"><i data-lucide="${r.icon}"></i></span>
+                <span class="report-reason-text">${r.label}</span>
+            </label>
+        `).join('');
+
+        let overlay = document.getElementById('report-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'report-overlay';
+            overlay.className = 'sub-overlay report-overlay-top';
+            document.body.appendChild(overlay);
+        } else {
+            overlay.classList.add('report-overlay-top');
+        }
+        overlay.innerHTML = `
+            <div class="report-overlay-inner">
+                <button class="plans-close" onclick="App.closeReportModal()"><i data-lucide="x"></i></button>
+                <div class="report-header">
+                    <div class="report-icon-wrap"><i data-lucide="flag"></i></div>
+                    <div>
+                        <h2>${title}</h2>
+                        <p class="report-subtitle">${subtitle}</p>
+                    </div>
+                </div>
+                <div class="report-section-label">Motivo</div>
+                <div class="report-reasons">${reasonsHtml}</div>
+                <div class="report-section-label" style="margin-top:14px">Detalles adicionales (opcional)</div>
+                <textarea id="report-description" class="form-input" rows="4" placeholder="Cuéntanos qué pasó. Mientras más contexto, mejor podremos revisar."></textarea>
+                <div class="report-actions">
+                    <button class="btn btn-outline btn-sm" onclick="App.closeReportModal()">Cancelar</button>
+                    <button class="btn btn-danger btn-sm" id="report-submit-btn" onclick="App.submitReport('${this._escAttr(type)}','${this._escAttr(targetId)}')">
+                        <i data-lucide="send"></i> Enviar reporte
+                    </button>
+                </div>
+                <p class="report-legal">Los reportes falsos o reiterados pueden afectar tu cuenta.</p>
+            </div>
+        `;
+        overlay.classList.add('visible');
+        document.body.classList.add('no-scroll');
+        if (window.lucide) lucide.createIcons();
+    },
+
+    closeReportModal() {
+        const overlay = document.getElementById('report-overlay');
+        if (overlay) overlay.classList.remove('visible');
+        if (!document.querySelector('.sub-overlay.visible')) document.body.classList.remove('no-scroll');
+    },
+
+    _selectReason(label) {
+        const overlay = document.getElementById('report-overlay');
+        if (!overlay) return;
+        overlay.querySelectorAll('.report-reason-option').forEach(o => o.classList.remove('is-checked'));
+        label.classList.add('is-checked');
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+    },
+
+    async submitReport(type, targetId) {
+        const reasonEl = document.querySelector('input[name="report-reason"]:checked');
+        if (!reasonEl) return this.showToast('Elegí un motivo', 'error');
+        const reason = reasonEl.value;
+        const description = (document.getElementById('report-description')?.value || '').trim();
+        const btn = document.getElementById('report-submit-btn');
+        if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+        try {
+            await API.createReport({ type, target_id: targetId, reason, description });
+            this.closeReportModal();
+            this.showToast('¡Gracias! Tu reporte fue enviado.', 'success');
+        } catch (e) {
+            this.showToast(e.message || 'Error al enviar', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+        }
     },
 
     initPasswordEyes() {

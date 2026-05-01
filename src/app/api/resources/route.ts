@@ -212,9 +212,14 @@ export async function POST(request: Request) {
 
     const sub = await computeSubscriptionState(user.id)
     if (!sub.can_post) {
+      const limit = sub.plan_tier === 'basic' ? sub.basic_max_posts : sub.free_posts_per_month
+      const planLbl = sub.plan_tier === 'basic' ? 'plan Básico' : 'plan Free'
+      const upgradeHint = sub.plan_tier === 'basic'
+        ? 'Mejora a Pro para publicar sin límite.'
+        : 'Suscríbete a Básico o Pro para publicar más.'
       return json({
         error: 'subscription_required',
-        message: `Alcanzaste el límite de ${sub.free_posts_per_month} publicaciones este mes. Suscríbete para publicar sin límite.`,
+        message: `Alcanzaste el límite de ${limit} publicaciones este mes en el ${planLbl}. ${upgradeHint}`,
         subscription: sub,
       }, 402)
     }

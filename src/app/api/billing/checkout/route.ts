@@ -1,7 +1,7 @@
 import { json, options, handleRoute } from '@/lib/api-utils'
 import { getDb, ObjectId } from '@/lib/db'
 import { getAuthUser } from '@/lib/auth'
-import { getAppConfig, luhnCheck, computeSubscriptionState } from '@/lib/subscription'
+import { getAppConfig, computeSubscriptionState } from '@/lib/subscription'
 import crypto from 'crypto'
 
 export function OPTIONS() { return options() }
@@ -27,10 +27,10 @@ export async function POST(request: Request) {
     const fullYear = expYear < 100 ? 2000 + expYear : expYear
     const expDate = new Date(fullYear, expMonth, 0, 23, 59, 59)
     if (expDate < nowExp) return json({ error: 'La tarjeta está vencida' }, 400)
-    if (!luhnCheck(card)) return json({ error: 'Número de tarjeta inválido' }, 400)
+    if (!/^\d{13,19}$/.test(card)) return json({ error: 'El número de tarjeta debe tener entre 13 y 19 dígitos' }, 400)
 
-    // Simulated processing: 8% random decline
-    const willDecline = Math.random() < 0.08
+    // Modo prueba: rechazo solo si número empieza con "0000" (tarjeta de prueba "rechazada")
+    const willDecline = card.startsWith('0000')
     const last4 = card.slice(-4)
     const brand = detectBrand(card)
 

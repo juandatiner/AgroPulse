@@ -6,6 +6,7 @@ export interface AppConfig {
   price_basic: number
   price_pro: number
   free_posts_per_month: number
+  basic_max_posts: number
   promo_active: boolean
   promo_discount_percent: number
   promo_end_date: string | null
@@ -18,6 +19,7 @@ const DEFAULT_CONFIG: AppConfig = {
   price_basic: 7900,
   price_pro: 12900,
   free_posts_per_month: 3,
+  basic_max_posts: 20,
   promo_active: true,
   promo_discount_percent: 50,
   promo_end_date: null,
@@ -36,6 +38,7 @@ export async function getAppConfig(): Promise<AppConfig> {
     price_basic: priceBasic,
     price_pro: pricePro,
     free_posts_per_month: doc.free_posts_per_month ?? DEFAULT_CONFIG.free_posts_per_month,
+    basic_max_posts: doc.basic_max_posts ?? DEFAULT_CONFIG.basic_max_posts,
     promo_active: doc.promo_active ?? DEFAULT_CONFIG.promo_active,
     promo_discount_percent: doc.promo_discount_percent ?? DEFAULT_CONFIG.promo_discount_percent,
     promo_end_date: doc.promo_end_date instanceof Date ? doc.promo_end_date.toISOString() : (doc.promo_end_date ?? null),
@@ -91,6 +94,7 @@ export interface SubscriptionState {
   monthly_post_count: number
   monthly_post_reset: string | null
   free_posts_per_month: number
+  basic_max_posts: number
   posts_remaining: number
   can_post: boolean
   needs_payment: boolean
@@ -190,9 +194,20 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
 
   const postCount = u?.monthly_post_count ?? 0
   const postReset = u?.monthly_post_reset instanceof Date ? u.monthly_post_reset : null
-  const postsRemaining = Math.max(0, cfg.free_posts_per_month - postCount)
 
-  const canPost = isPremium || postsRemaining > 0
+  // Límite mensual según plan:
+  //   Pro / trial Pro → ilimitado.
+  //   Basic           → cfg.basic_max_posts.
+  //   Free / expired  → cfg.free_posts_per_month.
+  let monthlyLimit: number
+  if (planTier === 'pro' || planTier === 'trial') monthlyLimit = Number.POSITIVE_INFINITY
+  else if (planTier === 'basic') monthlyLimit = cfg.basic_max_posts
+  else monthlyLimit = cfg.free_posts_per_month
+
+  const postsRemaining = monthlyLimit === Number.POSITIVE_INFINITY
+    ? Number.POSITIVE_INFINITY
+    : Math.max(0, monthlyLimit - postCount)
+  const canPost = postsRemaining === Number.POSITIVE_INFINITY || postsRemaining > 0
   const needsPayment = !canPost
 
   const discountFactor = cfg.promo_active ? (1 - cfg.promo_discount_percent / 100) : 1
@@ -228,7 +243,8 @@ export async function computeSubscriptionState(userId: string): Promise<Subscrip
     monthly_post_count: postCount,
     monthly_post_reset: postReset ? postReset.toISOString() : null,
     free_posts_per_month: cfg.free_posts_per_month,
-    posts_remaining: postsRemaining,
+    basic_max_posts: cfg.basic_max_posts,
+    posts_remaining: postsRemaining === Number.POSITIVE_INFINITY ? -1 : postsRemaining,
     can_post: !!canPost,
     needs_payment: needsPayment,
     price_regular: priceRegular,

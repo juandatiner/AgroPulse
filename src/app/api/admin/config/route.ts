@@ -21,6 +21,7 @@ export async function PATCH(request: Request) {
     if (typeof body.price_basic === 'number') patch.price_basic = Math.max(0, Math.floor(body.price_basic))
     if (typeof body.price_pro === 'number') patch.price_pro = Math.max(0, Math.floor(body.price_pro))
     if (typeof body.free_posts_per_month === 'number') patch.free_posts_per_month = Math.max(0, Math.floor(body.free_posts_per_month))
+    if (typeof body.basic_max_posts === 'number') patch.basic_max_posts = Math.max(1, Math.floor(body.basic_max_posts))
     if (typeof body.promo_active === 'boolean') patch.promo_active = body.promo_active
     if (typeof body.promo_discount_percent === 'number') patch.promo_discount_percent = Math.min(99, Math.max(0, body.promo_discount_percent))
     if (body.promo_end_date === null) patch.promo_end_date = null

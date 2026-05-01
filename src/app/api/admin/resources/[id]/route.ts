@@ -48,6 +48,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       ofrece: d.ofrece || '',
       recibe: d.recibe || '',
       location_notes: d.location_notes || '',
+      latitude: typeof d.latitude === 'number' ? d.latitude : (d.latitude ? parseFloat(String(d.latitude)) : null),
+      longitude: typeof d.longitude === 'number' ? d.longitude : (d.longitude ? parseFloat(String(d.longitude)) : null),
+      image_data: d.image_data || '',
       status: d.status || 'active',
       scheduled_at: toIso(d.scheduled_at),
       deactivation_scheduled_at: toIso(d.deactivation_scheduled_at),
@@ -57,6 +60,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       user_nombre: d._user?.nombre || '',
       user_apellido: d._user?.apellido || '',
       user_email: d._user?.email || '',
+      user_municipio: d._user?.municipio || '',
+      user_tipo: d._user?.tipo || '',
+      user_reputation: d._user?.reputation_score || 5,
+      user_verified: !!d._user?.verified,
     })
   })
 }
@@ -76,6 +83,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const update: Record<string, unknown> = {}
     for (const k of allowed) {
       if (k in body) update[k] = String(body[k] ?? '').trim()
+    }
+    if ('image_data' in body) update.image_data = String(body.image_data ?? '')
+    if ('latitude' in body) {
+      const v = body.latitude
+      update.latitude = (v === null || v === '') ? null : (typeof v === 'number' ? v : parseFloat(String(v)))
+    }
+    if ('longitude' in body) {
+      const v = body.longitude
+      update.longitude = (v === null || v === '') ? null : (typeof v === 'number' ? v : parseFloat(String(v)))
     }
     if (!Object.keys(update).length) return json({ error: 'Sin campos para actualizar' }, 400)
 

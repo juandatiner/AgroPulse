@@ -95,11 +95,13 @@ const Admin = (() => {
       agreements: loadAgreements,
       subscriptions: loadSubscriptions,
       support: loadSupport,
+      control: loadReports,
       config: loadConfig,
     };
     const fn = loaders[_currentTab];
     if (fn) fn(silent);
     refreshSupportBadge();
+    refreshReportsBadge();
   }
 
   /* ── Auto-refresh ── */
@@ -167,9 +169,505 @@ const Admin = (() => {
 
       renderRecentResources(d.recent_resources || []);
       renderRecentAgreements(d.recent_agreements || []);
+      // Charts y mapas (no bloquean stats principales)
+      loadChartsAndMaps(silent);
     } catch (e) {
       if (!silent) showToast(e.message, 'error');
     }
+  }
+
+  /* ── Charts & maps ── */
+  let _chartPeriod = 'daily';
+  let _adminUsersMap = null;
+  let _adminResourcesMap = null;
+  let _adminMapsLoaded = false;
+  let _mapPopupClickBound = false;
+
+  function bindMapPopupClick() {
+    if (_mapPopupClickBound) return;
+    _mapPopupClickBound = true;
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('.map-popup-card');
+      if (!card) return;
+      const action = card.dataset.action;
+      const id = card.dataset.id;
+      if (!action || !id) return;
+      if (action === 'open-user') openUserModal(id);
+      else if (action === 'open-resource') openResourceModal(id);
+    });
+  }
+
+  function setChartPeriod(p) {
+    _chartPeriod = p === 'monthly' ? 'monthly' : 'daily';
+    document.querySelectorAll('.chart-period-btn').forEach(b => b.classList.toggle('active', b.dataset.cperiod === _chartPeriod));
+    loadCharts();
+  }
+
+  async function loadChartsAndMaps(silent = false) {
+    loadCharts(silent);
+    if (!_adminMapsLoaded) {
+      _adminMapsLoaded = true;
+      // Esperar un tick a que el DOM esté listo
+      setTimeout(() => loadMaps(silent), 50);
+    } else {
+      loadMaps(silent);
+    }
+  }
+
+  async function loadCharts(silent = false) {
+    try {
+      const data = await apiFetch(`/api/admin/stats/timeseries?period=${_chartPeriod}`);
+      drawBarChart('chart-revenue', data.revenue || [], { color: '#16a34a', formatY: formatMoney, emptyId: 'chart-revenue-empty' });
+      drawBarChart('chart-users', data.users || [], { color: '#2563eb', formatY: (v) => String(Math.round(v)), emptyId: 'chart-users-empty' });
+      const totEl = document.getElementById('chart-revenue-total');
+      const cntEl = document.getElementById('chart-revenue-count');
+      const usrEl = document.getElementById('chart-users-total');
+      if (totEl) totEl.textContent = formatMoney(data.totals?.revenue || 0);
+      if (cntEl) cntEl.textContent = `· ${data.totals?.paid_invoices || 0} pagos`;
+      if (usrEl) usrEl.textContent = String(data.totals?.new_users || 0);
+    } catch (e) { if (!silent) console.warn('charts error', e); }
+  }
+
+  function formatMoney(n) {
+    return '$' + Math.round(n || 0).toLocaleString('es-CO');
+  }
+
+  function drawBarChart(canvasId, series, opts) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const empty = opts.emptyId ? document.getElementById(opts.emptyId) : null;
+
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = canvas.clientWidth || 600;
+    const cssH = canvas.clientHeight || 220;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const padL = 52, padR = 18, padT = 16, padB = 32;
+    const chartW = cssW - padL - padR;
+    const chartH = cssH - padT - padB;
+
+    const valueOf = (d) => (d.amount !== undefined ? d.amount : d.count);
+    const max = Math.max(1, ...series.map(s => valueOf(s)));
+    const allZero = series.every(s => valueOf(s) === 0);
+    if (empty) empty.style.display = allZero ? 'flex' : 'none';
+
+    // Y axis: ticks adaptativos (4 niveles)
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px "DM Sans", system-ui, sans-serif';
+    const yTicks = [0, 0.25, 0.5, 0.75, 1];
+    yTicks.forEach((t, i) => {
+      const y = padT + chartH - chartH * t;
+      ctx.strokeStyle = i === 0 ? '#d1d5db' : '#f3f4f6';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(cssW - padR, y);
+      ctx.stroke();
+      const v = max * t;
+      const txt = opts.formatY(v);
+      ctx.fillText(txt, padL - ctx.measureText(txt).width - 6, y + 3);
+    });
+
+    // Barras
+    const n = Math.max(1, series.length);
+    const barSlot = chartW / n;
+    const barW = Math.max(3, Math.min(32, barSlot * 0.62));
+    const bars = [];
+
+    series.forEach((d, i) => {
+      const v = valueOf(d);
+      const h = max > 0 ? (v / max) * chartH : 0;
+      const x = padL + i * barSlot + (barSlot - barW) / 2;
+      const y = padT + chartH - h;
+
+      // Sombra inferior leve para profundidad
+      if (h > 2) {
+        ctx.fillStyle = 'rgba(0,0,0,0.04)';
+        const r0 = Math.min(5, barW / 2);
+        roundRect(ctx, x + 1, y + 2, barW, h, r0);
+        ctx.fill();
+      }
+
+      // Gradient suave: tope brillante → base translúcida
+      const grd = ctx.createLinearGradient(0, y, 0, padT + chartH);
+      grd.addColorStop(0, opts.color);
+      grd.addColorStop(0.65, opts.color);
+      grd.addColorStop(1, opts.color + '55');
+      ctx.fillStyle = grd;
+      const r = Math.min(5, barW / 2);
+      roundRect(ctx, x, y, barW, h, r);
+      ctx.fill();
+
+      // Cap top (highlight)
+      if (h > 6) {
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        roundRect(ctx, x, y, barW, Math.min(4, h / 4), r);
+        ctx.fill();
+      }
+
+      bars.push({ x, y, w: barW, h, slotX: padL + i * barSlot, slotW: barSlot, data: d, value: v });
+    });
+
+    // X labels — mostrar cada N para no saturar y clamp para no salir del canvas
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '10px "DM Sans", system-ui, sans-serif';
+    const labelEvery = series.length > 16 ? Math.ceil(series.length / 8) : (series.length > 8 ? 2 : 1);
+    series.forEach((d, i) => {
+      if (i % labelEvery !== 0 && i !== series.length - 1) return;
+      const txt = d.label;
+      const w = ctx.measureText(txt).width;
+      let x = padL + i * barSlot + barSlot / 2 - w / 2;
+      // Clamp: no salir del canvas por la derecha ni por la izquierda
+      const minX = padL - 4;
+      const maxX = cssW - padR - w + 4;
+      if (x < minX) x = minX;
+      if (x > maxX) x = maxX;
+      ctx.fillText(txt, x, cssH - 10);
+    });
+
+    // Guardar para tooltip
+    canvas._chartCtx = {
+      bars, opts, padL, padT, chartH, cssW, cssH,
+      formatY: opts.formatY,
+      labelOf: (d) => d.label,
+      titleOf: opts.tooltipTitle || ((d) => d.label),
+      countOf: opts.tooltipCount,
+    };
+
+    // Bind hover + click una sola vez por canvas
+    if (!canvas._tooltipBound) {
+      canvas._tooltipBound = true;
+      const tip = ensureChartTooltip();
+      canvas.style.cursor = 'pointer';
+      const onMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = (e.clientX - rect.left) * (canvas.clientWidth / rect.width);
+        const cy = (e.clientY - rect.top) * (canvas.clientHeight / rect.height);
+        const data = canvas._chartCtx;
+        if (!data) return;
+        const hovered = data.bars.find(b => cx >= b.slotX && cx < b.slotX + b.slotW);
+        if (!hovered || cy > data.padT + data.chartH || cy < data.padT - 10) {
+          tip.style.opacity = '0';
+          canvas.style.cursor = 'default';
+          redrawIfNeeded(canvas, null);
+          return;
+        }
+        const d = hovered.data;
+        const valTxt = (d.amount !== undefined) ? data.formatY(d.amount) : String(d.count);
+        const countLine = (d.amount !== undefined && d.count !== undefined && d.count > 0) ? `<small>${d.count} ${d.count === 1 ? 'pago' : 'pagos'}</small>` : '';
+        const clickHint = (d.amount > 0 || d.count > 0) ? '<small style="display:block;margin-top:4px;opacity:0.7">Click para ver detalle</small>' : '';
+        tip.innerHTML = `<strong>${data.titleOf(d)}</strong><div>${valTxt}</div>${countLine}${clickHint}`;
+        const wrapRect = canvas.parentElement.getBoundingClientRect();
+        tip.style.left = (e.clientX - wrapRect.left + 12) + 'px';
+        tip.style.top = (e.clientY - wrapRect.top - 10) + 'px';
+        tip.style.opacity = '1';
+        canvas.style.cursor = (d.amount > 0 || d.count > 0) ? 'pointer' : 'default';
+        redrawIfNeeded(canvas, hovered);
+      };
+      const onLeave = () => {
+        tip.style.opacity = '0';
+        canvas.style.cursor = 'default';
+        redrawIfNeeded(canvas, null);
+      };
+      const onClick = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const cx = (e.clientX - rect.left) * (canvas.clientWidth / rect.width);
+        const cy = (e.clientY - rect.top) * (canvas.clientHeight / rect.height);
+        const data = canvas._chartCtx;
+        if (!data) return;
+        const clicked = data.bars.find(b => cx >= b.slotX && cx < b.slotX + b.slotW);
+        if (!clicked) return;
+        const d = clicked.data;
+        const value = d.amount !== undefined ? d.amount : d.count;
+        if (!value || value <= 0) return;
+        const type = d.amount !== undefined ? 'revenue' : 'users';
+        openBucketDetail(canvasId, type, d);
+      };
+      canvas.addEventListener('mousemove', onMove);
+      canvas.addEventListener('mouseleave', onLeave);
+      canvas.addEventListener('click', onClick);
+    }
+  }
+
+  async function openBucketDetail(chartId, type, bucket) {
+    const card = document.getElementById('modal-card');
+    if (!card) return;
+    openModal();
+    card.classList.add('modal-resource-host');
+    card.innerHTML = `<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px"></i></div>`;
+    if (window.lucide) lucide.createIcons();
+    try {
+      const data = await apiFetch(`/api/admin/stats/bucket?period=${_chartPeriod}&type=${type}&key=${encodeURIComponent(bucket.key)}`);
+      const items = data.items || [];
+      const titleType = type === 'revenue' ? 'Pagos' : 'Usuarios nuevos';
+      const subtitle = _chartPeriod === 'daily' ? `Día ${bucket.label}` : `${bucket.label}`;
+
+      let listHtml = '';
+      if (!items.length) {
+        listHtml = '<div class="empty-cell" style="padding:30px;text-align:center;color:var(--gray500)">Sin items en este bucket</div>';
+      } else if (type === 'revenue') {
+        listHtml = `<div class="bucket-list">${items.map(i => {
+          const date = new Date(i.created_at);
+          const time = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+          const tierLbl = i.plan_tier === 'pro' ? 'Pro' : i.plan_tier === 'basic' ? 'Básico' : '';
+          return `<div class="bucket-item" onclick="Admin.openUserModal('${esc(i.user_id || '')}')">
+            <div class="bucket-item-main">
+              <strong>${formatMoney(i.amount)}</strong>
+              ${tierLbl ? `<span class="bucket-tier bucket-tier-${esc(i.plan_tier)}">${tierLbl}</span>` : ''}
+              ${i.is_upgrade ? '<span class="bucket-tier bucket-tier-upgrade">Upgrade</span>' : ''}
+            </div>
+            <div class="bucket-item-meta">
+              <span><i data-lucide="user" style="width:11px;height:11px"></i> ${esc(i.user_nombre)} ${esc(i.user_apellido)}</span>
+              <span><i data-lucide="credit-card" style="width:11px;height:11px"></i> ${esc(i.card_brand)} •••• ${esc(i.card_last4)}</span>
+              <span><i data-lucide="clock" style="width:11px;height:11px"></i> ${time}</span>
+            </div>
+            <div class="bucket-item-ref">${esc(i.reference)}</div>
+          </div>`;
+        }).join('')}</div>`;
+      } else {
+        listHtml = `<div class="bucket-list">${items.map(i => {
+          const date = new Date(i.created_at);
+          const time = `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+          const initials = ((i.nombre || '?')[0] + (i.apellido || '?')[0]).toUpperCase();
+          return `<div class="bucket-item" onclick="Admin.openUserModal('${esc(i.id)}')">
+            <div class="bucket-item-avatar">${initials}</div>
+            <div style="flex:1;min-width:0">
+              <div class="bucket-item-main">
+                <strong>${esc(i.nombre)} ${esc(i.apellido)}</strong>
+              </div>
+              <div class="bucket-item-meta">
+                <span><i data-lucide="mail" style="width:11px;height:11px"></i> ${esc(i.email)}</span>
+                ${i.municipio ? `<span><i data-lucide="map-pin" style="width:11px;height:11px"></i> ${esc(i.municipio)}</span>` : ''}
+                <span><i data-lucide="clock" style="width:11px;height:11px"></i> ${time}</span>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--gray300)"></i>
+          </div>`;
+        }).join('')}</div>`;
+      }
+
+      const summary = type === 'revenue'
+        ? `${formatMoney(bucket.amount)} · ${bucket.count} ${bucket.count === 1 ? 'pago' : 'pagos'}`
+        : `${bucket.count} ${bucket.count === 1 ? 'usuario' : 'usuarios'} registrados`;
+
+      card.innerHTML = `
+        <div class="rd-header">
+          <div class="rd-header-info">
+            <div class="rd-badges">
+              <span class="badge" style="background:#dbeafe;color:#1e40af">${titleType}</span>
+              <span class="rd-chip rd-chip-scheduled">${subtitle}</span>
+            </div>
+            <div class="rd-title">Detalle del bucket</div>
+            <div class="rd-meta">${summary} · click cualquier item para abrirlo</div>
+          </div>
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()" title="Cerrar">
+            <i data-lucide="x" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <div class="rd-body">${listHtml}</div>
+      `;
+      if (window.lucide) lucide.createIcons();
+    } catch (e) {
+      card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
+    }
+  }
+
+  function ensureChartTooltip() {
+    let tip = document.getElementById('chart-tooltip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'chart-tooltip';
+      tip.className = 'chart-tooltip';
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function redrawIfNeeded(canvas, hoveredBar) {
+    const data = canvas._chartCtx;
+    if (!data || canvas._lastHover === hoveredBar) return;
+    canvas._lastHover = hoveredBar;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Dibujar overlay highlight encima de la barra activa
+    if (hoveredBar && hoveredBar.h > 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      const r = Math.min(5, hoveredBar.w / 2);
+      roundRect(ctx, hoveredBar.x, hoveredBar.y, hoveredBar.w, hoveredBar.h, r);
+      ctx.fill();
+      // Borde
+      ctx.strokeStyle = data.opts.color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    if (h <= 0) return;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  async function loadMaps(silent = false) {
+    if (!window.L) return;
+    bindMapPopupClick();
+    try {
+      const [users, resources] = await Promise.all([
+        apiFetch('/api/admin/locations?type=users').catch(() => []),
+        apiFetch('/api/admin/locations?type=resources').catch(() => []),
+      ]);
+      renderUsersMap(users || []);
+      renderResourcesMap(resources || []);
+    } catch (e) { if (!silent) console.warn('maps error', e); }
+  }
+
+  function ensureMap(id, ref) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    if (ref) { ref.invalidateSize(); return ref; }
+    const m = L.map(id, { scrollWheelZoom: false, zoomControl: false }).setView([4.5709, -74.2973], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 18,
+    }).addTo(m);
+    // Orden: locate arriba, luego zoom (todos abajo a la derecha)
+    addLocateControl(m, 'bottomright');
+    L.control.zoom({ position: 'bottomright' }).addTo(m);
+    return m;
+  }
+
+  function addLocateControl(map, position) {
+    const Locate = L.Control.extend({
+      options: { position: position || 'topleft' },
+      onAdd: function() {
+        const c = L.DomUtil.create('div', 'leaflet-bar leaflet-control admin-locate-ctrl');
+        c.innerHTML = `<a href="#" title="Centrar en mi ubicación" role="button" aria-label="Centrar en mi ubicación">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        </a>`;
+        L.DomEvent.on(c, 'click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (!navigator.geolocation) { showToast('Tu navegador no soporta geolocalización', 'error'); return; }
+          c.classList.add('admin-locate-loading');
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              c.classList.remove('admin-locate-loading');
+              const { latitude, longitude } = pos.coords;
+              map.setView([latitude, longitude], 12, { animate: true });
+              if (map._locateMarker) map.removeLayer(map._locateMarker);
+              map._locateMarker = L.circleMarker([latitude, longitude], {
+                radius: 8,
+                color: '#2563eb',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.9,
+                weight: 3,
+              }).addTo(map).bindPopup('<strong>Tu ubicación</strong>').openPopup();
+            },
+            (err) => {
+              c.classList.remove('admin-locate-loading');
+              const msg = err.code === 1 ? 'Permiso denegado' : err.code === 2 ? 'Ubicación no disponible' : 'Tiempo agotado';
+              showToast(msg, 'error');
+            },
+            { timeout: 8000, enableHighAccuracy: true }
+          );
+        });
+        L.DomEvent.disableClickPropagation(c);
+        return c;
+      },
+    });
+    map.addControl(new Locate());
+  }
+
+  function renderUsersMap(users) {
+    _adminUsersMap = ensureMap('admin-users-map', _adminUsersMap);
+    if (!_adminUsersMap) return;
+    if (_adminUsersMap._cluster) _adminUsersMap.removeLayer(_adminUsersMap._cluster);
+    const cluster = (window.L && L.markerClusterGroup) ? L.markerClusterGroup() : L.layerGroup();
+    users.forEach(u => {
+      const marker = L.marker([u.lat, u.lng]);
+      const verifiedTxt = u.verified ? ' ✓' : '';
+      marker.bindPopup(`
+        <div class="map-popup-card" data-action="open-user" data-id="${escapeHtml(u.id)}">
+          <strong>${escapeHtml(u.nombre)} ${escapeHtml(u.apellido)}${verifiedTxt}</strong>
+          ${u.tipo ? `<small>${escapeHtml(u.tipo)}</small><br>` : ''}
+          ${u.municipio ? `<small>📍 ${escapeHtml(u.municipio)}</small><br>` : ''}
+          <small>⭐ ${(u.reputation || 5).toFixed(1)}</small>
+          <div class="map-popup-cta"><i data-lucide="external-link" style="width:11px;height:11px"></i> Ver detalle del usuario</div>
+        </div>
+      `);
+      cluster.addLayer(marker);
+    });
+    cluster.addTo(_adminUsersMap);
+    _adminUsersMap._cluster = cluster;
+    if (users.length) {
+      try {
+        const bounds = L.latLngBounds(users.map(u => [u.lat, u.lng]));
+        _adminUsersMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+      } catch {}
+    }
+    const cnt = document.getElementById('map-users-count');
+    if (cnt) cnt.textContent = `${users.length} ${users.length === 1 ? 'usuario' : 'usuarios'} con ubicación`;
+  }
+
+  const TIPO_COLORS = { oferta: '#2e7d32', solicitud: '#1976d2', prestamo: '#ef6c00', trueque: '#6a1b9a' };
+  const TIPO_LBL = { oferta: 'Oferta', solicitud: 'Solicitud', prestamo: 'Préstamo', trueque: 'Trueque' };
+
+  function makeResourceIcon(tipo) {
+    const color = TIPO_COLORS[tipo] || '#5C6660';
+    return L.divIcon({
+      html: `<div class="map-marker-resource tipo-${tipo}" style="background:${color}"><div>${(TIPO_LBL[tipo] || '?')[0]}</div></div>`,
+      iconSize: [28, 28],
+      className: 'map-marker-resource-wrap',
+      iconAnchor: [14, 28],
+      popupAnchor: [0, -24],
+    });
+  }
+
+  function renderResourcesMap(resources) {
+    _adminResourcesMap = ensureMap('admin-resources-map', _adminResourcesMap);
+    if (!_adminResourcesMap) return;
+    if (_adminResourcesMap._cluster) _adminResourcesMap.removeLayer(_adminResourcesMap._cluster);
+    const cluster = (window.L && L.markerClusterGroup) ? L.markerClusterGroup() : L.layerGroup();
+    resources.forEach(r => {
+      const marker = L.marker([r.lat, r.lng], { icon: makeResourceIcon(r.tipo) });
+      marker.bindPopup(`
+        <div class="map-popup-card" data-action="open-resource" data-id="${escapeHtml(r.id)}">
+          <strong>${escapeHtml(r.titulo)}</strong>
+          <small style="color:${TIPO_COLORS[r.tipo] || '#5C6660'};font-weight:600">${TIPO_LBL[r.tipo] || r.tipo}</small><br>
+          ${r.categoria ? `<small>${escapeHtml(r.categoria)}</small><br>` : ''}
+          ${r.municipio ? `<small>📍 ${escapeHtml(r.municipio)}</small><br>` : ''}
+          <small style="color:#6b7280">por ${escapeHtml(r.user_nombre)} ${escapeHtml(r.user_apellido)}</small>
+          <div class="map-popup-cta"><i data-lucide="external-link" style="width:11px;height:11px"></i> Ver detalle de la publicación</div>
+        </div>
+      `);
+      cluster.addLayer(marker);
+    });
+    cluster.addTo(_adminResourcesMap);
+    _adminResourcesMap._cluster = cluster;
+    if (resources.length) {
+      try {
+        const bounds = L.latLngBounds(resources.map(r => [r.lat, r.lng]));
+        _adminResourcesMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+      } catch {}
+    }
+    const cnt = document.getElementById('map-resources-count');
+    if (cnt) cnt.textContent = `${resources.length} ${resources.length === 1 ? 'publicación' : 'publicaciones'} con ubicación`;
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[c]);
   }
 
   function renderRecentResources(items) {
@@ -327,36 +825,58 @@ const Admin = (() => {
     });
 
     if (!filtered.length) {
-      setHtmlIfChanged(tbody, '<tr><td colspan="8" class="empty-cell">Sin resultados</td></tr>');
+      setHtmlIfChanged(tbody, '<tr><td colspan="6" class="empty-cell">Sin resultados</td></tr>');
       return;
     }
+    const tierLabel = (t) => t === 'pro' ? 'Pro' : t === 'basic' ? 'Básico' : t === 'trial' ? 'Prueba Pro' : '—';
+    const statusLabel = (s) => s === 'active' ? 'Activa' : s === 'trial' ? 'En prueba' : s === 'expired' ? 'Expirada' : s === 'cancelled' ? 'Cancelada' : s;
     const html = filtered.map(u => {
-      const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción">PROMO ${u.trial_days_granted || '?'}d</span>` : '';
       const s = u.subscription_status || 'trial';
+      const tier = u.plan_tier || (s === 'trial' ? 'trial' : 'none');
+      const promoBadge = u.promo_applied ? ` <span class="sub-pill sub-pill-trial" title="Se registró durante una promoción" style="margin-left:4px">PROMO</span>` : '';
+
+      const tierCell = tier === 'none'
+        ? `<div class="sub-tier-cell"><span class="muted">—</span><small class="sub-tier-status">${statusLabel(s)}</small></div>`
+        : `<div class="sub-tier-cell"><span class="sub-pill sub-pill-${tier}">${tierLabel(tier)}</span><small class="sub-tier-status sub-tier-status-${s}">${statusLabel(s)}</small></div>`;
+
       const daysLeft = computeDaysLeft(u, s);
       const daysCell = daysLeft === null
         ? '<span class="muted">—</span>'
         : daysLeft === 0
           ? '<span style="color:var(--danger);font-weight:700">0</span>'
           : `<strong>${daysLeft}</strong>`;
+
+      // Fecha de terminación: usa la del estado actual
+      let endDate = null;
+      if (s === 'active' && u.subscription_end) endDate = u.subscription_end;
+      else if (s === 'trial' && u.trial_end) endDate = u.trial_end;
+      else if (s === 'expired') endDate = u.subscription_end || u.trial_end;
+      const endCell = endDate
+        ? `<span class="sub-end-date">${formatDate(endDate)}</span>`
+        : '<span class="muted">—</span>';
+
       return `
       <tr>
         <td><strong>${esc(u.nombre)} ${esc(u.apellido)}</strong>${promoBadge}</td>
         <td class="td-small">${esc(u.email)}</td>
-        <td><span class="sub-pill sub-pill-${s}">${s}</span></td>
+        <td>${tierCell}</td>
         <td class="td-center">${daysCell}</td>
-        <td class="td-center">${u.monthly_post_count || 0}</td>
-        <td class="td-small muted">${u.trial_end ? formatDate(u.trial_end) : '—'}${u.trial_days_granted ? `<br><small style="color:var(--harvest)">Prometido: ${u.trial_days_granted}d</small>` : ''}</td>
-        <td class="td-small muted">${u.subscription_end ? formatDate(u.subscription_end) : '—'}</td>
-        <td>
-          <button class="quick-btn" title="Ver suscripción y editar" onclick="Admin.openSubModal('${esc(u.id)}')">👁 Ver</button>
-          <button class="quick-btn" title="Cambiar días (1 a 90)" onclick="Admin.openEditDaysModal('${esc(u.id)}', '${esc(u.nombre + ' ' + u.apellido)}', '${esc(s)}', ${daysLeft === null ? 'null' : daysLeft})">📅 Cambiar días</button>
-          <button class="quick-btn danger" title="Quitar suscripción (cancelar)" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">🗑 Quitar</button>
+        <td class="td-small muted">${endCell}</td>
+        <td class="td-center">
+          <div class="sub-actions">
+            <button class="sub-btn sub-btn-primary" title="Ver y gestionar suscripción" onclick="Admin.openSubModal('${esc(u.id)}')">
+              <i data-lucide="settings-2"></i> Gestionar
+            </button>
+            <button class="sub-btn sub-btn-danger" title="Quitar suscripción" onclick="Admin.subAction('${esc(u.id)}', 'cancel')">
+              <i data-lucide="x-circle"></i>
+            </button>
+          </div>
         </td>
       </tr>
     `;
     }).join('');
     setHtmlIfChanged(tbody, html);
+    if (window.lucide) lucide.createIcons();
   }
 
   async function loadSubscriptions(silent = false) {
@@ -408,15 +928,15 @@ const Admin = (() => {
     else if (action === 'restorePromise') { body = { restore_promised_trial: true }; msg = 'Trial restaurado al prometido al registrarse'; }
     else if (action === 'cancel') {
       const ok = await confirmDialog({
-        title: 'Cancelar suscripción',
-        message: '¿Quitar la suscripción de este usuario? Pasará a estado cancelado.',
-        okText: 'Sí, cancelar',
+        title: 'Quitar suscripción',
+        message: '¿Quitar la suscripción de este usuario? Pasa a estado cancelado, plan se limpia y pierde acceso premium al instante.',
+        okText: 'Sí, quitar',
         cancelText: 'Volver',
         danger: true,
       });
       if (!ok) return;
       body = { subscription_status: 'cancelled' };
-      msg = 'Suscripción cancelada';
+      msg = 'Suscripción quitada';
     }
     try {
       await apiFetch(`/api/admin/users/${userId}/subscription`, {
@@ -429,6 +949,33 @@ const Admin = (() => {
     } catch (e) { showToast(e.message, 'error'); }
   }
 
+  async function grantSub(userId) {
+    const tierEl = document.getElementById('grant-tier');
+    const daysEl = document.getElementById('grant-days');
+    if (!tierEl || !daysEl) return;
+    const tier = tierEl.value;
+    const days = parseInt(daysEl.value || '0', 10);
+    if (tier !== 'basic' && tier !== 'pro') return showToast('Plan inválido', 'error');
+    if (!Number.isFinite(days) || days < 1 || days > 3650) return showToast('Días inválidos (1-3650)', 'error');
+    const tierLbl = tier === 'pro' ? 'Pro' : 'Básico';
+    const ok = await confirmDialog({
+      title: `Otorgar plan ${tierLbl}`,
+      message: `Se asigna plan ${tierLbl} por ${days} ${days === 1 ? 'día' : 'días'}. Reemplaza cualquier estado actual (trial, cancelado, expirado).`,
+      okText: 'Sí, otorgar',
+      cancelText: 'Volver',
+    });
+    if (!ok) return;
+    try {
+      await apiFetch(`/api/admin/users/${userId}/subscription`, {
+        method: 'PATCH',
+        body: JSON.stringify({ grant: { tier, days } }),
+      });
+      showToast(`Plan ${tierLbl} otorgado por ${days} días`, 'success');
+      closeModalDirect();
+      loadSubscriptions();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
   async function openSubModal(userId) {
     const card = document.getElementById('modal-card');
     card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
@@ -438,33 +985,63 @@ const Admin = (() => {
       const sub = await apiFetch(`/api/admin/users/${userId}/subscription`);
       const trialEndStr = sub.trial_end ? formatDate(sub.trial_end) : '—';
       const subEndStr = sub.subscription_end ? formatDate(sub.subscription_end) : '—';
+      const tierLbl = sub.plan_tier === 'pro' ? 'Pro'
+        : sub.plan_tier === 'basic' ? 'Básico'
+        : sub.plan_tier === 'trial' ? 'Prueba (Pro)'
+        : '—';
+      const pendingBanner = sub.pending_change ? `
+          <div class="modal-pending-banner">
+            <i data-lucide="calendar-clock" style="width:14px;height:14px"></i>
+            Plan agendado: <strong>${sub.pending_change.tier === 'pro' ? 'Pro' : 'Básico'}</strong> arranca cuando termine el actual${sub.pending_change.starts ? ` (${formatDate(sub.pending_change.starts)})` : ''}.
+          </div>` : '';
       card.innerHTML = `
         <div class="modal-header">
           <div>
             <div class="modal-title">Suscripción</div>
-            <div class="modal-subtitle">Estado: <strong>${sub.status}</strong> · ${sub.is_premium ? 'Premium activo' : 'Sin premium'}</div>
+            <div class="modal-subtitle">Plan: <strong>${tierLbl}</strong> · Estado: <strong>${sub.status}</strong> · ${sub.is_premium ? 'Premium activo' : 'Sin premium'}</div>
           </div>
           <button class="btn-modal-close" onclick="Admin.closeModalDirect()"><i data-lucide="x" style="width:16px;height:16px;"></i></button>
         </div>
         <div class="modal-body">
+          ${pendingBanner}
           <div class="modal-stats-row">
             <div class="modal-stat"><span class="modal-stat-label">Trial termina</span><span class="modal-stat-value">${trialEndStr}</span></div>
-            <div class="modal-stat"><span class="modal-stat-label">Días restantes</span><span class="modal-stat-value">${sub.trial_days_left}</span></div>
+            <div class="modal-stat"><span class="modal-stat-label">Días trial</span><span class="modal-stat-value">${sub.trial_days_left}</span></div>
             <div class="modal-stat"><span class="modal-stat-label">Sub termina</span><span class="modal-stat-value">${subEndStr}</span></div>
+            <div class="modal-stat"><span class="modal-stat-label">Días sub</span><span class="modal-stat-value">${sub.subscription_days_left || 0}</span></div>
             <div class="modal-stat"><span class="modal-stat-label">Posts mes</span><span class="modal-stat-value">${sub.monthly_post_count} / ${sub.free_posts_per_month}</span></div>
           </div>
 
-          <div class="modal-section-title">Editar días restantes</div>
+          <div class="modal-section-title">Editar días del estado actual</div>
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Días (1 a 90)</label>
               <input class="modal-input" id="sub-edit-days" type="number" min="1" max="90" value="${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))}" oninput="Admin.updateDaysPreview(${sub.status === 'active' ? (sub.subscription_days_left || 0) : (sub.trial_days_left || 0)})">
-              <small style="color:var(--gray500);font-size:11px">Máximo 3 meses (90 días).</small>
+              <small style="color:var(--gray500);font-size:11px">Aplica al trial si está en prueba, o a la sub activa si está pagando. Máximo 3 meses (90 días).</small>
             </div>
           </div>
           <div class="days-change-preview" id="days-change-preview" style="margin-top:14px;padding:12px 14px;background:var(--gray50,#f7f7f7);border-radius:8px;border-left:4px solid var(--harvest);font-size:14px">
             Pasa de <strong>${sub.status === 'active' ? (sub.subscription_days_left || 0) : (sub.trial_days_left || 0)} días</strong> → <strong id="days-preview-new">${Math.max(1, Math.min(90, sub.trial_days_left || sub.subscription_days_left || 1))} días</strong>
           </div>
+
+          <div class="modal-section-title" style="margin-top:22px">Otorgar suscripción manualmente</div>
+          <small style="color:var(--gray500);font-size:11px;display:block;margin-bottom:8px">Reemplaza el estado actual (trial / cancelado / expirado) por una suscripción activa con el plan y duración elegidos.</small>
+          <div class="modal-field-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="modal-field">
+              <label>Plan</label>
+              <select class="modal-input" id="grant-tier">
+                <option value="pro">Pro</option>
+                <option value="basic">Básico</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label>Días (1 a 3650)</label>
+              <input class="modal-input" id="grant-days" type="number" min="1" max="3650" value="30">
+            </div>
+          </div>
+          <button class="btn-primary" style="margin-top:10px;width:100%" onclick="Admin.grantSub('${esc(userId)}')">
+            <i data-lucide="gift" style="width:14px;height:14px"></i> Otorgar plan
+          </button>
         </div>
         <div class="modal-footer">
           <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cerrar</button>
@@ -597,49 +1174,94 @@ const Admin = (() => {
   }
 
   let _ticketPollTimer = null;
-  async function openTicket(id) {
-    try {
-      const t = await apiFetch(`/api/admin/support/${id}`);
-      _modalOpen = true;
-      const overlay = document.getElementById('modal-overlay');
-      const card = document.getElementById('modal-card');
-      const msgsHtml = t.messages.map(m => `
-        <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:${m.from === 'admin' ? '#e8f1ff' : '#f3f4f6'};">
-          <div style="font-size:11px;color:var(--gray500);margin-bottom:4px">
-            <strong>${m.from === 'admin' ? 'Soporte (Admin)' : (t.user ? t.user.nombre : 'Usuario')}</strong> · ${formatDate(m.created_at)}
-          </div>
-          <div style="font-size:13px;white-space:pre-wrap">${esc(m.message)}</div>
-        </div>
-      `).join('');
-      card.innerHTML = `
-        <div style="padding:20px;max-height:80vh;overflow-y:auto">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="font-family:var(--font-serif);font-size:18px">${esc(t.subject)}</h3>
-            <button onclick="Admin.closeModalDirect()" style="background:var(--gray100);border:none;padding:6px 10px;border-radius:6px;cursor:pointer">✕</button>
-          </div>
-          <div style="font-size:12px;color:var(--gray500);margin-bottom:14px">
-            ${t.user ? `${esc(t.user.nombre)} ${esc(t.user.apellido)} · ${esc(t.user.email)}` : ''}
-            · Estado: <strong>${t.status}</strong>
-            · Prioridad: <strong>${t.priority}</strong>
-          </div>
-          <div id="admin-ticket-msgs" style="max-height:45vh;overflow-y:auto;margin-bottom:14px;padding:8px;background:var(--gray50);border-radius:8px">
-            ${msgsHtml}
-          </div>
-          <textarea id="admin-ticket-reply" rows="3" style="width:100%;padding:10px;border:1px solid var(--gray300);border-radius:8px;font-family:var(--font);font-size:13px" placeholder="Escribe una respuesta..."></textarea>
-          <div style="display:flex;gap:8px;margin-top:10px;justify-content:space-between">
-            <div>
-              <button onclick="Admin.ticketStatus('${esc(id)}', 'closed')" class="quick-btn">Cerrar ticket</button>
-              <button onclick="Admin.ticketStatus('${esc(id)}', 'pending')" class="quick-btn">Marcar pendiente</button>
-            </div>
-            <button onclick="Admin.replyTicket('${esc(id)}')" style="background:var(--earth);color:var(--white);border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600">
-              Enviar respuesta
-            </button>
+  function _adminChatTimeStr(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} · ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  function _adminRenderTicketMessages(t) {
+    const msgs = t.messages || [];
+    if (!msgs.length) return '<div class="admin-chat-empty">Sin mensajes en este ticket.</div>';
+    const userName = t.user ? `${t.user.nombre || ''}` : 'Usuario';
+    const userInitial = (userName[0] || 'U').toUpperCase();
+    return msgs.map(m => {
+      const isAdmin = m.from === 'admin';
+      const initial = isAdmin ? 'A' : userInitial;
+      return `
+        <div class="admin-chat-msg ${isAdmin ? 'admin-chat-msg-admin' : 'admin-chat-msg-user'}">
+          <div class="admin-chat-avatar">${initial}</div>
+          <div class="admin-chat-bubble">
+            <div class="admin-chat-bubble-author">${isAdmin ? 'Soporte' : esc(userName)}</div>
+            <div class="admin-chat-bubble-text">${esc(m.message)}</div>
+            <div class="admin-chat-bubble-time">${_adminChatTimeStr(m.created_at)}</div>
           </div>
         </div>
       `;
-      overlay.style.display = 'flex';
+    }).join('');
+  }
+
+  async function openTicket(id) {
+    try {
+      const t = await apiFetch(`/api/admin/support/${id}`);
+      const overlay = document.getElementById('modal-overlay');
+      const card = document.getElementById('modal-card');
+      // Activar overlay correctamente
+      overlay.classList.add('active');
+      // Modo chat: card sin restricciones de altura/scroll
+      card.classList.add('modal-chat-host');
+      _modalOpen = true;
+      document.body.style.overflow = 'hidden';
+      const msgsHtml = _adminRenderTicketMessages(t);
+      const userLine = t.user ? `${esc(t.user.nombre)} ${esc(t.user.apellido)}` : 'Usuario';
+      const userEmail = t.user ? esc(t.user.email || '') : '';
+      const initial = (t.user?.nombre?.[0] || 'U').toUpperCase();
+      const priorityCls = t.priority === 'priority' ? 'admin-chat-priority-high' : '';
+      const statusLbls = { open: 'Abierto', pending: 'Pendiente', closed: 'Cerrado' };
+      const statusLbl = statusLbls[t.status] || t.status;
+
+      card.innerHTML = `
+        <div class="admin-chat-modal">
+          <div class="admin-chat-header">
+            <div class="admin-chat-user">
+              <div class="admin-chat-user-avatar">${initial}</div>
+              <div class="admin-chat-user-info">
+                <strong>${userLine}</strong>
+                <small>${userEmail}</small>
+              </div>
+            </div>
+            <div class="admin-chat-meta">
+              <span class="admin-chat-pill admin-chat-status-${t.status}">${statusLbl}</span>
+              ${t.priority === 'priority' ? `<span class="admin-chat-pill ${priorityCls}"><i data-lucide="zap"></i> Pro</span>` : ''}
+              <button class="admin-chat-close-btn" onclick="Admin.closeModalDirect()" title="Cerrar"><i data-lucide="x"></i></button>
+            </div>
+          </div>
+          <div class="admin-chat-subject">
+            <i data-lucide="message-square"></i>
+            <span>${esc(t.subject)}</span>
+          </div>
+          <div id="admin-ticket-msgs" class="admin-chat-msgs">${msgsHtml}</div>
+          <div class="admin-chat-input-wrap">
+            <textarea id="admin-ticket-reply" rows="2" class="admin-chat-input" placeholder="Escribe una respuesta…"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Admin.replyTicket('${esc(id)}')}"></textarea>
+            <button class="admin-chat-send" onclick="Admin.replyTicket('${esc(id)}')" title="Enviar (Enter)">
+              <i data-lucide="send"></i>
+            </button>
+          </div>
+          <div class="admin-chat-actions">
+            <button class="quick-btn" onclick="Admin.ticketStatus('${esc(id)}', 'pending')"><i data-lucide="clock"></i> Marcar pendiente</button>
+            <button class="quick-btn danger" onclick="Admin.ticketStatus('${esc(id)}', 'closed')"><i data-lucide="check-circle"></i> Cerrar ticket</button>
+          </div>
+        </div>
+      `;
       if (window.lucide) lucide.createIcons();
-      // Polling silencioso para ver nuevas respuestas del usuario
+      // Auto-scroll abajo
+      const msgsEl = document.getElementById('admin-ticket-msgs');
+      if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+      // Focus en input
+      const reply = document.getElementById('admin-ticket-reply');
+      if (reply) setTimeout(() => reply.focus(), 100);
+      // Polling
       if (_ticketPollTimer) clearInterval(_ticketPollTimer);
       _ticketPollTimer = setInterval(async () => {
         if (!_modalOpen) { clearInterval(_ticketPollTimer); _ticketPollTimer = null; return; }
@@ -647,18 +1269,12 @@ const Admin = (() => {
           const t2 = await apiFetch(`/api/admin/support/${id}`);
           const ct = document.getElementById('admin-ticket-msgs');
           if (!ct) return;
-          const nearBottom = (ct.scrollHeight - ct.scrollTop - ct.clientHeight) < 60;
-          const newHtml = t2.messages.map(m => `
-            <div style="margin-bottom:10px;padding:10px 12px;border-radius:8px;background:${m.from === 'admin' ? '#e8f1ff' : '#f3f4f6'};">
-              <div style="font-size:11px;color:var(--gray500);margin-bottom:4px">
-                <strong>${m.from === 'admin' ? 'Soporte (Admin)' : (t2.user ? t2.user.nombre : 'Usuario')}</strong> · ${formatDate(m.created_at)}
-              </div>
-              <div style="font-size:13px;white-space:pre-wrap">${esc(m.message)}</div>
-            </div>
-          `).join('');
+          const nearBottom = (ct.scrollHeight - ct.scrollTop - ct.clientHeight) < 80;
+          const newHtml = _adminRenderTicketMessages(t2);
           if (ct.innerHTML !== newHtml) {
             ct.innerHTML = newHtml;
             if (nearBottom) ct.scrollTop = ct.scrollHeight;
+            if (window.lucide) lucide.createIcons();
           }
         } catch { /* ignore */ }
       }, 4000);
@@ -669,14 +1285,26 @@ const Admin = (() => {
     const ta = document.getElementById('admin-ticket-reply');
     const msg = (ta.value || '').trim();
     if (!msg) return showToast('Escribe un mensaje', 'error');
+    const sendBtn = document.querySelector('.admin-chat-send');
+    if (sendBtn) sendBtn.disabled = true;
     try {
       await apiFetch(`/api/admin/support/${id}`, {
         method: 'POST',
         body: JSON.stringify({ message: msg }),
       });
-      showToast('Respuesta enviada', 'success');
-      openTicket(id);
+      ta.value = '';
+      ta.style.height = 'auto';
+      // Refrescar mensajes inmediatamente sin recargar modal
+      const t2 = await apiFetch(`/api/admin/support/${id}`);
+      const ct = document.getElementById('admin-ticket-msgs');
+      if (ct) {
+        ct.innerHTML = _adminRenderTicketMessages(t2);
+        ct.scrollTop = ct.scrollHeight;
+        if (window.lucide) lucide.createIcons();
+      }
+      ta.focus();
     } catch (e) { showToast(e.message, 'error'); }
+    finally { if (sendBtn) sendBtn.disabled = false; }
   }
 
   async function ticketStatus(id, status) {
@@ -702,6 +1330,447 @@ const Admin = (() => {
     } catch {}
   }
 
+  /* ── Control / Reports tab ── */
+  let _reportsAll = [];
+  let _reportsFilter = { status: 'pending', type: 'all' };
+
+  const REPORT_REASON_LABELS = {
+    // Publicación
+    spam_ad: 'Spam o publicidad engañosa',
+    misleading_photo: 'Foto no coincide con lo ofrecido',
+    fake_info: 'Información falsa o engañosa',
+    unauthorized_sale: 'Venta no autorizada',
+    illegal_product: 'Producto peligroso o ilegal',
+    misleading_price: 'Precio engañoso',
+    duplicate: 'Publicación duplicada',
+    inappropriate_content: 'Contenido inapropiado',
+    other_resource: 'Otro (publicación)',
+    // Usuario
+    harassment: 'Acoso o lenguaje violento',
+    impersonation: 'Suplantación de identidad',
+    fake_account: 'Cuenta falsa o bot',
+    fraud_scam: 'Estafa o intento de fraude',
+    inappropriate_behavior: 'Comportamiento inapropiado',
+    no_show: 'No respondió tras acuerdo',
+    abusive_language: 'Lenguaje ofensivo en chat',
+    other_user: 'Otro (usuario)',
+    // Legacy
+    spam: 'Spam o publicidad',
+    inappropriate: 'Contenido inapropiado',
+    fraud: 'Posible fraude',
+    fake: 'Información falsa',
+    misleading: 'No coincide con la foto',
+    other: 'Otro',
+  };
+  const REPORT_STATUS_LABELS = {
+    pending: 'Pendiente',
+    resolved: 'Resuelto',
+    // Legacy (reportes antiguos pueden tener estos estados → se muestran como resuelto)
+    reviewing: 'Resuelto',
+    dismissed: 'Resuelto',
+  };
+
+  function normalizeReportStatus(s) {
+    return s === 'pending' ? 'pending' : 'resolved';
+  }
+
+  function setReportsFilter(s) {
+    _reportsFilter.status = s;
+    document.querySelectorAll('.reports-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.rstatus === s));
+    renderReportsList();
+  }
+  function setReportsType(t) {
+    _reportsFilter.type = t;
+    document.querySelectorAll('.reports-type-btn').forEach(b => b.classList.toggle('active', b.dataset.rtype === t));
+    renderReportsList();
+  }
+
+  async function loadReports(silent = false) {
+    const list = document.getElementById('reports-list');
+    if (!silent && list) list.innerHTML = '<div class="loading-cell">Cargando reportes…</div>';
+    try {
+      const reports = await apiFetch('/api/admin/reports');
+      markRefreshed();
+      _reportsAll = Array.isArray(reports) ? reports : [];
+      renderReportsList();
+      refreshReportsBadge();
+    } catch (e) { if (!silent && list) list.innerHTML = `<div class="error-cell">${esc(e.message)}</div>`; }
+  }
+
+  async function refreshReportsBadge() {
+    try {
+      let pending;
+      if (Array.isArray(_reportsAll) && _reportsAll.length) {
+        pending = _reportsAll.filter(r => r.status === 'pending').length;
+      } else {
+        const reports = await apiFetch('/api/admin/reports?status=pending');
+        pending = reports.length;
+      }
+      const badge = document.getElementById('reports-badge');
+      if (!badge) return;
+      if (pending > 0) { badge.textContent = pending; badge.style.display = 'inline-block'; }
+      else badge.style.display = 'none';
+    } catch {}
+  }
+
+  function renderReportsList() {
+    const list = document.getElementById('reports-list');
+    if (!list) return;
+    const counts = { all: _reportsAll.length, pending: 0, resolved: 0 };
+    _reportsAll.forEach(r => { counts[normalizeReportStatus(r.status)] += 1; });
+    document.querySelectorAll('.reports-filter-btn').forEach(b => {
+      const cnt = b.querySelector('.reports-filter-count');
+      if (cnt) cnt.textContent = counts[b.dataset.rstatus] || 0;
+    });
+
+    const filtered = _reportsAll.filter(r => {
+      const norm = normalizeReportStatus(r.status);
+      if (_reportsFilter.status !== 'all' && norm !== _reportsFilter.status) return false;
+      if (_reportsFilter.type !== 'all' && r.type !== _reportsFilter.type) return false;
+      return true;
+    });
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="empty-cell" style="padding:30px;text-align:center;color:var(--gray500)">Sin reportes con estos filtros</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(r => {
+      const isResource = r.type === 'resource';
+      const tipoIcon = isResource ? 'package' : 'user';
+      const tipoLbl = isResource ? 'Publicación' : 'Usuario';
+      const targetName = isResource
+        ? (r.target_titulo || '(eliminado)')
+        : `${r.target_user_nombre || ''} ${r.target_user_apellido || ''}`.trim() || '(eliminado)';
+      const reasonLbl = REPORT_REASON_LABELS[r.reason] || r.reason;
+      const normStatus = normalizeReportStatus(r.status);
+      const statusLbl = REPORT_STATUS_LABELS[normStatus];
+      const reporterName = `${r.reporter_nombre || ''} ${r.reporter_apellido || ''}`.trim() || r.reporter_email || '—';
+      const dateStr = formatDate(r.created_at);
+
+      return `
+        <div class="report-card report-${normStatus}" onclick="Admin.openReportDetail('${esc(r.id)}')">
+          <div class="report-head">
+            <span class="report-type-pill report-type-${r.type}"><i data-lucide="${tipoIcon}"></i> ${tipoLbl}</span>
+            <span class="report-reason-pill">${esc(reasonLbl)}</span>
+            <span class="report-status-pill report-status-${normStatus}">${statusLbl}</span>
+          </div>
+          <div class="report-card-target">
+            ${esc(targetName)}
+            ${isResource && r.target_resource_status ? `<small>· ${esc(r.target_resource_status)}</small>` : ''}
+          </div>
+          ${r.description ? `<div class="report-card-desc">${esc(r.description)}</div>` : ''}
+          <div class="report-card-meta">
+            <span class="report-card-meta-item"><i data-lucide="user"></i> ${esc(reporterName)}</span>
+            <span class="report-card-meta-item"><i data-lucide="calendar"></i> ${dateStr}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  async function openReportDetail(id) {
+    const r = _reportsAll.find(x => x.id === id);
+    if (!r) return;
+    const card = document.getElementById('modal-card');
+    if (!card) return;
+    openModal();
+    card.classList.add('modal-resource-host');
+
+    const isResource = r.type === 'resource';
+    const reasonLbl = REPORT_REASON_LABELS[r.reason] || r.reason;
+    const normStatus = normalizeReportStatus(r.status);
+    const statusLbl = REPORT_STATUS_LABELS[normStatus];
+    const reporterName = `${r.reporter_nombre || ''} ${r.reporter_apellido || ''}`.trim() || '—';
+
+    // Preview visual del objeto reportado
+    let targetPreview = '';
+    if (isResource) {
+      const tipo = r.target_resource_tipo || '';
+      const tipoLbl = tipoLabel(tipo);
+      const status = r.target_resource_status || '';
+      const desc = (r.target_resource_descripcion || '').trim();
+      const descShort = desc.length > 200 ? desc.slice(0, 198) + '…' : desc;
+      const meta = [r.target_resource_categoria, r.target_resource_municipio].filter(Boolean).join(' · ');
+      const hasImg = !!r.target_resource_image;
+      targetPreview = `
+        <div class="report-target-card report-target-resource" onclick="Admin.openResourceModal('${esc(r.target_id)}')" title="Abrir publicación">
+          <div class="report-target-media">
+            ${hasImg ? `<img src="${r.target_resource_image}" alt="">` : `<div class="report-target-media-empty"><i data-lucide="image-off"></i></div>`}
+          </div>
+          <div class="report-target-body">
+            <div class="report-target-badges">
+              ${tipo ? `<span class="badge badge-${esc(tipo)}">${esc(tipoLbl)}</span>` : ''}
+              ${status ? `<span class="badge badge-status-${esc(status)}">${esc(status)}</span>` : ''}
+              <span class="report-target-go"><i data-lucide="external-link"></i> Abrir</span>
+            </div>
+            <h3 class="report-target-title">${esc(r.target_titulo || '(eliminado)')}</h3>
+            ${meta ? `<div class="report-target-meta">${esc(meta)}</div>` : ''}
+            ${descShort ? `<p class="report-target-desc">${esc(descShort)}</p>` : ''}
+          </div>
+        </div>
+      `;
+    } else {
+      const fullName = `${r.target_user_nombre || ''} ${r.target_user_apellido || ''}`.trim() || '(eliminado)';
+      const initials = ((r.target_user_nombre || '?')[0] + (r.target_user_apellido || '?')[0]).toUpperCase();
+      const repu = (r.target_user_reputation || 5).toFixed(1);
+      const verifiedBadge = r.target_user_verified ? '<span class="report-target-verified" title="Verificado">✓</span>' : '';
+      const bio = (r.target_user_bio || '').trim();
+      const bioShort = bio.length > 200 ? bio.slice(0, 198) + '…' : bio;
+      targetPreview = `
+        <div class="report-target-card report-target-user" onclick="Admin.openUserModal('${esc(r.target_id)}')" title="Abrir perfil del usuario">
+          <div class="report-target-avatar">${esc(initials)}</div>
+          <div class="report-target-body">
+            <div class="report-target-badges">
+              <span class="report-target-rating">⭐ ${repu}</span>
+              ${r.target_user_tipo ? `<span class="report-target-chip">${esc(r.target_user_tipo)}</span>` : ''}
+              <span class="report-target-go"><i data-lucide="external-link"></i> Abrir</span>
+            </div>
+            <h3 class="report-target-title">${esc(fullName)} ${verifiedBadge}</h3>
+            <div class="report-target-meta">
+              ${r.target_user_email ? `<span><i data-lucide="mail" style="width:11px;height:11px"></i> ${esc(r.target_user_email)}</span>` : ''}
+              ${r.target_user_municipio ? `<span><i data-lucide="map-pin" style="width:11px;height:11px"></i> ${esc(r.target_user_municipio)}</span>` : ''}
+            </div>
+            ${bioShort ? `<p class="report-target-desc">"${esc(bioShort)}"</p>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // Acciones simplificadas: solo si está pendiente. Si ya resolvió, mostrar info.
+    const isPending = normStatus === 'pending';
+    const actionsHtml = isPending ? `
+      <div class="report-actions-grid">
+        <button class="report-action-btn report-action-correct" onclick="Admin.openCorrectionDialog('${esc(id)}')">
+          <i data-lucide="message-circle-warning"></i>
+          <div>
+            <strong>Enviar mensaje de corrección</strong>
+            <small>${isResource ? 'Le avisas al dueño qué corregir' : 'Le envías una advertencia al usuario'}</small>
+          </div>
+        </button>
+        <button class="report-action-btn report-action-dismiss" onclick="Admin.updateReportStatus('${esc(id)}','resolved')">
+          <i data-lucide="x-circle"></i>
+          <div>
+            <strong>Descartar reporte</strong>
+            <small>El reporte no aplica, marcar como resuelto</small>
+          </div>
+        </button>
+        ${isResource ? `
+          <button class="report-action-btn report-action-delete" onclick="Admin.applyReportSanction('${esc(id)}','delete_resource')">
+            <i data-lucide="trash-2"></i>
+            <div>
+              <strong>Eliminar publicación</strong>
+              <small>Borra el recurso permanentemente</small>
+            </div>
+          </button>
+        ` : `
+          <button class="report-action-btn report-action-delete" onclick="Admin.confirmDeleteUser('${esc(r.target_id)}','${esc(`${r.target_user_nombre} ${r.target_user_apellido}`)}','${esc(id)}')">
+            <i data-lucide="user-x"></i>
+            <div>
+              <strong>Eliminar usuario</strong>
+              <small>Borra la cuenta y todos sus datos</small>
+            </div>
+          </button>
+        `}
+      </div>
+    ` : `
+      <div class="report-resolved-info">
+        <i data-lucide="check-circle-2"></i>
+        <div>
+          <strong>Reporte resuelto</strong>
+          <small>Este reporte ya fue gestionado el ${r.resolved_at ? formatDate(r.resolved_at) : '—'}.</small>
+        </div>
+      </div>
+    `;
+
+    card.innerHTML = `
+      <div class="rd-header">
+        <div class="rd-header-info">
+          <div class="rd-badges">
+            <span class="badge" style="background:${isResource ? '#dbeafe' : '#fde68a'};color:${isResource ? '#1e40af' : '#92400e'}">
+              <i data-lucide="${isResource ? 'package' : 'user'}" style="width:11px;height:11px"></i> ${isResource ? 'Publicación' : 'Usuario'}
+            </span>
+            <span class="report-status-pill report-status-${normStatus}">${statusLbl}</span>
+          </div>
+          <div class="rd-title">Reporte de ${isResource ? 'publicación' : 'usuario'}</div>
+          <div class="rd-meta">Reportado ${formatDate(r.created_at)}${r.resolved_at ? ` · Resuelto ${formatDate(r.resolved_at)}` : ''}</div>
+        </div>
+        <button class="btn-modal-close" onclick="Admin.closeModalDirect()" title="Cerrar"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="rd-body">
+        <div class="report-reason-highlight">
+          <div class="report-reason-label">Motivo del reporte</div>
+          <div class="report-reason-value">${esc(reasonLbl)}</div>
+        </div>
+
+        <div class="rd-section-title">${isResource ? 'Publicación reportada' : 'Usuario reportado'}</div>
+        ${targetPreview}
+
+        ${r.description ? `
+          <div class="rd-section-title">Detalles del reportador</div>
+          <div class="report-description-box">
+            <i data-lucide="quote" style="width:14px;height:14px;color:#92400e;flex-shrink:0;margin-top:2px"></i>
+            <div>
+              <p>${esc(r.description)}</p>
+              <small>— ${esc(reporterName)}${r.reporter_email ? ` · ${esc(r.reporter_email)}` : ''}</small>
+            </div>
+          </div>
+        ` : `
+          <div class="rd-section-title">Reportado por</div>
+          <div style="font-size:13px;color:var(--gray700)">${esc(reporterName)}<br><small style="color:var(--gray500)">${esc(r.reporter_email || '')}</small></div>
+        `}
+
+        <div class="rd-section-title">Notas internas (opcional)</div>
+        <textarea id="report-admin-notes" class="modal-input" rows="2" placeholder="Anotación interna para futuro contexto…">${esc(r.admin_notes || '')}</textarea>
+
+        <div class="rd-section-title">Acciones</div>
+        ${actionsHtml}
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function openCorrectionDialog(reportId) {
+    const r = _reportsAll.find(x => x.id === reportId);
+    if (!r) return;
+    const isResource = r.type === 'resource';
+    const targetName = isResource
+      ? (r.target_titulo || '')
+      : `${r.target_user_nombre || ''} ${r.target_user_apellido || ''}`.trim();
+    const card = document.getElementById('modal-card');
+    if (!card) return;
+
+    const defaultTemplates = isResource ? [
+      'Hola, recibimos un reporte sobre tu publicación. Por favor revisa que la foto y descripción coincidan con lo que ofreces.',
+      'Hola, tu publicación parece duplicada. Por favor borra las repetidas para mantener la calidad del catálogo.',
+      'Hola, el precio o cantidad no es claro. Edita la publicación para incluir esa info.',
+    ] : [
+      'Hola, recibimos un reporte sobre tu comportamiento en el chat. Por favor mantén un trato respetuoso con la comunidad.',
+      'Hola, recibimos un reporte de un acuerdo donde no respondiste. Te recordamos cumplir tus compromisos.',
+      'Hola, tu cuenta tiene un reporte por información incompleta. Completa tu perfil para generar más confianza.',
+    ];
+
+    card.innerHTML = `
+      <div class="rd-header">
+        <div class="rd-header-info">
+          <div class="rd-badges">
+            <span class="badge" style="background:#fef3c7;color:#92400e"><i data-lucide="message-circle-warning" style="width:11px;height:11px"></i> Mensaje de corrección</span>
+          </div>
+          <div class="rd-title">Aviso para ${esc(targetName || 'el usuario')}</div>
+          <div class="rd-meta">Le llega como ticket de soporte de prioridad alta</div>
+        </div>
+        <button class="btn-modal-close" onclick="Admin.openReportDetail('${esc(reportId)}')" title="Volver"><i data-lucide="arrow-left" style="width:16px;height:16px"></i></button>
+      </div>
+      <div class="rd-body">
+        <div class="rd-section-title">Plantillas rápidas</div>
+        <div class="correction-templates">
+          ${defaultTemplates.map(t => `<button class="correction-template" onclick="Admin.fillCorrection('${esc(t.replace(/'/g, '\\\''))}')">${esc(t)}</button>`).join('')}
+        </div>
+        <div class="rd-section-title">Mensaje</div>
+        <textarea id="correction-msg" class="modal-input" rows="6" placeholder="Escribe el mensaje que recibirá el usuario…" style="font-size:14px"></textarea>
+        <div class="report-modal-actions" style="margin-top:14px">
+          <button class="quick-btn" onclick="Admin.openReportDetail('${esc(reportId)}')"><i data-lucide="arrow-left"></i> Volver</button>
+          <button class="ra-review" onclick="Admin.sendCorrection('${esc(reportId)}')" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">
+            <i data-lucide="send"></i> Enviar y resolver
+          </button>
+        </div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function fillCorrection(text) {
+    const ta = document.getElementById('correction-msg');
+    if (ta) { ta.value = text; ta.focus(); }
+  }
+
+  async function sendCorrection(reportId) {
+    const ta = document.getElementById('correction-msg');
+    const msg = (ta?.value || '').trim();
+    if (!msg) { showToast('Escribe un mensaje', 'error'); return; }
+    if (msg.length < 10) { showToast('El mensaje es muy corto', 'error'); return; }
+    const notesEl = document.getElementById('report-admin-notes');
+    const admin_notes = notesEl ? notesEl.value : undefined;
+    try {
+      await apiFetch(`/api/admin/reports/${reportId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: 'resolved',
+          sanction: 'send_correction',
+          correction_message: msg,
+          admin_notes,
+        }),
+      });
+      showToast('Mensaje enviado al usuario', 'success');
+      closeModalDirect();
+      loadReports();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function confirmDeleteUser(userId, userName, reportId) {
+    const ok = await confirmDialog({
+      title: 'Eliminar usuario',
+      message: `¿Eliminar a "${userName}" y todos sus datos? Esta acción no se puede deshacer.`,
+      okText: 'Sí, eliminar',
+      cancelText: 'Volver',
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await apiFetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+      // Marcar reporte como resuelto
+      await apiFetch(`/api/admin/reports/${reportId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'resolved' }),
+      });
+      showToast('Usuario eliminado y reporte resuelto', 'success');
+      closeModalDirect();
+      loadReports();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function updateReportStatus(id, status) {
+    const notesEl = document.getElementById('report-admin-notes');
+    const admin_notes = notesEl ? notesEl.value : undefined;
+    try {
+      await apiFetch(`/api/admin/reports/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status, admin_notes }),
+      });
+      showToast('Reporte actualizado', 'success');
+      closeModalDirect();
+      loadReports();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  async function applyReportSanction(id, sanction) {
+    const labels = {
+      deactivate_resource: 'desactivar la publicación',
+      delete_resource: 'ELIMINAR la publicación (no se puede deshacer)',
+    };
+    const ok = await confirmDialog({
+      title: `Aplicar sanción`,
+      message: `¿Confirmás ${labels[sanction] || sanction}? El reporte queda como Resuelto.`,
+      okText: 'Sí, aplicar',
+      cancelText: 'Volver',
+      danger: true,
+    });
+    if (!ok) return;
+    const notesEl = document.getElementById('report-admin-notes');
+    const admin_notes = notesEl ? notesEl.value : undefined;
+    try {
+      await apiFetch(`/api/admin/reports/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'resolved', sanction, admin_notes }),
+      });
+      showToast('Sanción aplicada', 'success');
+      closeModalDirect();
+      loadReports();
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
   /* ── Config tab ── */
   async function loadConfig(silent = false) {
     try {
@@ -718,6 +1787,7 @@ const Admin = (() => {
       set('cfg-price-basic', c.price_basic ?? c.subscription_price);
       set('cfg-price-pro', c.price_pro ?? 12900);
       set('cfg-free-posts', c.free_posts_per_month);
+      set('cfg-basic-max', c.basic_max_posts ?? 20);
       set('cfg-promo-discount', c.promo_discount_percent);
       const promoActive = document.getElementById('cfg-promo-active');
       if (promoActive && document.activeElement !== promoActive && promoActive.checked !== !!c.promo_active) promoActive.checked = !!c.promo_active;
@@ -743,6 +1813,7 @@ const Admin = (() => {
       price_pro: getNum('cfg-price-pro'),
       subscription_price: getNum('cfg-price-basic'),
       free_posts_per_month: getNum('cfg-free-posts'),
+      basic_max_posts: getNum('cfg-basic-max'),
       promo_discount_percent: getNum('cfg-promo-discount'),
       promo_active: !!(document.getElementById('cfg-promo-active') || {}).checked,
       promo_end_date: promoEndVal ? new Date(promoEndVal).toISOString() : null,
@@ -920,6 +1991,14 @@ const Admin = (() => {
   function closeModalDirect() {
     const overlay = document.getElementById('modal-overlay');
     overlay.classList.remove('active');
+    const card = document.getElementById('modal-card');
+    if (card) {
+      card.classList.remove('modal-chat-host');
+      card.classList.remove('modal-resource-host');
+    }
+    if (_ticketPollTimer) { clearInterval(_ticketPollTimer); _ticketPollTimer = null; }
+    if (_adminResourceEditMap) { _adminResourceEditMap.remove(); _adminResourceEditMap = null; _adminResourceEditMarker = null; }
+    _editingResourceImage = '';
     _modalOpen = false;
     document.body.style.overflow = '';
   }
@@ -1057,119 +2136,110 @@ const Admin = (() => {
   }
 
   /* ── Resource modal ── */
+  let _editingResourceImage = '';
+
   async function openResourceModal(id) {
     const card = document.getElementById('modal-card');
     card.innerHTML = '<div class="modal-loading"><i data-lucide="loader-2" style="width:24px;height:24px;"></i></div>';
     openModal();
+    card.classList.add('modal-resource-host');
     if (window.lucide) lucide.createIcons();
     try {
       const r = await apiFetch(`/api/admin/resources/${id}`);
+      _editingResourceImage = r.image_data || '';
+
+      const initials = ((r.user_nombre || '?')[0] + (r.user_apellido || '?')[0]).toUpperCase();
+      const repu = (r.user_reputation || 5).toFixed(1);
+      const verifiedBadge = r.user_verified ? ' <span class="rd-verified-tick" title="Verificado">✓</span>' : '';
 
       const categoriaOptionsHtml = categoriaOptions(r.categoria || '');
-      const extraFields = `
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Cantidad</label>
-              <input class="modal-input" id="rf-cantidad" value="${esc(r.cantidad || '')}">
-            </div>
-            <div class="modal-field">
-              <label>Unidad</label>
-              <input class="modal-input" id="rf-unidad" value="${esc(r.unidad || '')}">
-            </div>
-          </div>
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Precio referencia</label>
-              <input class="modal-input" id="rf-precio" value="${esc(r.precio_referencia || '')}">
-            </div>
-            <div class="modal-field">
-              <label>Condición</label>
-              <input class="modal-input" id="rf-condicion" value="${esc(r.condicion || '')}">
-            </div>
-          </div>
-          <div class="modal-field-group modal-field-full">
-            <div class="modal-field">
-              <label>Disponibilidad</label>
-              <input class="modal-input" id="rf-disponibilidad" value="${esc(r.disponibilidad || '')}">
-            </div>
-          </div>
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Modalidad</label>
-              <input class="modal-input" id="rf-modalidad" value="${esc(r.modalidad || '')}">
-            </div>
-            <div class="modal-field">
-              <label>Duración préstamo</label>
-              <input class="modal-input" id="rf-duracion" value="${esc(r.duracion_prestamo || '')}">
-            </div>
-          </div>
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Garantía</label>
-              <input class="modal-input" id="rf-garantia" value="${esc(r.garantia || '')}">
-            </div>
-            <div class="modal-field">
-              <label>Location notes</label>
-              <input class="modal-input" id="rf-location-notes" value="${esc(r.location_notes || '')}">
-            </div>
-          </div>
-          <div class="modal-field-group">
-            <div class="modal-field">
-              <label>Ofrece (trueque)</label>
-              <input class="modal-input" id="rf-ofrece" value="${esc(r.ofrece || '')}">
-            </div>
-            <div class="modal-field">
-              <label>Recibe (trueque)</label>
-              <input class="modal-input" id="rf-recibe" value="${esc(r.recibe || '')}">
-            </div>
-          </div>`;
+      const hasImg = !!r.image_data;
+      const hasMap = r.latitude != null && r.longitude != null && Number.isFinite(parseFloat(r.latitude)) && Number.isFinite(parseFloat(r.longitude));
 
       card.innerHTML = `
-        <div class="modal-header">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div class="rd-header">
+          <div class="rd-header-info">
+            <div class="rd-badges">
               <span class="badge badge-${esc(r.tipo)}">${tipoLabel(r.tipo)}</span>
               <span class="badge badge-status-${esc(r.status)}">${statusResLabel(r.status)}</span>
-              ${r.has_image ? '<span style="font-size:12px;">📷</span>' : ''}
+              ${r.scheduled_at ? `<span class="rd-chip rd-chip-scheduled"><i data-lucide="calendar-clock" style="width:11px;height:11px"></i> Programada</span>` : ''}
             </div>
-            <div class="modal-title">${esc(r.titulo)}</div>
-            <div class="modal-subtitle">por <strong>${esc(r.user_nombre)} ${esc(r.user_apellido)}</strong>${r.user_email ? ' · ' + esc(r.user_email) : ''} · ${esc(r.municipio || '—')}</div>
+            <div class="rd-title">${esc(r.titulo || 'Sin título')}</div>
+            <div class="rd-meta">${esc(r.categoria || '—')} · ${esc(r.municipio || 'Sin ubicación')} · Publicada ${formatDateShort(r.created_at)}</div>
           </div>
-          <button class="btn-modal-close" onclick="Admin.closeModalDirect()">
+          <button class="btn-modal-close" onclick="Admin.closeModalDirect()" title="Cerrar">
             <i data-lucide="x" style="width:16px;height:16px;"></i>
           </button>
         </div>
-        <div class="modal-body">
-          <div class="modal-stats-row">
-            <div class="modal-stat">
-              <span class="modal-stat-label">Categoría</span>
-              <span class="modal-stat-value">${esc(r.categoria || '—')}</span>
+
+        <div class="rd-body">
+
+          <div class="rd-owner-card" onclick="Admin.openUserModal('${esc(r.user_id)}')" title="Ver usuario">
+            <div class="rd-owner-avatar">${initials}</div>
+            <div class="rd-owner-info">
+              <strong>${esc(r.user_nombre)} ${esc(r.user_apellido)}${verifiedBadge}</strong>
+              <small>${esc(r.user_tipo || '')}${r.user_municipio ? ' · ' + esc(r.user_municipio) : ''}</small>
+              <small>${esc(r.user_email || '')}</small>
             </div>
-            <div class="modal-stat">
-              <span class="modal-stat-label">Municipio</span>
-              <span class="modal-stat-value">${esc(r.municipio || '—')}</span>
-            </div>
-            <div class="modal-stat">
-              <span class="modal-stat-label">Publicado</span>
-              <span class="modal-stat-value">${formatDateShort(r.created_at)}</span>
-            </div>
-            ${r.scheduled_at ? `
-              <div class="modal-stat">
-                <span class="modal-stat-label">Programado</span>
-                <span class="modal-stat-value">${formatDateShort(r.scheduled_at)}</span>
-              </div>
-            ` : ''}
+            <div class="rd-owner-rating">⭐ ${repu}</div>
           </div>
 
-          <div class="modal-section-title">Editar datos</div>
+          <div class="rd-media-row">
+            <div class="rd-media-block">
+              <div class="rd-block-label"><i data-lucide="image" style="width:13px;height:13px"></i> Foto del recurso</div>
+              <div class="rd-image-wrap">
+                <img id="rf-image-preview" src="${hasImg ? r.image_data : ''}" alt="" style="${hasImg ? '' : 'display:none'}">
+                <div id="rf-image-empty" class="rd-image-empty" style="${hasImg ? 'display:none' : ''}">
+                  <i data-lucide="image-off" style="width:32px;height:32px"></i>
+                  <span>Sin foto</span>
+                </div>
+              </div>
+              <div class="rd-image-actions">
+                <button class="sub-btn sub-btn-primary" onclick="document.getElementById('rf-image-input').click()">
+                  <i data-lucide="upload"></i> ${hasImg ? 'Cambiar' : 'Subir'} foto
+                </button>
+                ${hasImg ? `<button class="sub-btn sub-btn-danger" onclick="Admin.clearResourceImage()">
+                  <i data-lucide="trash-2"></i> Quitar
+                </button>` : ''}
+                <input type="file" id="rf-image-input" accept="image/*" style="display:none" onchange="Admin.handleResourceImageUpload(this)">
+              </div>
+            </div>
 
+            <div class="rd-media-block">
+              <div class="rd-block-label"><i data-lucide="map-pin" style="width:13px;height:13px"></i> Ubicación</div>
+              <div id="rf-map" class="rd-map" ${hasMap ? '' : 'style="display:none"'}></div>
+              <div id="rf-map-empty" class="rd-image-empty" style="${hasMap ? 'display:none' : 'height:160px'}">
+                <i data-lucide="map-off" style="width:32px;height:32px"></i>
+                <span>Sin coordenadas</span>
+              </div>
+              <div class="rd-coord-row">
+                <div class="modal-field" style="flex:1">
+                  <label>Latitud</label>
+                  <input class="modal-input" id="rf-lat" value="${r.latitude ?? ''}" placeholder="4.5709">
+                </div>
+                <div class="modal-field" style="flex:1">
+                  <label>Longitud</label>
+                  <input class="modal-input" id="rf-lng" value="${r.longitude ?? ''}" placeholder="-74.2973">
+                </div>
+              </div>
+              <div class="rd-image-actions">
+                <button class="sub-btn" onclick="Admin.applyResourceCoords()">
+                  <i data-lucide="check"></i> Aplicar coordenadas
+                </button>
+                ${hasMap ? `<button class="sub-btn sub-btn-danger" onclick="Admin.clearResourceCoords()">
+                  <i data-lucide="trash-2"></i> Quitar
+                </button>` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="rd-section-title">Datos principales</div>
           <div class="modal-field-group">
             <div class="modal-field">
               <label>Tipo</label>
               <select class="modal-select" id="rf-tipo">
                 <option value="oferta" ${r.tipo === 'oferta' ? 'selected' : ''}>Oferta</option>
                 <option value="solicitud" ${r.tipo === 'solicitud' ? 'selected' : ''}>Solicitud</option>
-                <option value="demanda" ${r.tipo === 'demanda' ? 'selected' : ''}>Demanda</option>
                 <option value="prestamo" ${r.tipo === 'prestamo' ? 'selected' : ''}>Préstamo</option>
                 <option value="trueque" ${r.tipo === 'trueque' ? 'selected' : ''}>Trueque</option>
               </select>
@@ -1192,7 +2262,7 @@ const Admin = (() => {
           <div class="modal-field-group modal-field-full">
             <div class="modal-field">
               <label>Descripción</label>
-              <textarea class="modal-textarea" id="rf-descripcion" placeholder="Descripción">${esc(r.descripcion)}</textarea>
+              <textarea class="modal-textarea" id="rf-descripcion" rows="4" placeholder="Descripción">${esc(r.descripcion)}</textarea>
             </div>
           </div>
           <div class="modal-field-group">
@@ -1206,10 +2276,80 @@ const Admin = (() => {
             </div>
           </div>
 
-          ${extraFields ? `<div class="modal-section-title">Detalles adicionales</div>${extraFields}` : ''}
+          <div class="rd-section-title">Detalles del recurso</div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Cantidad</label>
+              <input class="modal-input" id="rf-cantidad" value="${esc(r.cantidad || '')}" placeholder="Ej: 100">
+            </div>
+            <div class="modal-field">
+              <label>Unidad</label>
+              <input class="modal-input" id="rf-unidad" value="${esc(r.unidad || '')}" placeholder="kg, bultos, hectárea…">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Condición</label>
+              <input class="modal-input" id="rf-condicion" value="${esc(r.condicion || '')}" placeholder="Buen estado, Nuevo, Usado…">
+            </div>
+            <div class="modal-field">
+              <label>Disponibilidad</label>
+              <input class="modal-input" id="rf-disponibilidad" value="${esc(r.disponibilidad || '')}" placeholder="Inmediata, Esta semana…">
+            </div>
+          </div>
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Modalidad</label>
+              <input class="modal-input" id="rf-modalidad" value="${esc(r.modalidad || '')}" placeholder="Pago, Gratis, Trueque…">
+            </div>
+            <div class="modal-field">
+              <label>Precio referencia</label>
+              <input class="modal-input" id="rf-precio" value="${esc(r.precio_referencia || '')}" placeholder="$50.000 / día">
+            </div>
+          </div>
+          ${(r.tipo === 'prestamo' || r.duracion_prestamo) ? `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Duración del préstamo</label>
+              <input class="modal-input" id="rf-duracion" value="${esc(r.duracion_prestamo || '')}" placeholder="3 días, 1 semana…">
+            </div>
+            <div class="modal-field">
+              <label>Garantía / condiciones devolución</label>
+              <input class="modal-input" id="rf-garantia" value="${esc(r.garantia || '')}" placeholder="Se devuelve limpio…">
+            </div>
+          </div>
+          ` : `
+          <input type="hidden" id="rf-duracion" value="${esc(r.duracion_prestamo || '')}">
+          <input type="hidden" id="rf-garantia" value="${esc(r.garantia || '')}">
+          `}
+          ${(r.tipo === 'trueque' || r.ofrece || r.recibe) ? `
+          <div class="modal-field-group">
+            <div class="modal-field">
+              <label>Ofrece (trueque)</label>
+              <input class="modal-input" id="rf-ofrece" value="${esc(r.ofrece || '')}" placeholder="Lo que ofrece a cambio">
+            </div>
+            <div class="modal-field">
+              <label>Recibe (trueque)</label>
+              <input class="modal-input" id="rf-recibe" value="${esc(r.recibe || '')}" placeholder="Lo que desea recibir">
+            </div>
+          </div>
+          ` : `
+          <input type="hidden" id="rf-ofrece" value="${esc(r.ofrece || '')}">
+          <input type="hidden" id="rf-recibe" value="${esc(r.recibe || '')}">
+          `}
+          <div class="modal-field-group modal-field-full">
+            <div class="modal-field">
+              <label>Cómo llegar / referencias</label>
+              <textarea class="modal-textarea" id="rf-location-notes" rows="2" placeholder="Indicaciones de cómo llegar, referencias del lugar…">${esc(r.location_notes || '')}</textarea>
+            </div>
+          </div>
         </div>
+
         <div class="modal-footer">
           <button class="btn-secondary" onclick="Admin.closeModalDirect()">Cancelar</button>
+          <button class="quick-btn danger" onclick="Admin.deleteResource('${esc(id)}')" style="margin-right:auto">
+            <i data-lucide="trash-2" style="width:13px;height:13px"></i> Eliminar
+          </button>
           <button class="btn-primary" id="btn-save-resource" onclick="Admin.saveResource('${esc(id)}')">
             <i data-lucide="save" style="width:14px;height:14px;"></i>
             Guardar cambios
@@ -1217,9 +2357,87 @@ const Admin = (() => {
         </div>
       `;
       if (window.lucide) lucide.createIcons();
+
+      // Inicializar mapa si hay coords
+      if (hasMap) initResourceMapEdit(parseFloat(r.latitude), parseFloat(r.longitude));
     } catch (e) {
       card.innerHTML = `<div class="modal-error">${esc(e.message)}</div>`;
     }
+  }
+
+  let _adminResourceEditMap = null;
+  let _adminResourceEditMarker = null;
+
+  function initResourceMapEdit(lat, lng) {
+    const el = document.getElementById('rf-map');
+    if (!el || !window.L) return;
+    // Reset map (modal se reabre)
+    if (_adminResourceEditMap) { _adminResourceEditMap.remove(); _adminResourceEditMap = null; }
+    _adminResourceEditMap = L.map(el, { scrollWheelZoom: false }).setView([lat, lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 18,
+    }).addTo(_adminResourceEditMap);
+    _adminResourceEditMarker = L.marker([lat, lng], { draggable: true }).addTo(_adminResourceEditMap);
+    _adminResourceEditMarker.on('dragend', (e) => {
+      const p = e.target.getLatLng();
+      const latI = document.getElementById('rf-lat');
+      const lngI = document.getElementById('rf-lng');
+      if (latI) latI.value = p.lat.toFixed(6);
+      if (lngI) lngI.value = p.lng.toFixed(6);
+    });
+    _adminResourceEditMap.on('click', (e) => {
+      _adminResourceEditMarker.setLatLng(e.latlng);
+      const latI = document.getElementById('rf-lat');
+      const lngI = document.getElementById('rf-lng');
+      if (latI) latI.value = e.latlng.lat.toFixed(6);
+      if (lngI) lngI.value = e.latlng.lng.toFixed(6);
+    });
+    setTimeout(() => _adminResourceEditMap?.invalidateSize(), 100);
+  }
+
+  function applyResourceCoords() {
+    const lat = parseFloat(document.getElementById('rf-lat')?.value);
+    const lng = parseFloat(document.getElementById('rf-lng')?.value);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      showToast('Lat/Lng inválidos', 'error');
+      return;
+    }
+    document.getElementById('rf-map').style.display = '';
+    document.getElementById('rf-map-empty').style.display = 'none';
+    initResourceMapEdit(lat, lng);
+    showToast('Coordenadas aplicadas (recordá guardar)', 'success');
+  }
+
+  function clearResourceCoords() {
+    document.getElementById('rf-lat').value = '';
+    document.getElementById('rf-lng').value = '';
+    if (_adminResourceEditMap) { _adminResourceEditMap.remove(); _adminResourceEditMap = null; _adminResourceEditMarker = null; }
+    const m = document.getElementById('rf-map'); if (m) m.style.display = 'none';
+    const e = document.getElementById('rf-map-empty'); if (e) e.style.display = '';
+  }
+
+  function handleResourceImageUpload(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('Imagen muy grande (máx 5MB)', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      _editingResourceImage = e.target.result;
+      const img = document.getElementById('rf-image-preview');
+      const empty = document.getElementById('rf-image-empty');
+      if (img) { img.src = _editingResourceImage; img.style.display = ''; }
+      if (empty) empty.style.display = 'none';
+      showToast('Foto cargada (recordá guardar)', 'success');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearResourceImage() {
+    _editingResourceImage = '';
+    const img = document.getElementById('rf-image-preview');
+    const empty = document.getElementById('rf-image-empty');
+    if (img) { img.src = ''; img.style.display = 'none'; }
+    if (empty) empty.style.display = '';
   }
 
   async function saveResource(id) {
@@ -1228,6 +2446,8 @@ const Admin = (() => {
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     const val = (i) => (document.getElementById(i) ? document.getElementById(i).value : '');
+    const lat = (document.getElementById('rf-lat')?.value || '').trim();
+    const lng = (document.getElementById('rf-lng')?.value || '').trim();
     try {
       await apiFetch(`/api/admin/resources/${id}`, {
         method: 'PATCH',
@@ -1249,6 +2469,9 @@ const Admin = (() => {
           ofrece: val('rf-ofrece'),
           recibe: val('rf-recibe'),
           location_notes: val('rf-location-notes'),
+          image_data: _editingResourceImage,
+          latitude: lat === '' ? null : parseFloat(lat),
+          longitude: lng === '' ? null : parseFloat(lng),
         }),
       });
       showToast('Publicación actualizada correctamente', 'success');
@@ -1376,11 +2599,6 @@ const Admin = (() => {
               <strong>${a.cancelled_by_nombre ? esc(a.cancelled_by_nombre) + ':' : 'Cancelado:'}</strong>
               ${esc(a.cancel_reason)}
             </div>
-          ` : ''}
-
-          ${a.message ? `
-            <div class="modal-section-title">Mensaje inicial</div>
-            <div class="message-bubble">${esc(a.message)}</div>
           ` : ''}
 
           ${a.resource_descripcion ? `
@@ -1515,16 +2733,20 @@ const Admin = (() => {
     deleteUser, deleteResource,
     openUserModal, saveUser,
     openResourceModal, saveResource,
+    handleResourceImageUpload, clearResourceImage, applyResourceCoords, clearResourceCoords,
     openAgreementModal,
     closeModal, closeModalDirect,
     confirmDialog, confirmOk, confirmCancel,
     startAutoRefresh, stopAutoRefresh,
     formatDate, showToast,
     toggleVerify,
-    loadSubscriptions, subAction, openSubModal, openEditDaysModal, saveSubDays, updateDaysPreview,
+    loadSubscriptions, subAction, grantSub, openSubModal, openEditDaysModal, saveSubDays, updateDaysPreview,
     setSubsFilter, setSubsSearch,
     setUsersSearch,
     loadSupport, openTicket, replyTicket, ticketStatus,
+    loadReports, setReportsFilter, setReportsType, openReportDetail, updateReportStatus, applyReportSanction,
+    openCorrectionDialog, fillCorrection, sendCorrection, confirmDeleteUser,
+    setChartPeriod,
     loadConfig, saveConfig,
   };
 })();

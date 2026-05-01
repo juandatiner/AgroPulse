@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroPulse — Conecta tu comunidad agrícola</title>
-    <link rel="stylesheet" href="/css/styles.css?v=55">
+    <link rel="stylesheet" href="/css/styles.css?v=63">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
@@ -458,7 +458,6 @@
                 <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="handshake"></i></div><div class="profile-stat-value" id="profile-stat-intercambios">0</div><div class="profile-stat-label">Acuerdos</div></div>
                 <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="package"></i></div><div class="profile-stat-value" id="profile-stat-publicaciones">0</div><div class="profile-stat-label">Publicaciones</div></div>
                 <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="star"></i></div><div class="profile-stat-value" id="profile-stat-rating">5.0</div><div class="profile-stat-label">Calificación</div></div>
-                <div class="profile-stat profile-stat-anim"><div class="profile-stat-icon"><i data-lucide="crown"></i></div><div class="profile-stat-value" id="profile-stat-suscripcion">—</div><div class="profile-stat-label">Suscripción</div></div>
             </div>
 
             <div class="profile-section">
@@ -495,9 +494,9 @@
                     <div class="profile-menu-text"><h4>Alertas de match</h4><p>Cruza tus publicaciones con demanda <span class="pro-chip">Pro</span></p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
-                <button class="profile-menu-item" id="export-csv-btn" onclick="Subscription.downloadCsv()">
+                <button class="profile-menu-item" id="export-csv-btn" onclick="Subscription.downloadImage()">
                     <div class="profile-menu-icon green"><i data-lucide="download"></i></div>
-                    <div class="profile-menu-text"><h4>Exportar acuerdos</h4><p id="export-csv-sub">Descarga tu historial en CSV <span class="pro-chip">Pro</span></p></div>
+                    <div class="profile-menu-text"><h4>Exportar acuerdos</h4><p id="export-csv-sub">Descarga un resumen en imagen <span class="pro-chip">Pro</span></p></div>
                     <div class="profile-menu-arrow"><i data-lucide="chevron-right"></i></div>
                 </button>
                 <button class="profile-menu-item" onclick="Subscription.openInvoices()">
@@ -739,11 +738,11 @@
     </div>
 </div>
 
-<script src="/js/api.js?v=5"></script>
+<script src="/js/api.js?v=6"></script>
 <script src="/js/geo.js?v=3"></script>
 <script src="/js/chat.js?v=10"></script>
-<script src="/js/subscription.js?v=29"></script>
-<script src="/js/app.js?v=34"></script>
+<script src="/js/subscription.js?v=35"></script>
+<script src="/js/app.js?v=44"></script>
 <script src="/js/tour.js?v=11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
