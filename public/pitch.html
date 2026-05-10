@@ -387,21 +387,39 @@ body.dark .ex-card p{color:var(--cream-dark)}
 /* phone */
 .phone{
   width:300px;height:600px;
-  background:#0A1A12;
-  border-radius:42px;padding:14px;
-  box-shadow:0 30px 80px rgba(10,26,18,.5),inset 0 0 0 2px rgba(245,240,232,.1);
+  background:linear-gradient(160deg,#1a1a1a 0%,#0A1A12 100%);
+  border-radius:46px;padding:12px;
+  box-shadow:0 30px 80px rgba(10,26,18,.55),
+    inset 0 0 0 2px rgba(245,240,232,.12),
+    0 0 0 1px rgba(0,0,0,.4);
   position:relative;margin:0 auto;
 }
 .phone::before{
   content:'';position:absolute;top:18px;left:50%;transform:translateX(-50%);
-  width:100px;height:24px;background:#000;border-radius:12px;z-index:10;
+  width:100px;height:26px;background:#000;border-radius:14px;z-index:10;
+  box-shadow:inset 0 -1px 2px rgba(245,240,232,.05);
 }
 .phone-screen{
   width:100%;height:100%;background:var(--cream);
-  border-radius:32px;overflow:hidden;
+  border-radius:34px;overflow:hidden;
   display:flex;flex-direction:column;
   position:relative;
 }
+.phone-screen::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:42px;
+  background:transparent;z-index:5;pointer-events:none;
+}
+.phone-status-bar{
+  position:absolute;top:0;left:0;right:0;height:42px;z-index:6;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 26px 0;
+  font-size:13px;font-weight:700;color:var(--cream);
+  font-variant-numeric:tabular-nums;letter-spacing:.3px;
+  pointer-events:none;
+}
+.phone-status-bar .status-time{font-weight:800;font-size:14px}
+.phone-status-bar .status-icons{display:flex;gap:5px;align-items:center}
+.phone-status-bar .status-icons svg{width:15px;height:15px;fill:var(--cream)}
 
 /* ===== Como funciona (timeline) ===== */
 .timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:24px;position:relative}
@@ -821,11 +839,26 @@ body.dark .team-card .uni{color:var(--cream-dark)}
 .live-creds-divider{opacity:.5;font-weight:900}
 .live-stage-frame{
   flex:1;min-height:0;
-  background:var(--white);border-radius:18px;overflow:hidden;
-  box-shadow:0 24px 70px rgba(10,26,18,.3);
+  background:var(--white);border-radius:22px;overflow:hidden;
+  box-shadow:0 30px 80px rgba(10,26,18,.35);
   border:1px solid rgba(10,26,18,.1);
+  position:relative;
 }
 .live-stage-frame iframe{width:100%;height:100%;border:none;display:block}
+.live-stage-loading{
+  position:absolute;inset:0;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:linear-gradient(160deg,#1a2710,var(--earth));
+  color:var(--cream);transition:opacity .35s ease;
+}
+.live-loading-spinner{
+  width:48px;height:48px;border-radius:50%;
+  border:4px solid rgba(184,132,31,.25);
+  border-top-color:var(--harvest-light);
+  animation:spin 1s linear infinite;
+}
+.live-loading-text{font-size:14px;font-weight:600;letter-spacing:.5px;opacity:.85}
+@keyframes spin{to{transform:rotate(360deg)}}
 .live-stage-foot{
   display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
 }
@@ -996,25 +1029,42 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   .tour-frame{width:100%;display:flex;flex-direction:column;align-items:center}
 }
 .ph-header{
-  background:var(--earth);color:var(--cream);
-  padding:38px 16px 14px;display:flex;justify-content:space-between;align-items:center;
+  background:linear-gradient(135deg,var(--earth),var(--earth-deep));
+  color:var(--cream);
+  padding:48px 18px 14px;display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 2px 14px rgba(10,26,18,.18);
+  position:relative;
 }
-.ph-header .logo{font-weight:800;font-size:17px}
+.ph-header .logo{font-weight:800;font-size:16px;display:flex;align-items:center;gap:7px;letter-spacing:.2px}
+.ph-header .logo::before{
+  content:'';width:18px;height:18px;border-radius:5px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  display:inline-block;
+}
 .ph-header .avatar{
-  width:34px;height:34px;border-radius:50%;
-  background:var(--harvest);color:var(--earth-deep);
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
   display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:13px;
+  font-weight:900;font-size:12px;
+  box-shadow:0 2px 6px rgba(184,132,31,.4);
 }
 .ph-body{flex:1;overflow-y:auto;padding:14px;background:var(--cream)}
 .ph-body::-webkit-scrollbar{width:0}
 .ph-greeting{
   background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
   color:var(--earth-deep);
-  padding:16px;border-radius:14px;margin-bottom:14px;
+  padding:14px 16px;border-radius:14px;margin-bottom:12px;
+  box-shadow:0 6px 16px rgba(184,132,31,.28);
+  position:relative;overflow:hidden;
 }
-.ph-greeting strong{display:block;font-size:15px;margin-bottom:4px;font-weight:800}
-.ph-greeting span{font-size:12px;opacity:.85;font-weight:600}
+.ph-greeting::after{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.3) 0%,transparent 70%);
+}
+.ph-greeting strong{display:block;font-size:15px;margin-bottom:3px;font-weight:900;letter-spacing:.2px}
+.ph-greeting span{font-size:12px;opacity:.88;font-weight:600}
 .ph-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
 .ph-action{
   background:var(--white);padding:12px 8px;border-radius:10px;
@@ -1030,10 +1080,13 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 }
 .ph-tab.on{background:var(--earth);color:var(--cream)}
 .ph-post{
-  background:var(--white);padding:10px 12px;border-radius:10px;margin-bottom:8px;
-  display:flex;justify-content:space-between;align-items:center;
-  box-shadow:0 1px 4px rgba(10,26,18,.05);cursor:pointer;
+  background:var(--white);padding:11px 13px;border-radius:12px;margin-bottom:7px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  box-shadow:0 2px 8px rgba(10,26,18,.05),0 1px 0 rgba(10,26,18,.02);
+  cursor:pointer;border:1px solid rgba(10,26,18,.04);
+  transition:transform .15s, box-shadow .15s;
 }
+.ph-post:active{transform:scale(.98)}
 .ph-post-title{font-size:12px;font-weight:700;color:var(--earth-deep);margin-bottom:3px}
 .ph-tag{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px}
 .tag-OFERTA{background:#FFE4C4;color:#7A4A0E}
@@ -1042,10 +1095,20 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 .tag-SOLICITUD{background:#D6E9F8;color:#0E4A78}
 .ph-loc{font-size:10px;color:var(--text-muted);margin-top:2px;font-weight:500}
 .ph-status{font-size:9px;color:var(--field);font-weight:800}
-.ph-nav{display:flex;background:var(--white);border-top:1px solid var(--cream-dark);padding:8px 0}
-.ph-nav-item{flex:1;text-align:center;font-size:9px;color:var(--text-muted);font-weight:700}
+.ph-nav{
+  display:flex;background:rgba(255,255,255,.96);
+  border-top:1px solid rgba(10,26,18,.08);
+  padding:8px 0 12px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 -2px 10px rgba(10,26,18,.06);
+}
+.ph-nav-item{
+  flex:1;text-align:center;font-size:9px;
+  color:var(--text-muted);font-weight:700;letter-spacing:.2px;
+}
 .ph-nav-item.on{color:var(--harvest)}
-.ph-nav-item .em{font-size:18px;display:block;margin-bottom:2px}
+.ph-nav-item.on .em{transform:scale(1.1)}
+.ph-nav-item .em{font-size:18px;display:block;margin-bottom:2px;transition:transform .2s}
 .ph-detail-img{height:140px;background:linear-gradient(135deg,var(--field),var(--earth-mid));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:60px;margin-bottom:14px}
 .ph-detail-title{font-size:18px;font-weight:800;color:var(--earth-deep);margin-bottom:6px}
 .ph-detail-desc{font-size:12px;color:var(--text);line-height:1.5;margin-bottom:14px;font-weight:500}
@@ -1174,54 +1237,64 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 /* ===== Mobile: slide 4 phone + slide 14 live ===== */
 @media (max-width:760px){
   .slide.cover{padding:0}
-  /* Solution slide: phone smaller, centered, app-like */
+  /* Solution slide: phone smaller, centered top, app-like */
+  .slide[data-section="Solución"]{padding:64px 16px 80px}
+  .slide[data-section="Solución"] h2{font-size:28px;margin-bottom:10px;line-height:1.1}
+  .slide[data-section="Solución"] .lead{font-size:13px;margin-bottom:16px}
   .solution-grid{
     display:flex;flex-direction:column-reverse;
-    align-items:center;gap:20px;
+    align-items:center;gap:18px;
   }
   .solution-grid .phone{
-    width:248px;height:500px;padding:10px;border-radius:36px;
-    margin-top:0;
+    width:230px;height:460px;padding:8px;border-radius:34px;
+    margin-top:0;flex-shrink:0;
   }
-  .solution-grid .phone::before{width:80px;height:18px;top:14px}
-  .solution-grid .phone-screen{border-radius:28px}
-  .solution-grid .ph-header{padding:30px 14px 12px}
-  .solution-grid .ph-header .logo{font-size:15px}
-  .solution-grid .ph-header .avatar{width:30px;height:30px;font-size:11px}
-  .solution-grid .ph-greeting{padding:13px;border-radius:12px;margin-bottom:10px}
-  .solution-grid .ph-greeting strong{font-size:14px}
-  .solution-grid .ph-greeting span{font-size:11px}
-  .solution-grid .ph-section-title{font-size:11px;margin-bottom:8px}
-  .solution-grid .ph-post{padding:9px 11px;margin-bottom:6px;border-radius:9px}
-  .solution-grid .ph-post-title{font-size:11.5px}
+  .solution-grid .phone::before{width:74px;height:17px;top:11px;border-radius:10px}
+  .solution-grid .phone-screen{border-radius:26px}
+  .solution-grid .phone-screen::before{height:36px}
+  .solution-grid .phone-status-bar{height:36px;padding:11px 22px 0;font-size:11px}
+  .solution-grid .phone-status-bar .status-time{font-size:12px}
+  .solution-grid .phone-status-bar .status-icons svg{width:13px;height:13px}
+  .solution-grid .ph-header{padding:42px 14px 12px}
+  .solution-grid .ph-header .logo{font-size:14px}
+  .solution-grid .ph-header .logo::before{width:15px;height:15px}
+  .solution-grid .ph-header .avatar{width:28px;height:28px;font-size:11px}
+  .solution-grid .ph-body{padding:10px 9px}
+  .solution-grid .ph-greeting{padding:11px 13px;border-radius:11px;margin-bottom:9px}
+  .solution-grid .ph-greeting strong{font-size:13px}
+  .solution-grid .ph-greeting span{font-size:10.5px}
+  .solution-grid .ph-section-title{font-size:10.5px;margin-bottom:7px;letter-spacing:1px}
+  .solution-grid .ph-post{padding:8px 11px;margin-bottom:6px;border-radius:10px}
+  .solution-grid .ph-post-title{font-size:11px;margin-bottom:2px}
   .solution-grid .ph-loc{font-size:9.5px}
-  .exchange-types{grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
-  .ex-card{padding:14px}
-  .ex-card .ex-icon{width:40px;height:40px;font-size:20px;border-radius:10px;margin-bottom:8px}
-  .ex-card h4{font-size:14px;margin-bottom:4px}
-  .ex-card p{font-size:11.5px;line-height:1.35}
-  .slide[data-section="Solución"] h2{font-size:32px;margin-bottom:14px}
-  .slide[data-section="Solución"] .lead{font-size:14px;margin-bottom:14px}
+  .solution-grid .ph-tag{font-size:8px;padding:2px 5px}
+  .solution-grid .ph-nav{padding:6px 0 9px}
+  .solution-grid .ph-nav-item{font-size:8px}
+  .solution-grid .ph-nav-item .em{font-size:15px}
+  .exchange-types{
+    grid-template-columns:repeat(2,1fr);gap:9px;width:100%;
+  }
+  .ex-card{padding:12px 11px;border-radius:14px}
+  .ex-card .ex-icon{width:36px;height:36px;font-size:18px;border-radius:9px;margin-bottom:7px}
+  .ex-card h4{font-size:13px;margin-bottom:3px}
+  .ex-card p{font-size:11px;line-height:1.32}
 
-  /* Slide 14 live stage: only iframe + tour btn */
-  .live-stage{height:calc(100vh - 180px);min-height:auto;gap:0}
-  .live-stage-bar,.live-stage-foot,.live-stage-creds .live-creds-pill{display:none}
-  .live-stage-creds{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);z-index:60}
-  .live-stage-frame{border-radius:14px;height:100%}
-  .slide[data-section="En vivo"]{padding:70px 12px 70px}
-  .slide[data-section="En vivo"] .slide-eyebrow{display:none}
+  /* Slide 14 live stage: only iframe */
+  .slide[data-section="En vivo"]{padding:60px 10px 70px}
+  .slide[data-section="En vivo"] .slide-eyebrow{
+    font-size:10px;letter-spacing:2px;
+    top:18px;
+  }
+  .live-stage{height:calc(100vh - 150px);min-height:auto;gap:0}
+  .live-stage-frame{border-radius:18px;height:100%}
 }
 
-/* Slide 14 desktop: also clean — only frame + tour btn */
+/* Slide 14: clean, only iframe centered */
 .slide[data-section="En vivo"]{padding-top:70px;padding-bottom:70px}
 .slide[data-section="En vivo"] .slide-eyebrow{
   position:absolute;top:24px;left:50%;transform:translateX(-50%);
   margin:0;z-index:5;
 }
-.live-stage-bar{justify-content:flex-end}
-.live-stage-url{display:none}
-.live-stage-creds .live-creds-pill{display:none}
-.live-stage-foot{display:none}
 .live-stage{height:calc(100vh - 140px);gap:14px}
 </style>
 </head>
@@ -1394,6 +1467,14 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
       </div>
       <div class="phone">
         <div class="phone-screen">
+          <div class="phone-status-bar">
+            <span class="status-time">9:41</span>
+            <span class="status-icons">
+              <svg viewBox="0 0 18 12"><path d="M1 9h2v2H1zm4-2h2v4H5zm4-2h2v6H9zm4-2h2v8h-2z"/></svg>
+              <svg viewBox="0 0 16 12"><path d="M8 2.5C5.4 2.5 3 3.5 1.2 5.2c-.3.3-.3.7 0 1l1.2 1.2c.3.3.7.3 1 0C4.6 6.2 6.2 5.5 8 5.5s3.4.7 4.6 1.9c.3.3.7.3 1 0l1.2-1.2c.3-.3.3-.7 0-1C13 3.5 10.6 2.5 8 2.5zm0 4c-1 0-1.9.4-2.5 1l1.2 1.2c.3.3.9.3 1.2 0L8 8.5l.1.2c.3.3.9.3 1.2 0L10.5 7.5C9.9 6.9 9 6.5 8 6.5z"/></svg>
+              <svg viewBox="0 0 24 12"><rect x="1" y="2" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="22" y="4" width="1.5" height="4" rx=".5"/><rect x="2.5" y="3.5" width="17" height="5" rx="1"/></svg>
+            </span>
+          </div>
           <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
           <div class="ph-body" id="sol-phone-body" style="padding:10px">
             <div class="ph-greeting"><strong id="sol-greeting-title">Oferta</strong><span id="sol-greeting-sub">Publica lo que produces o lo que sobra</span></div>
@@ -1891,25 +1972,12 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   <section class="slide" data-section="En vivo">
     <div class="slide-eyebrow">14 · Producto en vivo</div>
     <div class="live-stage">
-      <div class="live-stage-bar">
-        <div class="live-stage-url"><div class="live-dot"></div>https://agropulse.company</div>
-        <div class="live-stage-creds">
-          <div class="live-creds-pill">
-            <span class="live-creds-label">Cuenta demo</span>
-            <code>cosmodavid2009@gmail.com</code>
-            <span class="live-creds-divider">·</span>
-            <code>Agro2004*</code>
-          </div>
-          <button class="tour-launch" id="tour-launch" style="margin:0;padding:12px 20px;font-size:13px">▶ Tour guiado</button>
+      <div class="live-stage-frame" id="live-stage-frame">
+        <div class="live-stage-loading" id="live-stage-loading">
+          <div class="live-loading-spinner"></div>
+          <div class="live-loading-text">Iniciando sesión en AgroPulse…</div>
         </div>
-      </div>
-      <div class="live-stage-frame">
-        <iframe id="live-stage-iframe" src="https://agropulse.company" title="AgroPulse en vivo" loading="lazy"></iframe>
-      </div>
-      <div class="live-stage-foot">
-        <div class="live-stage-foot-item"><strong>Producción real.</strong> No es un mockup, es la app corriendo hoy.</div>
-        <div class="live-stage-foot-item"><strong>Usuarios reales.</strong> Productores publicando ofertas, solicitudes, préstamos y trueques.</div>
-        <div class="live-stage-foot-item"><strong>4 tipos de intercambio.</strong> Geolocalización, chat, reputación y suscripciones activas.</div>
+        <iframe id="live-stage-iframe" src="about:blank" title="AgroPulse en vivo" loading="lazy"></iframe>
       </div>
     </div>
     <div id="demo-hidden-source" style="display:none" aria-hidden="true">
@@ -2130,6 +2198,7 @@ function go(i){
   $next.disabled = i===slides.length-1;
   if(sectionNames[i]==='Problema') animateBigNumber();
   if(sectionNames[i]==='Finanzas'){ renderChart('base'); animateKPIs('base'); }
+  if(sectionNames[i]==='En vivo') loadLiveDemo();
   slides[i].scrollTop=0;
 }
 function nextSlide(){ go(Math.min(current+1, slides.length-1)); }
@@ -2231,6 +2300,48 @@ document.querySelectorAll('.fin-tab').forEach(t=>{
     animateKPIs(s);
   };
 });
+
+/* ===== Auto-login + carga iframe en vivo ===== */
+const DEMO_CREDS = {email:'cosmodavid2009@gmail.com', password:'Agro2004*'};
+let liveDemoLoaded = false;
+
+async function ensureDemoSession(){
+  try {
+    const existing = localStorage.getItem('agropulse_token');
+    const userRaw = localStorage.getItem('agropulse_user');
+    if (existing && userRaw) {
+      try {
+        const u = JSON.parse(userRaw);
+        if (u && u.email === DEMO_CREDS.email) return true;
+      } catch {}
+    }
+    const r = await fetch('/api/login', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(DEMO_CREDS),
+    });
+    if (!r.ok) return false;
+    const d = await r.json();
+    if (!d || !d.token) return false;
+    localStorage.setItem('agropulse_token', d.token);
+    localStorage.setItem('agropulse_user', JSON.stringify(d.user || {email:DEMO_CREDS.email}));
+    return true;
+  } catch { return false; }
+}
+
+async function loadLiveDemo(){
+  if (liveDemoLoaded) return;
+  liveDemoLoaded = true;
+  const $iframe = document.getElementById('live-stage-iframe');
+  const $loading = document.getElementById('live-stage-loading');
+  if (!$iframe) return;
+  await ensureDemoSession();
+  $iframe.addEventListener('load', ()=>{
+    if ($loading) $loading.style.opacity = '0';
+    setTimeout(()=>{ if ($loading) $loading.style.display = 'none'; }, 350);
+  }, {once:true});
+  $iframe.src = '/';
+}
 
 /* ===== Cómo funciona: pasos interactivos ===== */
 const howSteps = [
@@ -2440,7 +2551,7 @@ function showTourStep(){
   }, 80);
 }
 
-$tourLaunch.onclick = openTour;
+if($tourLaunch) $tourLaunch.onclick = openTour;
 $tourClose.onclick = closeTour;
 $tourPrev.onclick = ()=>{ if(tourIdx>0){tourIdx--; showTourStep();} };
 $tourNext.onclick = ()=>{
