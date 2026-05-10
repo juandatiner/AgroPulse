@@ -4,25 +4,30 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgroPulse — Pitch TerraX</title>
+<link rel="icon" type="image/svg+xml" href="/favicon-pitch.svg">
+<link rel="apple-touch-icon" href="/favicon-pitch.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --earth:#1E3A2F;
-  --earth-deep:#0F2419;
+  --earth-deep:#0A1A12;
   --earth-mid:#2D5A27;
   --field:#7A9A3C;
-  --harvest:#C8962A;
+  --harvest:#B8841F;
   --harvest-light:#E8B84B;
-  --soil:#8B6914;
+  --soil:#6B4F11;
   --cream:#F5F0E8;
-  --cream-dark:#EDE4D4;
+  --cream-dark:#E5DECF;
   --white:#FFFFFF;
-  --text:#1A1A1A;
-  --text-muted:#5A6B45;
-  --shadow-lg:0 20px 60px rgba(15,36,25,0.25);
-  --shadow-md:0 8px 24px rgba(15,36,25,0.12);
+  --text:#0F1B14;
+  --text-strong:#000000;
+  --text-muted:#3D4A35;
+  --text-soft:#6B7A5C;
+  --shadow-lg:0 24px 70px rgba(10,26,18,.28);
+  --shadow-md:0 10px 28px rgba(10,26,18,.14);
+  --shadow-sm:0 4px 12px rgba(10,26,18,.08);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
@@ -31,6 +36,7 @@ body{
   background:var(--cream);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
+  font-weight:500;
 }
 body.dark{background:var(--earth-deep);color:var(--cream)}
 .serif{font-family:'Playfair Display',serif}
@@ -40,14 +46,16 @@ body.dark{background:var(--earth-deep);color:var(--cream)}
 .slide{
   position:absolute;inset:0;
   display:flex;flex-direction:column;
-  padding:64px 80px 100px;
+  padding:54px 72px 88px;
   opacity:0;pointer-events:none;
   transform:translateX(40px);
-  transition:opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1);
-  overflow:hidden;
+  transition:opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1);
+  overflow-y:auto;
 }
 .slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
 .slide.prev{transform:translateX(-40px)}
+.slide::-webkit-scrollbar{width:6px}
+.slide::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:3px}
 
 /* ===== Top bar ===== */
 .topbar{
@@ -58,81 +66,72 @@ body.dark{background:var(--earth-deep);color:var(--cream)}
 .brand{
   display:flex;align-items:center;gap:10px;
   pointer-events:auto;
-  background:rgba(255,255,255,.85);
+  background:rgba(255,255,255,.92);
   backdrop-filter:blur(10px);
-  padding:8px 16px;border-radius:999px;
+  padding:10px 18px;border-radius:999px;
   box-shadow:var(--shadow-md);
-  font-weight:700;color:var(--earth);
+  font-weight:800;color:var(--earth);
+  font-size:14px;letter-spacing:.3px;
 }
-body.dark .brand{background:rgba(30,58,47,.7);color:var(--cream)}
-.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--harvest);box-shadow:0 0 10px var(--harvest-light)}
-.controls{display:flex;gap:10px;pointer-events:auto;align-items:center}
-.timer{
-  display:flex;align-items:center;gap:10px;
-  background:var(--earth);color:var(--cream);
-  padding:10px 18px;border-radius:14px;
-  font-weight:700;font-variant-numeric:tabular-nums;
-  font-size:22px;letter-spacing:1px;
+body.dark .brand{background:rgba(30,58,47,.85);color:var(--cream)}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--harvest);box-shadow:0 0 12px var(--harvest-light)}
+.slide-counter{
+  pointer-events:auto;
+  background:rgba(30,58,47,.92);
+  color:var(--cream);
+  padding:10px 18px;border-radius:999px;
+  font-weight:700;font-size:13px;letter-spacing:1px;
   box-shadow:var(--shadow-md);
+  font-variant-numeric:tabular-nums;
 }
-.timer.warn{background:var(--harvest);color:var(--earth-deep);animation:pulse 1s infinite}
-.timer.crit{background:#C0392B;color:#fff;animation:shake .4s infinite}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
-.btn-icon{
-  width:42px;height:42px;border-radius:12px;border:none;
-  background:rgba(255,255,255,.85);color:var(--earth);
-  cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;box-shadow:var(--shadow-md);
-}
-.btn-icon:hover{background:var(--earth);color:var(--cream);transform:translateY(-2px)}
-body.dark .btn-icon{background:rgba(30,58,47,.7);color:var(--cream)}
 
 /* ===== Bottom progress ===== */
 .progress-bar{
   position:fixed;bottom:0;left:0;right:0;
-  display:flex;background:rgba(15,36,25,.05);
-  z-index:50;border-top:1px solid rgba(15,36,25,.08);
+  display:flex;background:rgba(10,26,18,.06);
+  z-index:50;border-top:1px solid rgba(10,26,18,.1);
+  overflow-x:auto;
 }
-body.dark .progress-bar{background:rgba(0,0,0,.3);border-top-color:rgba(245,240,232,.1)}
+body.dark .progress-bar{background:rgba(0,0,0,.4);border-top-color:rgba(245,240,232,.1)}
 .progress-step{
-  flex:1;padding:14px 8px;text-align:center;
-  font-size:12px;font-weight:600;color:var(--text-muted);
+  flex:1;min-width:90px;padding:12px 6px;text-align:center;
+  font-size:10.5px;font-weight:700;color:var(--text-muted);
   cursor:pointer;transition:all .25s;
-  border-right:1px solid rgba(15,36,25,.05);
+  border-right:1px solid rgba(10,26,18,.06);
   position:relative;
   text-transform:uppercase;letter-spacing:.5px;
+  white-space:nowrap;
 }
 .progress-step:last-child{border-right:none}
-.progress-step:hover{background:rgba(200,150,42,.1);color:var(--earth)}
-.progress-step.active{color:var(--earth);background:var(--cream-dark)}
+.progress-step:hover{background:rgba(184,132,31,.12);color:var(--earth)}
+.progress-step.active{color:var(--earth);background:var(--cream-dark);font-weight:800}
 .progress-step.active::before{
   content:'';position:absolute;top:0;left:0;right:0;height:3px;
   background:var(--harvest);
 }
-body.dark .progress-step{color:var(--cream-dark);opacity:.6}
-body.dark .progress-step.active{background:rgba(200,150,42,.15);opacity:1}
+body.dark .progress-step{color:var(--cream-dark);opacity:.65}
+body.dark .progress-step.active{background:rgba(184,132,31,.2);opacity:1;color:var(--harvest-light)}
 
 /* ===== Side arrows ===== */
 .nav-arrow{
   position:fixed;top:50%;transform:translateY(-50%);
   width:54px;height:54px;border-radius:50%;
   background:var(--earth);color:var(--cream);
-  border:none;cursor:pointer;font-size:22px;
+  border:none;cursor:pointer;font-size:22px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
   z-index:80;box-shadow:var(--shadow-lg);
   transition:all .2s;
 }
-.nav-arrow:hover{background:var(--harvest);color:var(--earth-deep);transform:translateY(-50%) scale(1.1)}
+.nav-arrow:hover{background:var(--harvest);color:var(--earth-deep);transform:translateY(-50%) scale(1.08)}
 .nav-arrow.prev{left:20px}
 .nav-arrow.next{right:20px}
-.nav-arrow:disabled{opacity:.3;cursor:not-allowed}
+.nav-arrow:disabled{opacity:.25;cursor:not-allowed}
 
-/* ===== Slide 0: Cover ===== */
+/* ===== Cover ===== */
 .cover{
   background:
-    radial-gradient(ellipse at 20% 30%,rgba(122,154,60,.25) 0%,transparent 50%),
-    radial-gradient(ellipse at 80% 70%,rgba(200,150,42,.2) 0%,transparent 50%),
+    radial-gradient(ellipse at 18% 28%,rgba(122,154,60,.3) 0%,transparent 50%),
+    radial-gradient(ellipse at 82% 72%,rgba(184,132,31,.25) 0%,transparent 50%),
     linear-gradient(160deg,var(--earth-deep) 0%,var(--earth) 50%,var(--earth-mid) 100%);
   color:var(--cream);
   align-items:center;justify-content:center;text-align:center;
@@ -144,98 +143,109 @@ body.dark .progress-step.active{background:rgba(200,150,42,.15);opacity:1}
     repeating-linear-gradient(45deg,transparent 0,transparent 80px,rgba(122,154,60,.04) 80px,rgba(122,154,60,.04) 81px);
   pointer-events:none;
 }
-.cover-emoji{position:absolute;font-size:80px;opacity:.08;pointer-events:none}
+.cover-emoji{position:absolute;font-size:80px;opacity:.1;pointer-events:none}
 .cover .logo-mark{
   width:120px;height:120px;border-radius:32px;
   background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
   display:flex;align-items:center;justify-content:center;
   font-size:64px;margin:0 auto 32px;
-  box-shadow:0 20px 60px rgba(200,150,42,.4);
+  box-shadow:0 20px 60px rgba(184,132,31,.5);
   animation:float 3s ease-in-out infinite;
 }
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 .cover h1{
   font-size:clamp(72px,9vw,140px);font-weight:900;
   line-height:1;letter-spacing:-3px;
-  margin-bottom:24px;
+  margin-bottom:24px;color:var(--white);
+  text-shadow:0 4px 30px rgba(0,0,0,.3);
 }
 .cover h1 .accent{color:var(--harvest-light)}
 .cover .tagline{
-  font-size:clamp(20px,2vw,28px);font-weight:300;
-  color:var(--cream);opacity:.85;
-  max-width:700px;margin:0 auto 48px;
+  font-size:clamp(20px,2vw,28px);font-weight:400;
+  color:var(--cream);opacity:.95;
+  max-width:760px;margin:0 auto 48px;
+  letter-spacing:.3px;
 }
 .cover .pills{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:48px}
 .pill{
-  padding:8px 18px;border-radius:999px;
-  background:rgba(245,240,232,.1);
-  border:1px solid rgba(245,240,232,.2);
-  font-size:14px;font-weight:500;
+  padding:9px 20px;border-radius:999px;
+  background:rgba(245,240,232,.12);
+  border:1px solid rgba(245,240,232,.25);
+  font-size:14px;font-weight:600;
   backdrop-filter:blur(10px);
+  color:var(--cream);
 }
 .cover .team{
-  display:flex;gap:24px;justify-content:center;margin-bottom:40px;flex-wrap:wrap;
+  display:flex;gap:16px;justify-content:center;margin-bottom:40px;flex-wrap:wrap;
 }
 .team-item{
   display:flex;align-items:center;gap:10px;
-  padding:8px 14px;border-radius:12px;
-  background:rgba(245,240,232,.06);
-  font-size:14px;
+  padding:10px 16px;border-radius:14px;
+  background:rgba(245,240,232,.08);
+  font-size:14px;font-weight:600;color:var(--cream);
+  border:1px solid rgba(245,240,232,.12);
 }
 .team-avatar{
-  width:32px;height:32px;border-radius:50%;
+  width:34px;height:34px;border-radius:50%;
   background:var(--harvest);color:var(--earth-deep);
   display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:13px;
+  font-weight:800;font-size:13px;
 }
 .start-btn{
-  padding:18px 48px;border-radius:14px;border:none;
+  padding:18px 52px;border-radius:14px;border:none;
   background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
-  color:var(--earth-deep);font-weight:800;font-size:18px;
+  color:var(--earth-deep);font-weight:800;font-size:17px;
   cursor:pointer;
-  box-shadow:0 12px 32px rgba(200,150,42,.4);
+  box-shadow:0 14px 40px rgba(184,132,31,.5);
   transition:all .2s;
-  text-transform:uppercase;letter-spacing:1px;
+  text-transform:uppercase;letter-spacing:1.5px;
+  font-family:inherit;
 }
-.start-btn:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(200,150,42,.5)}
+.start-btn:hover{transform:translateY(-3px);box-shadow:0 18px 48px rgba(184,132,31,.6)}
 .terrax{
-  margin-top:32px;font-size:13px;opacity:.6;
-  letter-spacing:2px;text-transform:uppercase;
+  margin-top:32px;font-size:12px;opacity:.7;
+  letter-spacing:3px;text-transform:uppercase;color:var(--cream);
 }
 
-/* ===== Generic slide layout ===== */
+/* ===== Generic slide ===== */
 .slide-eyebrow{
-  font-size:13px;font-weight:700;color:var(--harvest);
-  letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;
+  font-size:12px;font-weight:800;color:var(--harvest);
+  letter-spacing:3.5px;text-transform:uppercase;margin-bottom:14px;
 }
+body.dark .slide-eyebrow{color:var(--harvest-light)}
 .slide h2{
   font-family:'Playfair Display',serif;
-  font-size:clamp(40px,5vw,72px);font-weight:900;
-  line-height:1.05;color:var(--earth);
-  margin-bottom:32px;letter-spacing:-2px;
+  font-size:clamp(40px,4.6vw,68px);font-weight:900;
+  line-height:1.05;color:var(--earth-deep);
+  margin-bottom:28px;letter-spacing:-1.5px;
 }
-body.dark .slide h2{color:var(--cream)}
-.slide h3{font-size:24px;font-weight:700;color:var(--earth);margin-bottom:12px}
+body.dark .slide h2{color:var(--white)}
+.slide h3{font-size:22px;font-weight:800;color:var(--earth-deep);margin-bottom:10px}
 body.dark .slide h3{color:var(--cream)}
+.slide p{color:var(--text);font-weight:500;line-height:1.6}
+body.dark .slide p{color:var(--cream)}
+.slide .lead{font-size:18px;color:var(--text-muted);line-height:1.6;margin-bottom:20px;font-weight:500}
+body.dark .slide .lead{color:var(--cream-dark)}
 
-/* ===== Slide 1 problema ===== */
-.problem-hero{
-  display:flex;align-items:center;gap:48px;margin-bottom:40px;
-}
+/* ===== Problema ===== */
+.problem-hero{display:flex;align-items:center;gap:48px;margin-bottom:36px}
 .big-number{
   font-family:'Playfair Display',serif;
-  font-size:clamp(120px,14vw,200px);
+  font-size:clamp(110px,13vw,180px);
   font-weight:900;line-height:1;
   background:linear-gradient(135deg,var(--harvest),var(--soil));
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;
   letter-spacing:-6px;
 }
-.big-number-label{font-size:18px;color:var(--text-muted);max-width:280px;line-height:1.4}
-.problem-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:16px}
+.big-number-label{font-size:17px;color:var(--text-muted);max-width:280px;line-height:1.5;font-weight:600}
+.big-number-label strong{color:var(--earth-deep);font-weight:800}
+body.dark .big-number-label{color:var(--cream-dark)}
+body.dark .big-number-label strong{color:var(--white)}
+.problem-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:8px}
 .p-card{
   background:var(--white);
-  padding:28px;border-radius:20px;
+  padding:26px;border-radius:18px;
   box-shadow:var(--shadow-md);
   border-left:4px solid var(--harvest);
   opacity:0;transform:translateY(20px);
@@ -245,13 +255,30 @@ body.dark .slide h3{color:var(--cream)}
 .slide.active .p-card:nth-child(1){transition-delay:.2s}
 .slide.active .p-card:nth-child(2){transition-delay:.4s}
 .slide.active .p-card:nth-child(3){transition-delay:.6s}
-.p-card .icon{font-size:42px;margin-bottom:14px}
-.p-card h3{margin-bottom:8px;font-size:22px}
-.p-card p{color:var(--text-muted);line-height:1.5;font-size:15px}
-body.dark .p-card{background:rgba(30,58,47,.5);color:var(--cream)}
+.p-card .icon{font-size:38px;margin-bottom:12px}
+.p-card h3{margin-bottom:8px;font-size:20px}
+.p-card p{color:var(--text);font-size:14.5px;line-height:1.55;font-weight:500}
+body.dark .p-card{background:rgba(45,90,39,.4);border-color:var(--harvest-light)}
+body.dark .p-card h3{color:var(--white)}
+body.dark .p-card p{color:var(--cream)}
 
-/* ===== Slide solucion ===== */
-.solution-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+/* ===== Stats grid ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px}
+.stat-block{
+  background:var(--white);padding:24px;border-radius:18px;
+  box-shadow:var(--shadow-md);text-align:center;
+}
+.stat-block .num{
+  font-family:'Playfair Display',serif;font-weight:900;
+  font-size:46px;color:var(--harvest);line-height:1;margin-bottom:8px;
+}
+.stat-block .lab{font-size:13px;color:var(--text-muted);font-weight:600;line-height:1.4}
+body.dark .stat-block{background:rgba(45,90,39,.4)}
+body.dark .stat-block .num{color:var(--harvest-light)}
+body.dark .stat-block .lab{color:var(--cream-dark)}
+
+/* ===== Solucion ===== */
+.solution-grid{display:grid;grid-template-columns:1.1fr 320px;gap:48px;align-items:center}
 .exchange-types{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
 .ex-card{
   background:var(--white);padding:24px;border-radius:18px;
@@ -260,25 +287,26 @@ body.dark .p-card{background:rgba(30,58,47,.5);color:var(--cream)}
 }
 .ex-card:hover{transform:translateY(-4px);border-color:var(--harvest);box-shadow:var(--shadow-lg)}
 .ex-card .ex-icon{
-  width:56px;height:56px;border-radius:14px;
+  width:54px;height:54px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
-  font-size:28px;margin-bottom:14px;
+  font-size:28px;margin-bottom:12px;
 }
 .ex-1 .ex-icon{background:#FFE4C4;color:var(--harvest)}
 .ex-2 .ex-icon{background:#D4EDDA;color:var(--earth-mid)}
 .ex-3 .ex-icon{background:#FFF3CD;color:var(--soil)}
-.ex-4 .ex-icon{background:#E1F5FE;color:#0288D1}
-.ex-card h4{font-size:17px;font-weight:700;margin-bottom:6px;color:var(--earth)}
-.ex-card p{font-size:13px;color:var(--text-muted);line-height:1.4}
-body.dark .ex-card{background:rgba(30,58,47,.5)}
-body.dark .ex-card h4{color:var(--cream)}
+.ex-4 .ex-icon{background:#D6E9F8;color:#1E6BA8}
+.ex-card h4{font-size:17px;font-weight:800;margin-bottom:6px;color:var(--earth-deep)}
+.ex-card p{font-size:13px;color:var(--text-muted);line-height:1.45;font-weight:500}
+body.dark .ex-card{background:rgba(45,90,39,.4)}
+body.dark .ex-card h4{color:var(--white)}
+body.dark .ex-card p{color:var(--cream-dark)}
 
-/* phone mockup */
+/* phone */
 .phone{
   width:300px;height:600px;
-  background:#0F2419;
+  background:#0A1A12;
   border-radius:42px;padding:14px;
-  box-shadow:0 30px 80px rgba(15,36,25,.4),inset 0 0 0 2px rgba(245,240,232,.1);
+  box-shadow:0 30px 80px rgba(10,26,18,.5),inset 0 0 0 2px rgba(245,240,232,.1);
   position:relative;margin:0 auto;
 }
 .phone::before{
@@ -292,131 +320,372 @@ body.dark .ex-card h4{color:var(--cream)}
   position:relative;
 }
 
-/* ===== Slide oportunidad ===== */
-.funnel{display:flex;flex-direction:column;gap:14px;max-width:600px;margin:20px auto}
+/* ===== Como funciona (timeline) ===== */
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:24px;position:relative}
+.timeline::before{
+  content:'';position:absolute;top:30px;left:8%;right:8%;
+  height:3px;background:linear-gradient(90deg,var(--field),var(--harvest));
+  z-index:0;
+}
+.tl-step{position:relative;text-align:center;padding:0 10px;z-index:1}
+.tl-num{
+  width:60px;height:60px;border-radius:50%;
+  background:var(--white);border:3px solid var(--harvest);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Playfair Display',serif;font-weight:900;font-size:24px;
+  color:var(--earth-deep);margin:0 auto 16px;
+  box-shadow:var(--shadow-md);
+}
+.tl-step h4{font-size:15px;font-weight:800;color:var(--earth-deep);margin-bottom:6px}
+.tl-step p{font-size:12.5px;color:var(--text-muted);line-height:1.45;font-weight:500}
+body.dark .tl-num{background:var(--earth);color:var(--white)}
+body.dark .tl-step h4{color:var(--white)}
+body.dark .tl-step p{color:var(--cream-dark)}
+
+/* ===== Diferenciadores ===== */
+.diff-table{
+  background:var(--white);border-radius:18px;
+  overflow:hidden;box-shadow:var(--shadow-md);
+  margin-top:16px;
+}
+.diff-row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;border-bottom:1px solid var(--cream-dark)}
+.diff-row:last-child{border-bottom:none}
+.diff-cell{padding:18px 20px;font-size:14.5px;display:flex;align-items:center;gap:8px;font-weight:600;color:var(--text)}
+.diff-row.head .diff-cell{
+  background:var(--earth);color:var(--white);
+  font-weight:800;font-size:13px;letter-spacing:1px;text-transform:uppercase;
+  padding:16px 20px;
+}
+.diff-cell.feat{font-weight:700;color:var(--earth-deep);background:var(--cream)}
+.diff-cell .check{color:#2E8B3E;font-weight:900;font-size:18px}
+.diff-cell .x{color:#C0392B;font-weight:900;font-size:18px}
+.diff-cell .partial{color:var(--harvest);font-weight:900}
+body.dark .diff-table{background:rgba(45,90,39,.3)}
+body.dark .diff-row{border-bottom-color:rgba(245,240,232,.1)}
+body.dark .diff-cell{color:var(--cream)}
+body.dark .diff-cell.feat{background:rgba(0,0,0,.25);color:var(--white)}
+
+/* ===== Personas ===== */
+.personas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:20px}
+.persona{
+  background:var(--white);border-radius:20px;
+  padding:28px;box-shadow:var(--shadow-md);
+  border-top:5px solid var(--harvest);
+}
+.persona .avatar-big{
+  width:80px;height:80px;border-radius:50%;
+  background:linear-gradient(135deg,var(--earth-mid),var(--field));
+  color:var(--white);display:flex;align-items:center;justify-content:center;
+  font-size:36px;margin-bottom:18px;
+}
+.persona h3{font-size:20px;margin-bottom:4px}
+.persona .role{font-size:13px;color:var(--harvest);font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+.persona ul{list-style:none;padding:0}
+.persona li{
+  font-size:13.5px;color:var(--text);padding:5px 0;
+  display:flex;gap:8px;font-weight:500;
+}
+.persona li::before{content:'•';color:var(--harvest);font-weight:900}
+body.dark .persona{background:rgba(45,90,39,.4);border-top-color:var(--harvest-light)}
+body.dark .persona h3{color:var(--white)}
+body.dark .persona li{color:var(--cream)}
+
+/* ===== Oportunidad ===== */
+.op-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:8px;align-items:start}
+.funnel{display:flex;flex-direction:column;gap:14px;max-width:520px}
 .funnel-item{
   padding:24px 32px;border-radius:14px;color:var(--white);
-  font-weight:700;display:flex;justify-content:space-between;align-items:center;
+  font-weight:800;display:flex;justify-content:space-between;align-items:center;
   transform:scaleX(0);transform-origin:left;
   transition:transform .8s cubic-bezier(.2,.8,.2,1);
+  box-shadow:var(--shadow-md);
 }
 .slide.active .funnel-item:nth-child(1){transition-delay:.2s;transform:scaleX(1)}
 .slide.active .funnel-item:nth-child(2){transition-delay:.5s;transform:scaleX(1)}
 .slide.active .funnel-item:nth-child(3){transition-delay:.8s;transform:scaleX(1)}
-.funnel-1{background:linear-gradient(135deg,var(--earth),var(--earth-mid));width:100%}
-.funnel-2{background:linear-gradient(135deg,var(--earth-mid),var(--field));width:75%;align-self:center}
-.funnel-3{background:linear-gradient(135deg,var(--field),var(--harvest));width:50%;align-self:center}
-.funnel-label{font-size:14px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85}
-.funnel-value{font-size:24px}
+.funnel-1{background:linear-gradient(135deg,var(--earth-deep),var(--earth));width:100%}
+.funnel-2{background:linear-gradient(135deg,var(--earth),var(--earth-mid));width:78%;align-self:center}
+.funnel-3{background:linear-gradient(135deg,var(--field),var(--harvest));width:55%;align-self:center}
+.funnel-label{font-size:13px;letter-spacing:1.5px;text-transform:uppercase;opacity:.95;font-weight:700}
+.funnel-value{font-size:30px;font-family:'Playfair Display',serif;font-weight:900}
+.zones-card{
+  background:var(--white);padding:26px;border-radius:18px;
+  box-shadow:var(--shadow-md);
+}
+.zones-card h3{margin-bottom:14px}
+.zone-list{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.zone-tag{
+  padding:8px 16px;border-radius:999px;
+  background:var(--cream-dark);color:var(--earth-deep);
+  font-weight:700;font-size:13.5px;
+  display:flex;align-items:center;gap:6px;
+}
+body.dark .zones-card{background:rgba(45,90,39,.4)}
+body.dark .zone-tag{background:rgba(184,132,31,.25);color:var(--cream)}
 
-/* ===== Slide propuesta valor ===== */
-.value-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+/* ===== Valor ===== */
+.value-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
 .value-card{
   background:linear-gradient(135deg,var(--white),var(--cream-dark));
-  padding:32px;border-radius:20px;box-shadow:var(--shadow-md);
+  padding:30px;border-radius:20px;box-shadow:var(--shadow-md);
   border-top:4px solid var(--harvest);
 }
-.value-card .v-icon{font-size:36px;margin-bottom:16px}
-.value-card h3{font-size:22px;margin-bottom:8px}
-.value-card p{color:var(--text-muted);line-height:1.5}
-body.dark .value-card{background:rgba(30,58,47,.5);color:var(--cream)}
+.value-card .v-icon{font-size:34px;margin-bottom:14px}
+.value-card h3{font-size:21px;margin-bottom:8px}
+.value-card p{color:var(--text);line-height:1.55;font-weight:500;font-size:14.5px}
+body.dark .value-card{background:linear-gradient(135deg,rgba(45,90,39,.5),rgba(45,90,39,.3));color:var(--cream)}
+body.dark .value-card h3{color:var(--white)}
+body.dark .value-card p{color:var(--cream)}
 
-/* ===== Slide 4P ===== */
-.fourp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:16px}
+/* ===== 4P ===== */
+.fourp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;margin-top:8px}
 .p-block{
   background:var(--white);padding:24px;border-radius:16px;
   box-shadow:var(--shadow-md);
 }
 .p-block h3{
-  font-size:14px;letter-spacing:3px;text-transform:uppercase;
-  color:var(--harvest);margin-bottom:14px;
+  font-size:13px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--harvest);margin-bottom:14px;font-weight:800;
 }
 .p-block ul{list-style:none}
-.p-block li{padding:6px 0;color:var(--text);font-size:15px;line-height:1.5}
-.p-block li::before{content:'▸ ';color:var(--harvest);font-weight:700}
+.p-block li{padding:6px 0;color:var(--text);font-size:14.5px;line-height:1.5;font-weight:500}
+.p-block li::before{content:'▸ ';color:var(--harvest);font-weight:900}
 .plans{display:flex;gap:14px;margin-top:10px}
 .plan{
-  flex:1;padding:14px;border-radius:10px;
-  background:var(--cream-dark);font-size:13px;
+  flex:1;padding:16px;border-radius:12px;
+  background:var(--cream-dark);font-size:13px;font-weight:600;color:var(--text)
 }
-.plan strong{display:block;color:var(--earth);font-size:15px;margin-bottom:4px}
-.plan .price{color:var(--harvest);font-weight:700;font-size:18px;margin-top:4px}
-body.dark .p-block{background:rgba(30,58,47,.5);color:var(--cream)}
-body.dark .plan{background:rgba(0,0,0,.2);color:var(--cream)}
+.plan strong{display:block;color:var(--earth-deep);font-size:15px;margin-bottom:6px;font-weight:800}
+.plan .price{color:var(--harvest);font-weight:900;font-size:20px;margin-top:6px}
+body.dark .p-block{background:rgba(45,90,39,.4)}
+body.dark .p-block li{color:var(--cream)}
+body.dark .plan{background:rgba(0,0,0,.3);color:var(--cream)}
+body.dark .plan strong{color:var(--white)}
 
-/* ===== Slide finanzas ===== */
-.fin-tabs{display:flex;gap:8px;margin-bottom:20px}
+/* ===== Modelo ingresos ===== */
+.revenue-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:8px}
+.rev-card{
+  background:var(--white);padding:28px;border-radius:18px;
+  box-shadow:var(--shadow-md);
+}
+.rev-card h3{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.rev-card h3 .badge{
+  font-size:11px;background:var(--harvest);color:var(--white);
+  padding:3px 10px;border-radius:999px;letter-spacing:1px;
+}
+.rev-bar-wrap{margin:16px 0}
+.rev-bar-label{display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--earth-deep);margin-bottom:6px}
+.rev-bar{height:14px;background:var(--cream-dark);border-radius:7px;overflow:hidden}
+.rev-bar-fill{height:100%;background:linear-gradient(90deg,var(--field),var(--harvest));border-radius:7px;transition:width 1s ease}
+.rev-formula{
+  background:var(--cream);padding:14px;border-radius:10px;
+  font-family:monospace;font-size:13px;color:var(--earth-deep);
+  border-left:3px solid var(--harvest);margin-top:14px;font-weight:600;
+}
+body.dark .rev-card{background:rgba(45,90,39,.4)}
+body.dark .rev-bar-label{color:var(--cream)}
+body.dark .rev-formula{background:rgba(0,0,0,.3);color:var(--cream)}
+
+/* ===== Finanzas ===== */
+.fin-tabs{display:flex;gap:8px;margin-bottom:18px}
 .fin-tab{
-  padding:10px 22px;border-radius:10px;border:2px solid var(--earth);
-  background:transparent;color:var(--earth);font-weight:700;
-  cursor:pointer;font-size:14px;text-transform:uppercase;letter-spacing:1px;
-  transition:all .2s;
+  padding:11px 24px;border-radius:10px;border:2px solid var(--earth);
+  background:transparent;color:var(--earth);font-weight:800;
+  cursor:pointer;font-size:13px;text-transform:uppercase;letter-spacing:1px;
+  transition:all .2s;font-family:inherit;
 }
 .fin-tab.active{background:var(--earth);color:var(--cream)}
 body.dark .fin-tab{border-color:var(--cream);color:var(--cream)}
 body.dark .fin-tab.active{background:var(--harvest);color:var(--earth-deep);border-color:var(--harvest)}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
 .kpi{
   background:var(--white);padding:20px;border-radius:14px;
   box-shadow:var(--shadow-md);text-align:center;
 }
 .kpi-val{
   font-family:'Playfair Display',serif;font-weight:900;
-  font-size:32px;color:var(--earth);line-height:1;margin-bottom:6px;
+  font-size:30px;color:var(--earth-deep);line-height:1;margin-bottom:6px;
 }
-.kpi-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
-body.dark .kpi{background:rgba(30,58,47,.5)}
+.kpi-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);font-weight:700}
+body.dark .kpi{background:rgba(45,90,39,.4)}
 body.dark .kpi-val{color:var(--harvest-light)}
+body.dark .kpi-label{color:var(--cream-dark)}
 .chart-wrap{
   background:var(--white);padding:24px;border-radius:18px;
   box-shadow:var(--shadow-md);
   display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;
 }
-body.dark .chart-wrap{background:rgba(30,58,47,.5)}
-#chart{width:100%;height:240px}
-.fin-summary{font-size:14px;line-height:1.7}
-.fin-summary strong{color:var(--harvest)}
+body.dark .chart-wrap{background:rgba(45,90,39,.4)}
+#chart{width:100%;height:220px}
+.fin-summary{font-size:14px;line-height:1.7;color:var(--text);font-weight:500}
+.fin-summary strong{color:var(--harvest);font-weight:800}
+body.dark .fin-summary{color:var(--cream)}
 
-/* ===== Slide demo ===== */
+/* ===== Roadmap ===== */
+.road-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:16px}
+.road-quarter{
+  background:var(--white);padding:24px;border-radius:18px;
+  box-shadow:var(--shadow-md);position:relative;
+  border-top:4px solid var(--cream-dark);
+}
+.road-quarter.now{border-top-color:#2E8B3E}
+.road-quarter.next{border-top-color:var(--harvest)}
+.road-quarter.future{border-top-color:var(--field);opacity:.85}
+.road-tag{
+  font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;display:inline-block;margin-bottom:10px;
+}
+.road-tag.live{background:#2E8B3E;color:var(--white)}
+.road-tag.next-tag{background:var(--harvest);color:var(--white)}
+.road-tag.future-tag{background:var(--field);color:var(--white)}
+.road-quarter h3{font-size:17px;margin-bottom:12px}
+.road-quarter ul{list-style:none}
+.road-quarter li{
+  font-size:13px;padding:5px 0;color:var(--text);
+  display:flex;gap:7px;font-weight:500;line-height:1.4;
+}
+.road-quarter li::before{content:'•';color:var(--harvest);font-weight:900}
+body.dark .road-quarter{background:rgba(45,90,39,.4)}
+body.dark .road-quarter h3{color:var(--white)}
+body.dark .road-quarter li{color:var(--cream)}
+
+/* ===== Equipo ===== */
+.team-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:16px}
+.team-card{
+  background:var(--white);padding:26px 22px;border-radius:18px;
+  box-shadow:var(--shadow-md);text-align:center;
+}
+.team-card .photo{
+  width:100px;height:100px;border-radius:50%;
+  background:linear-gradient(135deg,var(--earth-mid),var(--field));
+  color:var(--white);display:flex;align-items:center;justify-content:center;
+  font-size:36px;font-weight:900;font-family:'Playfair Display',serif;
+  margin:0 auto 16px;box-shadow:var(--shadow-md);
+}
+.team-card h3{font-size:18px;margin-bottom:4px;color:var(--earth-deep)}
+.team-card .role-team{font-size:12px;color:var(--harvest);font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.team-card .uni{font-size:12px;color:var(--text-muted);font-weight:600}
+body.dark .team-card{background:rgba(45,90,39,.4)}
+body.dark .team-card h3{color:var(--white)}
+body.dark .team-card .uni{color:var(--cream-dark)}
+
+/* ===== Demo ===== */
 .demo-stage{
-  display:grid;grid-template-columns:340px 1fr;gap:60px;
-  align-items:center;height:100%;
+  display:grid;grid-template-columns:340px 1fr;gap:54px;
+  align-items:center;
 }
 .demo-info h2{margin-bottom:16px}
-.demo-info p{font-size:18px;color:var(--text-muted);line-height:1.6;margin-bottom:24px}
-body.dark .demo-info p{color:var(--cream-dark)}
+.demo-info .lead{margin-bottom:24px}
 .demo-screens-nav{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
 .demo-nav-btn{
-  padding:8px 14px;border-radius:8px;border:2px solid var(--earth);
-  background:transparent;color:var(--earth);font-weight:600;
-  cursor:pointer;font-size:13px;
+  padding:9px 16px;border-radius:8px;border:2px solid var(--earth);
+  background:transparent;color:var(--earth);font-weight:800;
+  cursor:pointer;font-size:13px;font-family:inherit;
 }
 .demo-nav-btn.active{background:var(--earth);color:var(--cream)}
 body.dark .demo-nav-btn{border-color:var(--cream);color:var(--cream)}
 body.dark .demo-nav-btn.active{background:var(--harvest);border-color:var(--harvest);color:var(--earth-deep)}
-.feature-callouts{display:flex;flex-direction:column;gap:14px}
+.feature-callouts{display:flex;flex-direction:column;gap:12px}
 .callout{
   padding:14px 18px;border-radius:12px;
-  background:rgba(200,150,42,.1);border-left:3px solid var(--harvest);
-  font-size:14px;
+  background:rgba(184,132,31,.12);border-left:3px solid var(--harvest);
+  font-size:13.5px;color:var(--text);font-weight:500;
 }
-.callout strong{color:var(--harvest);display:block;margin-bottom:2px;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+.callout strong{color:var(--harvest);display:block;margin-bottom:2px;font-size:11.5px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800}
+body.dark .callout{background:rgba(184,132,31,.15);color:var(--cream)}
 
-/* phone interactive content */
+/* phone interactive */
 .phone-screen .ph-screen{display:none;flex-direction:column;height:100%;animation:slideInRight .4s ease}
 .phone-screen .ph-screen.active{display:flex}
 @keyframes slideInRight{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
 
+/* ===== Tour mode ===== */
+.tour-overlay{
+  position:fixed;inset:0;z-index:200;display:none;
+  background:rgba(10,26,18,.78);backdrop-filter:blur(2px);
+  align-items:center;justify-content:center;
+}
+.tour-overlay.active{display:flex}
+.tour-frame{
+  position:relative;width:340px;
+  background:transparent;
+}
+.tour-phone{
+  width:340px;height:680px;
+  background:#0A1A12;border-radius:46px;padding:14px;
+  box-shadow:0 30px 100px rgba(0,0,0,.6),inset 0 0 0 2px rgba(245,240,232,.15),
+    0 0 0 4px var(--harvest), 0 0 0 8px rgba(184,132,31,.4);
+  position:relative;
+}
+.tour-phone::before{
+  content:'';position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  width:108px;height:26px;background:#000;border-radius:14px;z-index:10;
+}
+.tour-tooltip{
+  position:absolute;left:380px;top:50%;transform:translateY(-50%);
+  width:360px;background:var(--white);
+  border-radius:18px;padding:24px;box-shadow:var(--shadow-lg);
+  border-left:5px solid var(--harvest);
+}
+.tour-step-num{
+  font-size:11px;font-weight:800;color:var(--harvest);
+  letter-spacing:2.5px;text-transform:uppercase;margin-bottom:8px;
+}
+.tour-tooltip h3{font-size:22px;color:var(--earth-deep);margin-bottom:10px;font-weight:800}
+.tour-tooltip p{font-size:14.5px;color:var(--text);line-height:1.55;font-weight:500;margin-bottom:18px}
+.tour-controls{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.tour-btn{
+  padding:10px 18px;border-radius:10px;border:none;cursor:pointer;
+  font-weight:800;font-size:13px;font-family:inherit;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.tour-btn.primary{background:var(--harvest);color:var(--earth-deep)}
+.tour-btn.secondary{background:transparent;color:var(--text-muted);border:2px solid var(--cream-dark)}
+.tour-btn:disabled{opacity:.3;cursor:not-allowed}
+.tour-progress{display:flex;gap:4px;margin-bottom:14px}
+.tour-progress-dot{
+  flex:1;height:4px;background:var(--cream-dark);border-radius:2px;
+}
+.tour-progress-dot.done{background:var(--harvest)}
+.tour-close{
+  position:absolute;top:-50px;right:0;
+  background:rgba(245,240,232,.15);color:var(--white);
+  border:none;width:38px;height:38px;border-radius:50%;
+  cursor:pointer;font-size:18px;font-weight:700;
+}
+.tour-spotlight{
+  position:absolute;border:3px solid var(--harvest);
+  border-radius:12px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(10,26,18,.5);
+  transition:all .4s cubic-bezier(.2,.8,.2,1);
+  z-index:5;
+}
+
+.tour-launch{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 22px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);font-weight:800;font-size:14px;
+  cursor:pointer;font-family:inherit;letter-spacing:1px;
+  text-transform:uppercase;box-shadow:var(--shadow-md);
+  margin-top:14px;transition:all .2s;
+}
+.tour-launch:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+
+@media (max-width:760px){
+  .tour-tooltip{position:static;transform:none;width:100%;margin-top:20px}
+  .tour-frame{width:100%;display:flex;flex-direction:column;align-items:center}
+}
 .ph-header{
   background:var(--earth);color:var(--cream);
   padding:38px 16px 14px;display:flex;justify-content:space-between;align-items:center;
 }
-.ph-header .logo{font-weight:800;font-size:18px}
+.ph-header .logo{font-weight:800;font-size:17px}
 .ph-header .avatar{
   width:34px;height:34px;border-radius:50%;
   background:var(--harvest);color:var(--earth-deep);
   display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:13px;
+  font-weight:800;font-size:13px;
 }
 .ph-body{flex:1;overflow-y:auto;padding:14px;background:var(--cream)}
 .ph-body::-webkit-scrollbar{width:0}
@@ -425,144 +694,94 @@ body.dark .demo-nav-btn.active{background:var(--harvest);border-color:var(--harv
   color:var(--earth-deep);
   padding:16px;border-radius:14px;margin-bottom:14px;
 }
-.ph-greeting strong{display:block;font-size:15px;margin-bottom:4px}
-.ph-greeting span{font-size:12px;opacity:.8}
+.ph-greeting strong{display:block;font-size:15px;margin-bottom:4px;font-weight:800}
+.ph-greeting span{font-size:12px;opacity:.85;font-weight:600}
 .ph-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
 .ph-action{
   background:var(--white);padding:12px 8px;border-radius:10px;
-  text-align:center;font-size:11px;font-weight:600;color:var(--earth);
-  box-shadow:0 2px 6px rgba(15,36,25,.06);cursor:pointer;
+  text-align:center;font-size:11px;font-weight:700;color:var(--earth-deep);
+  box-shadow:0 2px 6px rgba(10,26,18,.06);cursor:pointer;
 }
 .ph-action .em{font-size:20px;display:block;margin-bottom:4px}
-.ph-section-title{font-size:13px;font-weight:700;color:var(--earth);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.ph-section-title{font-size:12px;font-weight:800;color:var(--earth-deep);margin-bottom:10px;text-transform:uppercase;letter-spacing:1.2px}
 .ph-tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto}
 .ph-tab{
   padding:5px 10px;border-radius:6px;background:var(--cream-dark);
-  font-size:11px;font-weight:600;color:var(--earth);white-space:nowrap;cursor:pointer;
+  font-size:11px;font-weight:700;color:var(--earth-deep);white-space:nowrap;cursor:pointer;
 }
 .ph-tab.on{background:var(--earth);color:var(--cream)}
 .ph-post{
   background:var(--white);padding:10px 12px;border-radius:10px;margin-bottom:8px;
   display:flex;justify-content:space-between;align-items:center;
-  box-shadow:0 1px 4px rgba(15,36,25,.05);cursor:pointer;
+  box-shadow:0 1px 4px rgba(10,26,18,.05);cursor:pointer;
 }
-.ph-post-title{font-size:12px;font-weight:600;color:var(--earth);margin-bottom:3px}
-.ph-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.5px}
-.tag-OFERTA{background:#FFE4C4;color:#8B4513}
-.tag-PRESTAMO{background:#FFF3CD;color:#856404}
-.tag-TRUEQUE{background:#D4EDDA;color:#155724}
-.tag-SOLICITUD{background:#E1F5FE;color:#01579B}
-.ph-loc{font-size:10px;color:var(--text-muted);margin-top:2px}
-.ph-status{font-size:9px;color:var(--field);font-weight:700}
-
-.ph-nav{
-  display:flex;background:var(--white);border-top:1px solid var(--cream-dark);
-  padding:8px 0;
-}
-.ph-nav-item{
-  flex:1;text-align:center;font-size:9px;color:var(--text-muted);font-weight:600;
-}
+.ph-post-title{font-size:12px;font-weight:700;color:var(--earth-deep);margin-bottom:3px}
+.ph-tag{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px}
+.tag-OFERTA{background:#FFE4C4;color:#7A4A0E}
+.tag-PRESTAMO{background:#FFF3CD;color:#7A6520}
+.tag-TRUEQUE{background:#D4EDDA;color:#0E5424}
+.tag-SOLICITUD{background:#D6E9F8;color:#0E4A78}
+.ph-loc{font-size:10px;color:var(--text-muted);margin-top:2px;font-weight:500}
+.ph-status{font-size:9px;color:var(--field);font-weight:800}
+.ph-nav{display:flex;background:var(--white);border-top:1px solid var(--cream-dark);padding:8px 0}
+.ph-nav-item{flex:1;text-align:center;font-size:9px;color:var(--text-muted);font-weight:700}
 .ph-nav-item.on{color:var(--harvest)}
 .ph-nav-item .em{font-size:18px;display:block;margin-bottom:2px}
-
-/* detail screen */
-.ph-detail-img{
-  height:140px;background:linear-gradient(135deg,var(--field),var(--earth-mid));
-  border-radius:12px;display:flex;align-items:center;justify-content:center;
-  font-size:60px;margin-bottom:14px;
-}
-.ph-detail-title{font-size:18px;font-weight:800;color:var(--earth);margin-bottom:6px}
-.ph-detail-desc{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px}
+.ph-detail-img{height:140px;background:linear-gradient(135deg,var(--field),var(--earth-mid));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:60px;margin-bottom:14px}
+.ph-detail-title{font-size:18px;font-weight:800;color:var(--earth-deep);margin-bottom:6px}
+.ph-detail-desc{font-size:12px;color:var(--text);line-height:1.5;margin-bottom:14px;font-weight:500}
 .ph-detail-meta{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.ph-meta-item{
-  background:var(--white);padding:6px 10px;border-radius:8px;
-  font-size:11px;color:var(--earth);font-weight:600;
-}
-.ph-cta{
-  background:var(--harvest);color:var(--earth-deep);
-  padding:12px;border-radius:10px;text-align:center;
-  font-weight:700;font-size:13px;margin-bottom:8px;cursor:pointer;
-}
-.ph-cta-2{
-  background:var(--white);color:var(--earth);
-  padding:10px;border-radius:10px;text-align:center;
-  font-weight:600;font-size:12px;border:1.5px solid var(--earth);
-}
-.ph-chat{
-  background:var(--white);border-radius:10px;padding:10px;margin-top:10px;
-}
-.ph-msg{
-  padding:8px 10px;border-radius:10px;font-size:11px;margin-bottom:6px;max-width:80%;
-}
-.ph-msg.them{background:var(--cream-dark);color:var(--text)}
+.ph-meta-item{background:var(--white);padding:6px 10px;border-radius:8px;font-size:11px;color:var(--earth-deep);font-weight:700}
+.ph-cta{background:var(--harvest);color:var(--earth-deep);padding:12px;border-radius:10px;text-align:center;font-weight:800;font-size:13px;margin-bottom:8px;cursor:pointer}
+.ph-cta-2{background:var(--white);color:var(--earth-deep);padding:10px;border-radius:10px;text-align:center;font-weight:700;font-size:12px;border:1.5px solid var(--earth);cursor:pointer}
+.ph-chat{background:var(--white);border-radius:10px;padding:10px;margin-top:10px}
+.ph-msg{padding:8px 10px;border-radius:10px;font-size:11px;margin-bottom:6px;max-width:80%;font-weight:500}
+.ph-msg.them{background:var(--cream-dark);color:var(--earth-deep)}
 .ph-msg.me{background:var(--earth);color:var(--cream);margin-left:auto}
-
-/* plans screen */
-.ph-plan-card{
-  background:var(--white);border-radius:14px;padding:16px;margin-bottom:12px;
-  border:2px solid transparent;
-}
+.ph-plan-card{background:var(--white);border-radius:14px;padding:16px;margin-bottom:12px;border:2px solid transparent}
 .ph-plan-card.featured{border-color:var(--harvest);background:linear-gradient(135deg,var(--white),#FFF8E7)}
-.ph-plan-name{font-size:14px;font-weight:800;color:var(--earth);margin-bottom:4px}
+.ph-plan-name{font-size:14px;font-weight:800;color:var(--earth-deep);margin-bottom:4px}
 .ph-plan-price{font-size:22px;font-weight:900;color:var(--harvest);margin-bottom:10px}
-.ph-plan-price small{font-size:11px;color:var(--text-muted);font-weight:500}
-.ph-plan-feat{font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px}
-.ph-plan-feat::before{content:'✓';color:var(--field);font-weight:700}
+.ph-plan-price small{font-size:11px;color:var(--text-muted);font-weight:600}
+.ph-plan-feat{font-size:11px;color:var(--earth-deep);padding:3px 0;display:flex;gap:6px;font-weight:600}
+.ph-plan-feat::before{content:'✓';color:var(--field);font-weight:900}
 
-/* ===== Slide cierre ===== */
-.close-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;height:100%}
-.close-bullets{list-style:none}
+/* ===== Cierre ===== */
+.close-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.close-bullets{list-style:none;counter-reset:item}
 .close-bullets li{
-  padding:18px 0;border-bottom:1px solid rgba(15,36,25,.1);
-  font-size:18px;display:flex;gap:14px;
+  padding:18px 0;border-bottom:1px solid rgba(10,26,18,.1);
+  font-size:17px;display:flex;gap:14px;color:var(--text);font-weight:600;
 }
 .close-bullets li::before{
   content:counter(item,decimal-leading-zero);counter-increment:item;
   font-family:'Playfair Display',serif;font-weight:900;font-size:28px;
   color:var(--harvest);min-width:50px;
 }
-.close-bullets{counter-reset:item}
-body.dark .close-bullets li{border-color:rgba(245,240,232,.15)}
+body.dark .close-bullets li{border-color:rgba(245,240,232,.15);color:var(--cream)}
 .qr-wrap{
   background:var(--white);padding:32px;border-radius:24px;
   box-shadow:var(--shadow-lg);text-align:center;
 }
-.qr{
-  width:200px;height:200px;margin:0 auto 20px;
-  background:repeating-conic-gradient(var(--earth-deep) 0% 25%,var(--white) 0% 50%) 50%/8px 8px;
-  border-radius:12px;
-  position:relative;
-  display:flex;align-items:center;justify-content:center;
+.qr-img{
+  width:240px;height:240px;margin:0 auto 20px;
+  border-radius:12px;display:block;
+  box-shadow:0 4px 20px rgba(10,26,18,.15);
 }
-.qr::after{
-  content:'';position:absolute;inset:30%;background:var(--harvest);border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-}
-.qr-url{font-weight:700;color:var(--earth);font-size:18px;margin-bottom:8px}
-.qr-sub{color:var(--text-muted);font-size:13px}
+.qr-url{font-weight:900;color:var(--earth-deep);font-size:18px;margin-bottom:8px}
+.qr-sub{color:var(--text-muted);font-size:13px;font-weight:500}
+body.dark .qr-wrap{background:rgba(45,90,39,.5)}
+body.dark .qr-url{color:var(--white)}
+body.dark .qr-sub{color:var(--cream-dark)}
 
-/* hidden helper */
-.kbd-help{
-  position:fixed;bottom:50px;left:24px;
-  font-size:11px;color:var(--text-muted);
-  background:rgba(255,255,255,.7);padding:8px 12px;
-  border-radius:8px;backdrop-filter:blur(10px);
-  z-index:90;display:none;
-}
-.kbd-help.show{display:block}
-.kbd-help kbd{
-  background:var(--earth);color:var(--cream);
-  padding:2px 6px;border-radius:4px;font-size:10px;
-  font-family:monospace;
-}
-body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
-
-@media (max-width:900px){
+@media (max-width:980px){
   .slide{padding:80px 24px 80px}
   .demo-stage{grid-template-columns:1fr;gap:30px}
-  .problem-cards{grid-template-columns:1fr}
-  .solution-grid{grid-template-columns:1fr}
-  .close-grid{grid-template-columns:1fr}
+  .problem-cards,.exchange-types,.value-grid,.fourp-grid,.team-grid,.personas-grid,.road-grid,.stats-grid,.revenue-grid,.op-grid,.close-grid,.solution-grid,.timeline{grid-template-columns:1fr}
+  .timeline::before{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .chart-wrap{grid-template-columns:1fr}
+  .diff-row{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
@@ -573,18 +792,7 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
     <div class="brand-dot"></div>
     AgroPulse · TerraX
   </div>
-  <div class="controls">
-    <span class="brand" id="section-name">01 · Inicio</span>
-    <div class="timer" id="timer">7:00</div>
-    <button class="btn-icon" id="btn-play" title="Play/Pausa">▶</button>
-    <button class="btn-icon" id="btn-reset" title="Reiniciar">↻</button>
-    <button class="btn-icon" id="btn-theme" title="Tema">◐</button>
-    <button class="btn-icon" id="btn-help" title="Ayuda">?</button>
-  </div>
-</div>
-
-<div class="kbd-help" id="kbd-help">
-  <kbd>←</kbd> <kbd>→</kbd> navegar &nbsp; <kbd>Espacio</kbd> play/pausa &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>F</kbd> fullscreen &nbsp; <kbd>T</kbd> tema
+  <div class="slide-counter" id="counter">01 / 14</div>
 </div>
 
 <button class="nav-arrow prev" id="prev">‹</button>
@@ -592,13 +800,14 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
 
 <div id="stage">
 
-  <!-- ===== SLIDE 0: COVER ===== -->
+  <!-- 0 COVER -->
   <section class="slide cover active" data-section="Inicio">
     <div class="cover-bg"></div>
     <div class="cover-emoji" style="top:10%;left:8%">🌱</div>
-    <div class="cover-emoji" style="top:20%;right:12%">🚜</div>
+    <div class="cover-emoji" style="top:18%;right:12%">🚜</div>
     <div class="cover-emoji" style="bottom:15%;left:15%">🌾</div>
     <div class="cover-emoji" style="bottom:20%;right:8%">🌿</div>
+    <div class="cover-emoji" style="top:50%;left:6%">🥕</div>
     <div style="position:relative;z-index:2;text-align:center">
       <div class="logo-mark">🌱</div>
       <h1>Agro<span class="accent">Pulse</span></h1>
@@ -608,6 +817,7 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
         <span class="pill">📍 Trazabilidad geográfica</span>
         <span class="pill">⭐ Reputación digital</span>
         <span class="pill">🇨🇴 Hecho en Colombia</span>
+        <span class="pill">🟢 En producción</span>
       </div>
       <div class="team">
         <div class="team-item"><div class="team-avatar">DO</div>Daniel Ortiz</div>
@@ -615,24 +825,24 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
         <div class="team-item"><div class="team-avatar">JR</div>Juan Rincón</div>
         <div class="team-item"><div class="team-avatar">DG</div>Daniel Galvis</div>
       </div>
-      <button class="start-btn" id="start-btn">Iniciar presentación · 7:00</button>
+      <button class="start-btn" id="start-btn">Iniciar presentación</button>
       <div class="terrax">Equipo TerraX · Pontificia Universidad Javeriana</div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 1: PROBLEMA ===== -->
+  <!-- 1 PROBLEMA -->
   <section class="slide" data-section="Problema">
     <div class="slide-eyebrow">01 · El problema</div>
     <div class="problem-hero">
       <div>
         <div class="big-number" data-count="4.8">0</div>
-        <div class="big-number-label"><strong>millones</strong> de personas en el sector rural colombiano. Empleo rural creció 2,1% en 2025.</div>
+        <div class="big-number-label"><strong>millones</strong> de personas trabajan en el sector rural colombiano. El empleo rural creció 2,1% en 2025.</div>
       </div>
       <div style="flex:1">
-        <h2 style="font-size:48px">El campo coopera<br>sin herramientas.</h2>
-        <p style="font-size:18px;color:var(--text-muted);line-height:1.6">
-          Información dispersa en WhatsApp y voz a voz. Recursos subutilizados.
-          Acuerdos sin trazabilidad. Pérdida de tiempo y dinero todos los días.
+        <h2 style="font-size:46px">El campo coopera<br>sin herramientas.</h2>
+        <p class="lead">
+          La información vive dispersa en WhatsApp y voz a voz. Los recursos están subutilizados.
+          Los acuerdos se hacen sin trazabilidad. Cada día se pierde tiempo y dinero.
         </p>
       </div>
     </div>
@@ -640,49 +850,89 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
       <div class="p-card">
         <div class="icon">🤝</div>
         <h3>Cooperación</h3>
-        <p>Difícil alinear intereses entre vecinos rurales. No existe una mesa común.</p>
+        <p>Difícil alinear intereses entre vecinos. No existe una mesa común donde todos vean lo que hay disponible.</p>
       </div>
       <div class="p-card">
         <div class="icon">📡</div>
         <h3>Comunicación</h3>
-        <p>Información dispersa e informal. Lo que pasa en una vereda no llega a la siguiente.</p>
+        <p>Lo que pasa en una vereda no llega a la siguiente. Información fragmentada en cientos de chats privados.</p>
       </div>
       <div class="p-card">
         <div class="icon">📋</div>
         <h3>Colaboración</h3>
-        <p>Intercambios sin sistematizar ni trazabilidad. La palabra es el único contrato.</p>
+        <p>Intercambios sin sistematizar. La palabra es el único contrato y no hay historial verificable.</p>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 2: SOLUCION ===== -->
+  <!-- 2 CONTEXTO MERCADO -->
+  <section class="slide" data-section="Contexto">
+    <div class="slide-eyebrow">02 · El contexto</div>
+    <h2>El campo es grande,<br>pero está fragmentado.</h2>
+    <p class="lead" style="max-width:800px">
+      Colombia tiene un sector rural masivo y subatendido digitalmente.
+      Mientras la ciudad tiene apps para todo, el campo todavía coordina con cuadernos y llamadas.
+    </p>
+    <div class="stats-grid">
+      <div class="stat-block">
+        <div class="num">4,8M</div>
+        <div class="lab">Empleados rurales totales (2025)</div>
+      </div>
+      <div class="stat-block">
+        <div class="num">3,4M</div>
+        <div class="lab">Solo agricultura, ganadería y pesca</div>
+      </div>
+      <div class="stat-block">
+        <div class="num">2,1%</div>
+        <div class="lab">Crecimiento anual del empleo rural</div>
+      </div>
+      <div class="stat-block">
+        <div class="num">~70%</div>
+        <div class="lab">De productores son pequeños y medianos</div>
+      </div>
+    </div>
+    <div style="margin-top:30px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div class="p-card" style="border-left-color:#C0392B">
+        <div class="icon">⚠️</div>
+        <h3>Lo que duele hoy</h3>
+        <p>Comprar maquinaria propia es inviable. El crédito formal exige garantías que no se tienen. Los recursos existen, pero nadie sabe quién los tiene ni dónde.</p>
+      </div>
+      <div class="p-card" style="border-left-color:#2E8B3E">
+        <div class="icon">✨</div>
+        <h3>Lo que cambia con AgroPulse</h3>
+        <p>Mapa visible de quién tiene qué, a cuánto, dónde. Acuerdos digitales con historial. Acceso a recursos sin necesidad de comprarlos.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 SOLUCION -->
   <section class="slide" data-section="Solución">
-    <div class="slide-eyebrow">02 · La solución</div>
+    <div class="slide-eyebrow">03 · La solución</div>
     <h2>Marketplace rural<br>para 4 tipos de intercambio.</h2>
     <div class="solution-grid">
       <div class="exchange-types">
         <div class="ex-card ex-1">
           <div class="ex-icon">💰</div>
           <h4>Compra / Venta</h4>
-          <p>Transacción monetaria directa.</p>
+          <p>Transacción monetaria directa entre productores, con foto, ubicación y reputación.</p>
         </div>
         <div class="ex-card ex-2">
           <div class="ex-icon">🔄</div>
           <h4>Trueque</h4>
-          <p>Insumos o tiempo por servicios.</p>
+          <p>Insumos por servicios, fruta por semillas, tiempo por herramientas. Sin dinero de por medio.</p>
         </div>
         <div class="ex-card ex-3">
           <div class="ex-icon">🚜</div>
           <h4>Préstamo / Alquiler</h4>
-          <p>Maquinaria y herramientas por tiempo.</p>
+          <p>Maquinaria y herramientas por horas o días. Aprovecha lo que está parado en otra finca.</p>
         </div>
         <div class="ex-card ex-4">
           <div class="ex-icon">⭐</div>
           <h4>Crédito social</h4>
-          <p>Reputación para acceder a recursos a crédito.</p>
+          <p>Sistema de puntos por reputación. Acceso a recursos a crédito sin papeles ni avales.</p>
         </div>
       </div>
-      <div class="phone" id="phone-mini">
+      <div class="phone">
         <div class="phone-screen">
           <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
           <div class="ph-body" style="padding:10px">
@@ -713,85 +963,232 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
         </div>
       </div>
     </div>
-    <p style="position:absolute;bottom:80px;left:80px;color:var(--text-muted);font-size:14px">
-      🟢 En producción <strong style="color:var(--earth)">→ agropulse.company</strong>
-    </p>
   </section>
 
-  <!-- ===== SLIDE 3: OPORTUNIDAD ===== -->
-  <section class="slide" data-section="Oportunidad">
-    <div class="slide-eyebrow">03 · Oportunidad y cliente</div>
-    <h2>4,8M personas<br>en el sector rural.</h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:20px">
-      <div class="funnel">
-        <div class="funnel-item funnel-1">
-          <span class="funnel-label">TAM · Total</span>
-          <span class="funnel-value">4,8M</span>
-        </div>
-        <div class="funnel-item funnel-2">
-          <span class="funnel-label">SAM · Agro directo</span>
-          <span class="funnel-value">3,4M</span>
-        </div>
-        <div class="funnel-item funnel-3">
-          <span class="funnel-label">SOM · Año 3</span>
-          <span class="funnel-value">3,8%</span>
-        </div>
+  <!-- 4 COMO FUNCIONA -->
+  <section class="slide" data-section="Cómo funciona">
+    <div class="slide-eyebrow">04 · Cómo funciona</div>
+    <h2>De publicar a cerrar acuerdo<br>en cinco pasos.</h2>
+    <div class="timeline">
+      <div class="tl-step">
+        <div class="tl-num">1</div>
+        <h4>Publicar</h4>
+        <p>Foto, descripción, tipo de intercambio y ubicación con un solo formulario.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num">2</div>
+        <h4>Descubrir</h4>
+        <p>Mapa y feed por categoría. Filtros por cercanía, tipo y reputación.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num">3</div>
+        <h4>Negociar</h4>
+        <p>Chat directo con fotos, ubicación GPS y propuestas de acuerdo.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num">4</div>
+        <h4>Acordar</h4>
+        <p>Confirmación dentro de la app. Términos guardados como historial.</p>
+      </div>
+      <div class="tl-step">
+        <div class="tl-num">5</div>
+        <h4>Calificar</h4>
+        <p>Cada acuerdo suma reputación. La reputación abre crédito social.</p>
+      </div>
+    </div>
+    <div style="margin-top:36px;background:var(--white);padding:24px;border-radius:18px;box-shadow:var(--shadow-md);display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--harvest);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Diseñado para</div>
+        <p style="font-size:14px;color:var(--text);font-weight:600">Conectividad limitada · dispositivos básicos</p>
       </div>
       <div>
-        <h3 style="margin-bottom:14px">Cliente primario</h3>
-        <p style="color:var(--text-muted);line-height:1.6;margin-bottom:20px">
-          Pequeños y medianos agricultores, asociaciones, cooperativas.
-          Café, cacao, frutas, hortalizas, ganadería.
+        <div style="font-size:11px;font-weight:800;color:var(--harvest);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Onboarding</div>
+        <p style="font-size:14px;color:var(--text);font-weight:600">Cuenta nueva en menos de 2 minutos</p>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--harvest);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Idioma</div>
+        <p style="font-size:14px;color:var(--text);font-weight:600">100% español, vocabulario rural</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 DIFERENCIADORES -->
+  <section class="slide" data-section="Diferencia">
+    <div class="slide-eyebrow">05 · Diferenciadores</div>
+    <h2>Por qué no es<br>otro Marketplace o WhatsApp.</h2>
+    <p class="lead" style="max-width:760px">El campo ya usa Facebook Marketplace, grupos de WhatsApp y voz a voz. AgroPulse gana porque es la única opción que combina todo en un flujo diseñado para el agro.</p>
+    <div class="diff-table">
+      <div class="diff-row head">
+        <div class="diff-cell">Capacidad</div>
+        <div class="diff-cell">WhatsApp</div>
+        <div class="diff-cell">FB Marketplace</div>
+        <div class="diff-cell">AgroPulse</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">4 tipos de intercambio (no solo venta)</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="check">✓</span> Sí</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">Reputación verificable</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="partial">~</span> Genérica</div>
+        <div class="diff-cell"><span class="check">✓</span> Especializada</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">Geolocalización rural precisa</div>
+        <div class="diff-cell"><span class="x">✕</span> Manual</div>
+        <div class="diff-cell"><span class="partial">~</span> Limitada</div>
+        <div class="diff-cell"><span class="check">✓</span> Mapa nativo</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">Acuerdos con historial</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="check">✓</span> Trazables</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">Crédito social por reputación</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="x">✕</span> No</div>
+        <div class="diff-cell"><span class="check">✓</span> Único</div>
+      </div>
+      <div class="diff-row">
+        <div class="diff-cell feat">Diseño rural, conectividad limitada</div>
+        <div class="diff-cell"><span class="check">✓</span> Sí</div>
+        <div class="diff-cell"><span class="x">✕</span> Pesado</div>
+        <div class="diff-cell"><span class="check">✓</span> Mobile-first</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 PERSONAS / CLIENTE -->
+  <section class="slide" data-section="Cliente">
+    <div class="slide-eyebrow">06 · Quién usa AgroPulse</div>
+    <h2>Tres perfiles<br>que ya nos esperan.</h2>
+    <div class="personas-grid">
+      <div class="persona">
+        <div class="avatar-big">👨‍🌾</div>
+        <h3>Don Carlos</h3>
+        <div class="role">Productor pequeño</div>
+        <ul>
+          <li>Café o frutales en finca de 2-5 ha</li>
+          <li>No puede comprar tractor propio</li>
+          <li>Vende en mercado local</li>
+          <li>Quiere prestar/alquilar herramientas</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <div class="avatar-big">👩‍🌾</div>
+        <h3>Marta y la Asociación</h3>
+        <div class="role">Líder de cooperativa</div>
+        <ul>
+          <li>Coordina 30+ familias campesinas</li>
+          <li>Necesita organizar pedidos colectivos</li>
+          <li>Maneja insumos compartidos</li>
+          <li>Quiere visibilidad del inventario común</li>
+        </ul>
+      </div>
+      <div class="persona">
+        <div class="avatar-big">🧑‍💻</div>
+        <h3>Esteban</h3>
+        <div class="role">Joven rural digital</div>
+        <ul>
+          <li>22 años, hijo de productor</li>
+          <li>Maneja la tecnología de la familia</li>
+          <li>Quiere modernizar la finca</li>
+          <li>Puente entre lo digital y lo rural</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:20px 24px;background:rgba(184,132,31,.12);border-left:4px solid var(--harvest);border-radius:12px">
+      <strong style="color:var(--harvest);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:800">Mercado secundario</strong>
+      <p style="margin-top:6px;color:var(--text);font-weight:500">Agroemprendedores · proveedores locales de insumos · técnicos agrícolas independientes</p>
+    </div>
+  </section>
+
+  <!-- 7 OPORTUNIDAD -->
+  <section class="slide" data-section="Oportunidad">
+    <div class="slide-eyebrow">07 · Oportunidad de mercado</div>
+    <h2>Mercado masivo,<br>captura realista.</h2>
+    <div class="op-grid">
+      <div>
+        <h3 style="margin-bottom:14px">Tamaño del mercado</h3>
+        <div class="funnel">
+          <div class="funnel-item funnel-1">
+            <span class="funnel-label">TAM · Total rural</span>
+            <span class="funnel-value">4,8M</span>
+          </div>
+          <div class="funnel-item funnel-2">
+            <span class="funnel-label">SAM · Agro directo</span>
+            <span class="funnel-value">3,4M</span>
+          </div>
+          <div class="funnel-item funnel-3">
+            <span class="funnel-label">SOM · Año 3 (3,8%)</span>
+            <span class="funnel-value">~129K</span>
+          </div>
+        </div>
+        <p style="margin-top:18px;font-size:13px;color:var(--text-muted);font-weight:500">
+          TAM = empleados sector rural · SAM = agro/ganadería/pesca · SOM = penetración objetivo año 3
         </p>
-        <h3 style="margin-bottom:14px">Cliente secundario</h3>
-        <p style="color:var(--text-muted);line-height:1.6">
-          Agroemprendedores, proveedores locales de insumos, técnicos agrícolas
-          independientes, jóvenes rurales con enfoque digital.
-        </p>
-        <div style="margin-top:24px;padding:16px 20px;background:rgba(200,150,42,.12);border-left:3px solid var(--harvest);border-radius:8px;font-size:14px">
-          <strong style="color:var(--harvest)">Zonas piloto:</strong>
-          Cundinamarca · Boyacá · Tolima · Eje Cafetero
+      </div>
+      <div class="zones-card">
+        <h3>Zonas piloto</h3>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:14px;font-weight:500">Departamentos seleccionados por densidad campesina, conectividad y asociatividad.</p>
+        <div class="zone-list">
+          <div class="zone-tag">📍 Cundinamarca</div>
+          <div class="zone-tag">📍 Boyacá</div>
+          <div class="zone-tag">📍 Tolima</div>
+          <div class="zone-tag">📍 Eje Cafetero</div>
+        </div>
+        <h3 style="margin-top:24px;font-size:18px">Expansión año 2</h3>
+        <div class="zone-list">
+          <div class="zone-tag">📍 Antioquia</div>
+          <div class="zone-tag">📍 Santander</div>
+          <div class="zone-tag">📍 Huila</div>
+          <div class="zone-tag">📍 Nariño</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 4: PROPUESTA VALOR ===== -->
+  <!-- 8 VALOR -->
   <section class="slide" data-section="Valor">
-    <div class="slide-eyebrow">04 · Propuesta de valor</div>
+    <div class="slide-eyebrow">08 · Propuesta de valor</div>
     <h2>El primer banco<br>de intercambios rurales.</h2>
-    <div class="value-grid" style="margin-top:32px">
+    <div class="value-grid" style="margin-top:24px">
       <div class="value-card">
         <div class="v-icon">🤝</div>
         <h3>Cooperación sin dinero físico</h3>
-        <p>Conecta productores para intercambiar sin necesidad de capital líquido.</p>
+        <p>Conecta productores para intercambiar sin necesidad de capital líquido. Activa lo que ya existe.</p>
       </div>
       <div class="value-card">
         <div class="v-icon">🌍</div>
         <h3>Acceso equitativo a recursos</h3>
-        <p>Reduce la brecha de acceso a maquinaria, insumos y conocimiento.</p>
+        <p>Cierra la brecha de acceso a maquinaria, insumos y conocimiento entre fincas grandes y pequeñas.</p>
       </div>
       <div class="value-card">
         <div class="v-icon">📊</div>
         <h3>Reputación trazable</h3>
-        <p>Historial verificable que abre puertas a crédito y nuevos negocios.</p>
+        <p>Historial verificable que abre puertas a crédito social, formal y nuevos negocios.</p>
       </div>
       <div class="value-card">
         <div class="v-icon">📱</div>
         <h3>Mobile-first, conectividad limitada</h3>
-        <p>Diseñado para funcionar donde la señal es débil y el dispositivo es básico.</p>
+        <p>Diseñada para funcionar donde la señal es débil y el dispositivo es básico. Carga rápida y modo offline parcial.</p>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 5: 4P ===== -->
+  <!-- 9 4P -->
   <section class="slide" data-section="4P">
-    <div class="slide-eyebrow">05 · Mercadeo · 4P</div>
-    <h2>Modelo Freemium<br>+ comisiones.</h2>
+    <div class="slide-eyebrow">09 · Mercadeo · 4P</div>
+    <h2>Modelo Freemium<br>+ comisiones marketplace.</h2>
     <div class="fourp-grid">
       <div class="p-block">
         <h3>Producto</h3>
-        <p style="color:var(--text-muted);font-size:14px;margin-bottom:10px">SaaS · App móvil + web</p>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:10px;font-weight:600">SaaS · App móvil + web</p>
         <div class="plans">
           <div class="plan">
             <strong>Básico</strong>
@@ -800,8 +1197,8 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
           </div>
           <div class="plan" style="background:linear-gradient(135deg,var(--harvest),var(--harvest-light));color:var(--earth-deep)">
             <strong style="color:var(--earth-deep)">Pro</strong>
-            Ilimitado, sin ads, alertas inteligentes, exportar acuerdos
-            <div class="price" style="color:var(--earth-deep)">$21.900<small style="color:var(--earth)">/mes</small></div>
+            Ilimitado, sin ads, alertas de match, exportar acuerdos, soporte prioritario
+            <div class="price" style="color:var(--earth-deep)">$21.900<small style="color:var(--earth-deep);opacity:.7">/mes</small></div>
           </div>
         </div>
       </div>
@@ -810,35 +1207,78 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
         <ul>
           <li>Freemium con conversión a pago</li>
           <li>ARPU año 3: $3.247 COP/activo·mes</li>
-          <li>Comisión sobre transacciones marketplace</li>
-          <li>Conversión objetivo: 18%</li>
+          <li>Comisión sobre transacciones de marketplace</li>
+          <li>Conversión objetivo: 18% activos a pago</li>
+          <li>Trial Pro de 14 días para nuevos usuarios</li>
         </ul>
       </div>
       <div class="p-block">
         <h3>Plaza</h3>
         <ul>
-          <li>Colombia rural</li>
+          <li>Colombia rural · enfoque andino</li>
           <li>Inicio: Cundinamarca, Boyacá, Tolima</li>
-          <li>Eje Cafetero</li>
-          <li>Web + app móvil descargable</li>
+          <li>Eje Cafetero como segundo cluster</li>
+          <li>Web responsive + PWA instalable</li>
+          <li>Sin app store en fase 1, máximo alcance</li>
         </ul>
       </div>
       <div class="p-block">
         <h3>Promoción</h3>
         <ul>
           <li>Alianzas con asociaciones campesinas</li>
-          <li>MinTIC y universidades</li>
-          <li>Boca a boca comunitario</li>
-          <li>Ferias y eventos agro</li>
+          <li>Convenios con MinTIC y SENA</li>
+          <li>Universidades aliadas (PUJ, UNAL)</li>
+          <li>Boca a boca comunitario y voceros locales</li>
+          <li>Presencia en ferias agro y eventos rurales</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 6: FINANZAS ===== -->
+  <!-- 10 MODELO INGRESOS -->
+  <section class="slide" data-section="Ingresos">
+    <div class="slide-eyebrow">10 · Modelo de ingresos</div>
+    <h2>Dos fuentes,<br>una sola plataforma.</h2>
+    <div class="revenue-grid">
+      <div class="rev-card">
+        <h3>Suscripciones <span class="badge">Recurrente</span></h3>
+        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Ingresos mensuales recurrentes (MRR) por planes Básico y Pro.</p>
+        <div class="rev-bar-wrap">
+          <div class="rev-bar-label"><span>Plan Básico ($12.900)</span><span>72%</span></div>
+          <div class="rev-bar"><div class="rev-bar-fill" style="width:72%"></div></div>
+        </div>
+        <div class="rev-bar-wrap">
+          <div class="rev-bar-label"><span>Plan Pro ($21.900)</span><span>28%</span></div>
+          <div class="rev-bar"><div class="rev-bar-fill" style="width:28%"></div></div>
+        </div>
+        <div class="rev-formula">MRR mes 36 = $181M COP · ARR = $2.172M COP</div>
+      </div>
+      <div class="rev-card">
+        <h3>Comisiones <span class="badge" style="background:var(--field)">Variable</span></h3>
+        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Tarifa por cada transacción cerrada en el marketplace de pagos.</p>
+        <div style="background:var(--cream);padding:18px;border-radius:12px;margin-bottom:14px">
+          <div style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Tarifa estándar</div>
+          <div style="font-size:36px;font-family:'Playfair Display',serif;font-weight:900;color:var(--harvest)">3,5%</div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:4px">por transacción cerrada</div>
+        </div>
+        <div class="rev-formula">≈ $31M COP/mes en mes 36 (escenario base)</div>
+      </div>
+    </div>
+    <div style="margin-top:24px;background:var(--white);padding:24px;border-radius:18px;box-shadow:var(--shadow-md)">
+      <h3 style="margin-bottom:14px;font-size:18px">Unit economics objetivo</h3>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px">
+        <div><div style="font-size:11px;color:var(--harvest);font-weight:800;letter-spacing:2px;text-transform:uppercase">CAC</div><div style="font-size:24px;font-weight:900;color:var(--earth-deep);font-family:'Playfair Display',serif">$8.500</div></div>
+        <div><div style="font-size:11px;color:var(--harvest);font-weight:800;letter-spacing:2px;text-transform:uppercase">LTV</div><div style="font-size:24px;font-weight:900;color:var(--earth-deep);font-family:'Playfair Display',serif">$78.000</div></div>
+        <div><div style="font-size:11px;color:var(--harvest);font-weight:800;letter-spacing:2px;text-transform:uppercase">LTV / CAC</div><div style="font-size:24px;font-weight:900;color:var(--earth-deep);font-family:'Playfair Display',serif">9,2x</div></div>
+        <div><div style="font-size:11px;color:var(--harvest);font-weight:800;letter-spacing:2px;text-transform:uppercase">Payback</div><div style="font-size:24px;font-weight:900;color:var(--earth-deep);font-family:'Playfair Display',serif">2,6 meses</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 FINANZAS -->
   <section class="slide" data-section="Finanzas">
-    <div class="slide-eyebrow">06 · Indicadores financieros</div>
-    <h2>Punto de equilibrio<br>mes 17 · TIR &gt; 80%</h2>
+    <div class="slide-eyebrow">11 · Indicadores financieros</div>
+    <h2>Equilibrio mes 17 ·<br>TIR &gt; 80% a 3 años.</h2>
     <div class="fin-tabs">
       <button class="fin-tab" data-scenario="cons">Conservador</button>
       <button class="fin-tab active" data-scenario="base">Base</button>
@@ -851,35 +1291,117 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
       <div class="kpi"><div class="kpi-val" data-kpi="margin">0</div><div class="kpi-label">Margen op. %</div></div>
     </div>
     <div class="chart-wrap">
-      <svg id="chart" viewBox="0 0 600 240" preserveAspectRatio="none">
+      <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none">
         <defs>
           <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="#C8962A" stop-opacity=".5"/>
-            <stop offset="100%" stop-color="#C8962A" stop-opacity="0"/>
+            <stop offset="0%" stop-color="#B8841F" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#B8841F" stop-opacity="0"/>
           </linearGradient>
         </defs>
         <g id="grid">
-          <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(0,0,0,.05)"/>
-          <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(0,0,0,.05)"/>
-          <line x1="0" y1="180" x2="600" y2="180" stroke="rgba(0,0,0,.05)"/>
+          <line x1="0" y1="55" x2="600" y2="55" stroke="rgba(0,0,0,.06)"/>
+          <line x1="0" y1="110" x2="600" y2="110" stroke="rgba(0,0,0,.06)"/>
+          <line x1="0" y1="165" x2="600" y2="165" stroke="rgba(0,0,0,.06)"/>
         </g>
         <path id="chart-area" d="" fill="url(#grad)"/>
-        <path id="chart-line" d="" fill="none" stroke="#C8962A" stroke-width="3"/>
+        <path id="chart-line" d="" fill="none" stroke="#B8841F" stroke-width="3"/>
       </svg>
       <div class="fin-summary">
         <p style="margin-bottom:10px"><strong id="fin-pe">Mes 17</strong> · punto de equilibrio</p>
         <p style="margin-bottom:10px"><strong id="fin-van">~$400M COP</strong> · VAN a 3 años</p>
         <p style="margin-bottom:10px"><strong id="fin-conv">18%</strong> · conversión a pago</p>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:14px">
-          Capital semilla: Innpulsa · MinTIC · fondos universitarios · ángeles
+        <p style="font-size:12px;color:var(--text-muted);margin-top:14px;font-weight:500">
+          Capital semilla: Innpulsa · MinTIC · fondos universitarios · ángeles inversionistas
         </p>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 7: DEMO ===== -->
+  <!-- 12 ROADMAP -->
+  <section class="slide" data-section="Roadmap">
+    <div class="slide-eyebrow">12 · Roadmap</div>
+    <h2>De producto en producción<br>a infraestructura rural.</h2>
+    <div class="road-grid">
+      <div class="road-quarter now">
+        <span class="road-tag live">Hoy</span>
+        <h3>Producción</h3>
+        <ul>
+          <li>4 tipos de intercambio activos</li>
+          <li>Chat con foto y geolocalización</li>
+          <li>Mapa de comunidad</li>
+          <li>Suscripciones Básico y Pro</li>
+          <li>Live en agropulse.company</li>
+        </ul>
+      </div>
+      <div class="road-quarter next">
+        <span class="road-tag next-tag">Q3 2026</span>
+        <h3>Crecimiento</h3>
+        <ul>
+          <li>Onboarding masivo en zonas piloto</li>
+          <li>Pasarela de pagos integrada</li>
+          <li>Sistema de comisiones marketplace</li>
+          <li>Notificaciones push</li>
+        </ul>
+      </div>
+      <div class="road-quarter future">
+        <span class="road-tag future-tag">Q1 2027</span>
+        <h3>Inteligencia</h3>
+        <ul>
+          <li>Alertas inteligentes de match</li>
+          <li>Crédito social plenamente operativo</li>
+          <li>Dashboard de asociaciones</li>
+          <li>Integración con SENA y MinTIC</li>
+        </ul>
+      </div>
+      <div class="road-quarter future">
+        <span class="road-tag future-tag">Q4 2027</span>
+        <h3>Expansión</h3>
+        <ul>
+          <li>Apertura nacional total</li>
+          <li>Modo offline pleno</li>
+          <li>API para cooperativas grandes</li>
+          <li>Piloto Ecuador / Perú</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 EQUIPO -->
+  <section class="slide" data-section="Equipo">
+    <div class="slide-eyebrow">13 · Equipo</div>
+    <h2>TerraX —<br>cuatro ingenieros, una visión.</h2>
+    <p class="lead" style="max-width:760px">Equipo multidisciplinar de Ingeniería de Sistemas de la Pontificia Universidad Javeriana. Diseño, backend, frontend y producto bajo un mismo techo.</p>
+    <div class="team-grid">
+      <div class="team-card">
+        <div class="photo">DO</div>
+        <h3>Daniel Ortiz</h3>
+        <div class="role-team">Producto · UX</div>
+        <div class="uni">Ing. Sistemas · PUJ</div>
+      </div>
+      <div class="team-card">
+        <div class="photo">CB</div>
+        <h3>Camila Beltrán</h3>
+        <div class="role-team">Frontend · Diseño</div>
+        <div class="uni">Ing. Sistemas · PUJ</div>
+      </div>
+      <div class="team-card">
+        <div class="photo">JR</div>
+        <h3>Juan Rincón</h3>
+        <div class="role-team">Backend · Datos</div>
+        <div class="uni">Ing. Sistemas · PUJ</div>
+      </div>
+      <div class="team-card">
+        <div class="photo">DG</div>
+        <h3>Daniel Galvis</h3>
+        <div class="role-team">Operaciones · Negocio</div>
+        <div class="uni">Ing. Sistemas · PUJ</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 DEMO -->
   <section class="slide" data-section="Demo">
-    <div class="slide-eyebrow">07 · Demo del prototipo</div>
+    <div class="slide-eyebrow">14 · Demo del prototipo</div>
     <div class="demo-stage">
       <div class="phone" id="phone-demo">
         <div class="phone-screen" id="demo-screen">
@@ -902,47 +1424,17 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
                 <span class="ph-tab">Préstamo</span>
                 <span class="ph-tab">Trueque</span>
               </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Vendo semillas para frutas</div><div class="ph-status">Disponible</div></div>
-                <span class="ph-tag tag-OFERTA">OFERTA</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Presto Llave inglesa</div><div class="ph-status">Disponible</div></div>
-                <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Cambio fruta por semillas</div><div class="ph-status">Disponible</div></div>
-                <span class="ph-tag tag-TRUEQUE">TRUEQUE</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Tractor Tavol</div><div class="ph-status">Disponible</div></div>
-                <span class="ph-tag tag-OFERTA">OFERTA</span>
-              </div>
+              <div class="ph-post"><div><div class="ph-post-title">Vendo semillas para frutas</div><div class="ph-status">Disponible</div></div><span class="ph-tag tag-OFERTA">OFERTA</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Presto Llave inglesa</div><div class="ph-status">Disponible</div></div><span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Cambio fruta por semillas</div><div class="ph-status">Disponible</div></div><span class="ph-tag tag-TRUEQUE">TRUEQUE</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Tractor Tavol</div><div class="ph-status">Disponible</div></div><span class="ph-tag tag-OFERTA">OFERTA</span></div>
               <div class="ph-section-title" style="margin-top:14px">De la comunidad</div>
-              <div class="ph-post" onclick="goScreen('detail')" style="cursor:pointer">
-                <div><div class="ph-post-title">Motobomba buen estado</div><div class="ph-loc">Villa Patricia, Fusagasugá</div></div>
-                <span class="ph-tag tag-OFERTA">OFERTA</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Planta eléctrica gasolina</div><div class="ph-loc">Avenida Carrera 5</div></div>
-                <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Necesito almacenamiento</div><div class="ph-loc">Calle 9 Sur, La Balsa, Chía</div></div>
-                <span class="ph-tag tag-SOLICITUD">SOLICITUD</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Bultos de abono</div><div class="ph-loc">Avenida Carrera 7, Marisca</div></div>
-                <span class="ph-tag tag-OFERTA">OFERTA</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Cambio tractor por camión</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div>
-                <span class="ph-tag tag-TRUEQUE">TRUEQUE</span>
-              </div>
-              <div class="ph-post">
-                <div><div class="ph-post-title">Necesito un tractor</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div>
-                <span class="ph-tag tag-SOLICITUD">SOLICITUD</span>
-              </div>
+              <div class="ph-post" onclick="goScreen('detail')" style="cursor:pointer"><div><div class="ph-post-title">Motobomba buen estado</div><div class="ph-loc">Villa Patricia, Fusagasugá</div></div><span class="ph-tag tag-OFERTA">OFERTA</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Planta eléctrica gasolina</div><div class="ph-loc">Avenida Carrera 5</div></div><span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Necesito almacenamiento</div><div class="ph-loc">Calle 9 Sur, La Balsa, Chía</div></div><span class="ph-tag tag-SOLICITUD">SOLICITUD</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Bultos de abono</div><div class="ph-loc">Avenida Carrera 7</div></div><span class="ph-tag tag-OFERTA">OFERTA</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Cambio tractor por camión</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div><span class="ph-tag tag-TRUEQUE">TRUEQUE</span></div>
+              <div class="ph-post"><div><div class="ph-post-title">Necesito un tractor</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div><span class="ph-tag tag-SOLICITUD">SOLICITUD</span></div>
             </div>
             <div class="ph-nav">
               <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
@@ -1025,46 +1517,70 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
       <div class="demo-info">
         <div class="slide-eyebrow">Prototipo en vivo</div>
         <h2 style="font-size:42px">El producto<br>en tus manos.</h2>
-        <p>Navega entre pantallas reales. Mismo flujo que en producción en agropulse.company.</p>
+        <p class="lead">Navega entre pantallas reales. Mismo flujo que en producción en agropulse.company.</p>
         <div class="demo-screens-nav">
           <button class="demo-nav-btn active" onclick="goScreen('home')">1 · Feed</button>
           <button class="demo-nav-btn" onclick="goScreen('detail')">2 · Detalle + chat</button>
           <button class="demo-nav-btn" onclick="goScreen('plans')">3 · Suscripciones</button>
         </div>
         <div class="feature-callouts">
-          <div class="callout"><strong>Geolocalización</strong>Cada publicación con su ubicación exacta.</div>
+          <div class="callout"><strong>Geolocalización</strong>Cada publicación con su ubicación exacta sobre mapa.</div>
           <div class="callout"><strong>Match con foto y chat</strong>Negociación dentro de la app, sin salir a WhatsApp.</div>
-          <div class="callout"><strong>Freemium claro</strong>Conversión natural cuando se pasa de 10 publicaciones.</div>
+          <div class="callout"><strong>Freemium claro</strong>Conversión natural cuando se pasan las 10 publicaciones.</div>
         </div>
+        <button class="tour-launch" id="tour-launch">▶ Iniciar tour guiado</button>
       </div>
     </div>
   </section>
 
-  <!-- ===== SLIDE 8: CIERRE ===== -->
+  <!-- 15 CIERRE -->
   <section class="slide" data-section="Cierre">
-    <div class="slide-eyebrow">08 · Cierre</div>
+    <div class="slide-eyebrow">15 · Cierre</div>
     <div class="close-grid">
       <div>
         <h2>¿Preguntas?</h2>
         <ol class="close-bullets">
-          <li><div><strong>Producto en producción.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">No es un mockup. Es agropulse.company.</div></div></li>
-          <li><div><strong>Mercado de 4,8M.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">3,8% de penetración objetivo año 3.</div></div></li>
-          <li><div><strong>Equilibrio mes 17.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">TIR &gt; 80% · ARR proyectado $2.172M COP.</div></div></li>
+          <li><div><strong style="color:var(--earth-deep);font-weight:900">Producto en producción.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">No es un mockup. Es agropulse.company.</div></div></li>
+          <li><div><strong style="color:var(--earth-deep);font-weight:900">Mercado de 4,8M.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">3,8% de penetración objetivo año 3 · ~129K usuarios activos.</div></div></li>
+          <li><div><strong style="color:var(--earth-deep);font-weight:900">Equilibrio mes 17.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">TIR &gt; 80% · ARR proyectado $2.172M COP · LTV/CAC 9,2x.</div></div></li>
         </ol>
-        <div style="margin-top:32px;padding:20px;background:rgba(200,150,42,.12);border-radius:12px;font-size:14px">
-          <strong style="color:var(--harvest);letter-spacing:1px;text-transform:uppercase;font-size:12px">Equipo TerraX</strong>
-          <p style="margin-top:8px">Daniel Ortiz · Camila Beltrán · Juan Rincón · Daniel Galvis</p>
-          <p style="margin-top:4px;color:var(--text-muted)">Ingeniería de Sistemas · Pontificia Universidad Javeriana</p>
+        <div style="margin-top:32px;padding:22px;background:rgba(184,132,31,.14);border-radius:14px;font-size:14px">
+          <strong style="color:var(--harvest);letter-spacing:1.5px;text-transform:uppercase;font-size:11px;font-weight:800">Equipo TerraX</strong>
+          <p style="margin-top:8px;color:var(--earth-deep);font-weight:700">Daniel Ortiz · Camila Beltrán · Juan Rincón · Daniel Galvis</p>
+          <p style="margin-top:4px;color:var(--text-muted);font-weight:500">Ingeniería de Sistemas · Pontificia Universidad Javeriana</p>
         </div>
       </div>
       <div class="qr-wrap">
-        <div class="qr"></div>
+        <img class="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https%3A%2F%2Fagropulse.company&color=0A1A12&bgcolor=FFFFFF&margin=4" alt="QR agropulse.company">
         <div class="qr-url">agropulse.company</div>
-        <div class="qr-sub">Pruébalo ahora desde tu teléfono</div>
+        <div class="qr-sub">Escanea y entra desde tu teléfono</div>
       </div>
     </div>
   </section>
 
+</div>
+
+<!-- ===== Tour overlay ===== -->
+<div class="tour-overlay" id="tour-overlay">
+  <div class="tour-frame">
+    <button class="tour-close" id="tour-close">✕</button>
+    <div class="tour-phone">
+      <div class="phone-screen" id="tour-screen-host">
+        <!-- screens cloned from demo on tour open -->
+      </div>
+      <div class="tour-spotlight" id="tour-spotlight" style="display:none"></div>
+    </div>
+    <div class="tour-tooltip" id="tour-tooltip">
+      <div class="tour-progress" id="tour-progress"></div>
+      <div class="tour-step-num" id="tour-step-num">Paso 1 de 8</div>
+      <h3 id="tour-title">—</h3>
+      <p id="tour-body">—</p>
+      <div class="tour-controls">
+        <button class="tour-btn secondary" id="tour-prev">← Atrás</button>
+        <button class="tour-btn primary" id="tour-next">Siguiente →</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="progress-bar" id="progress"></div>
@@ -1073,24 +1589,13 @@ body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
 const slides = Array.from(document.querySelectorAll('.slide'));
 const sectionNames = slides.map(s => s.dataset.section);
 let current = 0;
-let totalSec = 7*60;
-let remain = totalSec;
-let running = false;
-let tick = null;
 
-const $timer = document.getElementById('timer');
-const $section = document.getElementById('section-name');
-const $play = document.getElementById('btn-play');
-const $reset = document.getElementById('btn-reset');
-const $theme = document.getElementById('btn-theme');
-const $help = document.getElementById('btn-help');
-const $kbd = document.getElementById('kbd-help');
+const $counter = document.getElementById('counter');
 const $prev = document.getElementById('prev');
 const $next = document.getElementById('next');
 const $progress = document.getElementById('progress');
 const $start = document.getElementById('start-btn');
 
-// build progress bar
 sectionNames.forEach((n,i)=>{
   const el=document.createElement('div');
   el.className='progress-step';
@@ -1100,72 +1605,43 @@ sectionNames.forEach((n,i)=>{
 });
 const progressSteps = Array.from($progress.children);
 
-function fmt(s){
-  const m=Math.floor(s/60), r=s%60;
-  return `${m}:${String(r).padStart(2,'0')}`;
-}
-function updateTimer(){
-  $timer.textContent = fmt(Math.max(0,remain));
-  $timer.classList.toggle('warn', remain<=60 && remain>30);
-  $timer.classList.toggle('crit', remain<=30 && remain>0);
-  if(remain<=0){ pause(); $timer.textContent='0:00'; }
-}
-function play(){
-  if(running) return;
-  running=true;
-  $play.textContent='⏸';
-  tick=setInterval(()=>{ remain--; updateTimer(); }, 1000);
-}
-function pause(){
-  running=false;
-  $play.textContent='▶';
-  if(tick){clearInterval(tick); tick=null;}
-}
-function reset(){
-  pause(); remain=totalSec; updateTimer();
-}
 function go(i){
   if(i<0||i>=slides.length) return;
   slides[current].classList.remove('active');
-  slides[current].classList.add('prev');
+  if(i>current) slides[current].classList.add('prev');
   current=i;
   slides.forEach((s,j)=>{
     s.classList.toggle('active', j===i);
-    if(j!==i && j<i) s.classList.add('prev');
-    else if(j>i) s.classList.remove('prev');
+    if(j<i) s.classList.add('prev');
+    else s.classList.remove('prev');
   });
-  $section.textContent = `${String(i+1).padStart(2,'0')} · ${sectionNames[i]}`;
+  $counter.textContent = `${String(i+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
   progressSteps.forEach((p,j)=>p.classList.toggle('active', j===i));
   $prev.disabled = i===0;
   $next.disabled = i===slides.length-1;
-  if(i===1) animateBigNumber();
-  if(i===6) renderChart('base'), animateKPIs('base');
+  if(sectionNames[i]==='Problema') animateBigNumber();
+  if(sectionNames[i]==='Finanzas'){ renderChart('base'); animateKPIs('base'); }
+  slides[i].scrollTop=0;
 }
 function nextSlide(){ go(Math.min(current+1, slides.length-1)); }
 function prevSlide(){ go(Math.max(current-1, 0)); }
 
-$play.onclick = ()=> running?pause():play();
-$reset.onclick = reset;
-$theme.onclick = ()=> document.body.classList.toggle('dark');
-$help.onclick = ()=> $kbd.classList.toggle('show');
 $prev.onclick = prevSlide;
 $next.onclick = nextSlide;
-$start.onclick = ()=>{ go(1); play(); };
+$start.onclick = ()=> go(1);
 
 document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowRight'||e.key==='PageDown') nextSlide();
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { e.preventDefault(); nextSlide(); }
   else if(e.key==='ArrowLeft'||e.key==='PageUp') prevSlide();
-  else if(e.key===' '){ e.preventDefault(); running?pause():play(); }
-  else if(e.key==='r'||e.key==='R') reset();
   else if(e.key==='t'||e.key==='T') document.body.classList.toggle('dark');
   else if(e.key==='f'||e.key==='F'){
     if(!document.fullscreenElement) document.documentElement.requestFullscreen();
     else document.exitFullscreen();
   }
-  else if(e.key==='?') $kbd.classList.toggle('show');
+  else if(e.key==='Home') go(0);
+  else if(e.key==='End') go(slides.length-1);
 });
 
-// big number animation
 function animateBigNumber(){
   const el=document.querySelector('.big-number');
   if(!el || el.dataset.done) return;
@@ -1181,7 +1657,6 @@ function animateBigNumber(){
   requestAnimationFrame(step);
 }
 
-// KPI animation
 const scenarios = {
   cons: {users:32500, mrr:90, arr:1080, margin:62, pe:'Mes 22', van:'$220M', conv:'12%',
     line:[2,5,9,14,20,27,35,44,54,65,77,90,103,117,131,146,162,179,196,214,232,251,270,290,310,331,353,375,397,420,443,467,491,515,540,565]},
@@ -1218,7 +1693,7 @@ function animateKPIs(s){
 function renderChart(s){
   const data = scenarios[s].line;
   const max = Math.max(...data);
-  const W=600, H=240, pad=10;
+  const W=600, H=220, pad=10;
   const pts = data.map((v,i)=>{
     const x = (i/(data.length-1))*(W-pad*2)+pad;
     const y = H - (v/max)*(H-pad*2) - pad;
@@ -1230,7 +1705,6 @@ function renderChart(s){
   const $area = document.getElementById('chart-area');
   $line.setAttribute('d', linePath);
   $area.setAttribute('d', areaPath);
-  // animate
   const len = $line.getTotalLength();
   $line.style.strokeDasharray = len;
   $line.style.strokeDashoffset = len;
@@ -1249,7 +1723,6 @@ document.querySelectorAll('.fin-tab').forEach(t=>{
   };
 });
 
-// demo screen nav
 function goScreen(name){
   document.querySelectorAll('#demo-screen .ph-screen').forEach(s=>{
     s.classList.toggle('active', s.dataset.scr===name);
@@ -1262,10 +1735,117 @@ function goScreen(name){
 }
 window.goScreen = goScreen;
 
-// init
-updateTimer();
 $prev.disabled = true;
+$counter.textContent = `01 / ${String(slides.length).padStart(2,'0')}`;
 
+/* ===== TOUR GUIADO ===== */
+const tourSteps = [
+  {scr:'home', target:'.ph-greeting', title:'Bienvenida personalizada',
+    body:'Lo primero que ve Juan David al abrir AgroPulse: su nombre y un llamado directo a publicar. Cero fricción, va al grano.'},
+  {scr:'home', target:'.ph-actions', title:'Cuatro acciones rápidas',
+    body:'Una sola pantalla, cuatro caminos: publicar oferta, pedir recursos, prestar equipo o proponer trueque. Sin menús anidados.'},
+  {scr:'home', target:'.ph-section-title', title:'Tus publicaciones primero',
+    body:'El campesino ve su propio inventario antes que el de otros. Filtros por tipo de intercambio justo abajo.'},
+  {scr:'home', target:'.ph-post[onclick]', title:'Feed de la comunidad',
+    body:'Publicaciones cercanas con tag claro de tipo (oferta, préstamo, trueque, solicitud) y ubicación. Toca para ver detalle.'},
+  {scr:'detail', target:'.ph-detail-img', title:'Detalle visual',
+    body:'Foto, descripción y datos del recurso. La trazabilidad arranca aquí: quién publica, dónde, con qué reputación.'},
+  {scr:'detail', target:'.ph-detail-meta', title:'Confianza visible',
+    body:'Ubicación, calificación y dueño en un vistazo. La estrella es el activo: 4.8 abre puertas.'},
+  {scr:'detail', target:'.ph-cta', title:'Proponer acuerdo',
+    body:'Un toque dispara la negociación. Se crea acuerdo trazable y abre chat directo con la otra parte.'},
+  {scr:'detail', target:'.ph-chat', title:'Chat con foto y ubicación',
+    body:'Toda la conversación queda dentro de la app. Sin saltar a WhatsApp. Foto + GPS para coordinar entrega.'},
+  {scr:'plans', target:'.ph-plan-card.featured', title:'Plan Pro · conversión',
+    body:'Cuando el productor pasa de 10 publicaciones, el freemium empuja al Pro. $21.900/mes desbloquea ilimitado, alertas y exportar acuerdos.'},
+  {scr:'plans', target:'.ph-cta', title:'Suscribirse en un toque',
+    body:'Pasarela integrada. El productor paga en pesos y queda activo de inmediato. Esto alimenta el MRR de $181M en mes 36.'},
+];
+
+const $tourOverlay = document.getElementById('tour-overlay');
+const $tourClose = document.getElementById('tour-close');
+const $tourPrev = document.getElementById('tour-prev');
+const $tourNext = document.getElementById('tour-next');
+const $tourLaunch = document.getElementById('tour-launch');
+const $tourTitle = document.getElementById('tour-title');
+const $tourBody = document.getElementById('tour-body');
+const $tourStepNum = document.getElementById('tour-step-num');
+const $tourProgress = document.getElementById('tour-progress');
+const $tourSpotlight = document.getElementById('tour-spotlight');
+const $tourHost = document.getElementById('tour-screen-host');
+let tourIdx = 0;
+
+function buildTourProgress(){
+  $tourProgress.innerHTML='';
+  tourSteps.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='tour-progress-dot';
+    if(i<=tourIdx) d.classList.add('done');
+    $tourProgress.appendChild(d);
+  });
+}
+
+function openTour(){
+  // clone demo screens into tour phone
+  $tourHost.innerHTML='';
+  document.querySelectorAll('#demo-screen .ph-screen').forEach(s=>{
+    const c=s.cloneNode(true);
+    c.classList.remove('active');
+    $tourHost.appendChild(c);
+  });
+  tourIdx=0;
+  $tourOverlay.classList.add('active');
+  showTourStep();
+}
+function closeTour(){
+  $tourOverlay.classList.remove('active');
+}
+
+function showTourStep(){
+  const step = tourSteps[tourIdx];
+  // switch screen
+  $tourHost.querySelectorAll('.ph-screen').forEach(s=>{
+    s.classList.toggle('active', s.dataset.scr===step.scr);
+  });
+  $tourTitle.textContent = step.title;
+  $tourBody.textContent = step.body;
+  $tourStepNum.textContent = `Paso ${tourIdx+1} de ${tourSteps.length}`;
+  buildTourProgress();
+  $tourPrev.disabled = tourIdx===0;
+  $tourNext.textContent = tourIdx===tourSteps.length-1 ? '✓ Cerrar' : 'Siguiente →';
+
+  // spotlight
+  setTimeout(()=>{
+    const screen = $tourHost.querySelector('.ph-screen.active');
+    if(!screen){$tourSpotlight.style.display='none';return}
+    const target = screen.querySelector(step.target);
+    if(!target){$tourSpotlight.style.display='none';return}
+    const phoneRect = $tourHost.getBoundingClientRect();
+    const tRect = target.getBoundingClientRect();
+    const phoneAbs = $tourHost.parentElement.getBoundingClientRect();
+    $tourSpotlight.style.display='block';
+    $tourSpotlight.style.left = (tRect.left - phoneAbs.left - 4) + 'px';
+    $tourSpotlight.style.top = (tRect.top - phoneAbs.top - 4) + 'px';
+    $tourSpotlight.style.width = (tRect.width + 8) + 'px';
+    $tourSpotlight.style.height = (tRect.height + 8) + 'px';
+    target.scrollIntoView({behavior:'smooth', block:'center'});
+  }, 80);
+}
+
+$tourLaunch.onclick = openTour;
+$tourClose.onclick = closeTour;
+$tourPrev.onclick = ()=>{ if(tourIdx>0){tourIdx--; showTourStep();} };
+$tourNext.onclick = ()=>{
+  if(tourIdx<tourSteps.length-1){tourIdx++; showTourStep();}
+  else closeTour();
+};
+$tourOverlay.addEventListener('click', e=>{ if(e.target===$tourOverlay) closeTour(); });
+document.addEventListener('keydown', e=>{
+  if(!$tourOverlay.classList.contains('active')) return;
+  if(e.key==='Escape') closeTour();
+  else if(e.key==='ArrowRight'){ e.stopPropagation(); $tourNext.click(); }
+  else if(e.key==='ArrowLeft'){ e.stopPropagation(); $tourPrev.click(); }
+}, true);
 </script>
 </body>
 </html>
