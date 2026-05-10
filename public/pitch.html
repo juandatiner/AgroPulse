@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgroPulse — Pitch TerraX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --earth:#1E3A2F;
+  --earth-deep:#0F2419;
+  --earth-mid:#2D5A27;
+  --field:#7A9A3C;
+  --harvest:#C8962A;
+  --harvest-light:#E8B84B;
+  --soil:#8B6914;
+  --cream:#F5F0E8;
+  --cream-dark:#EDE4D4;
+  --white:#FFFFFF;
+  --text:#1A1A1A;
+  --text-muted:#5A6B45;
+  --shadow-lg:0 20px 60px rgba(15,36,25,0.25);
+  --shadow-md:0 8px 24px rgba(15,36,25,0.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--cream);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+body.dark{background:var(--earth-deep);color:var(--cream)}
+.serif{font-family:'Playfair Display',serif}
+
+/* ===== Stage ===== */
+#stage{position:fixed;inset:0;overflow:hidden}
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  padding:64px 80px 100px;
+  opacity:0;pointer-events:none;
+  transform:translateX(40px);
+  transition:opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1);
+  overflow:hidden;
+}
+.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
+.slide.prev{transform:translateX(-40px)}
+
+/* ===== Top bar ===== */
+.topbar{
+  position:fixed;top:18px;left:24px;right:24px;
+  display:flex;justify-content:space-between;align-items:center;
+  z-index:100;pointer-events:none;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  pointer-events:auto;
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(10px);
+  padding:8px 16px;border-radius:999px;
+  box-shadow:var(--shadow-md);
+  font-weight:700;color:var(--earth);
+}
+body.dark .brand{background:rgba(30,58,47,.7);color:var(--cream)}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--harvest);box-shadow:0 0 10px var(--harvest-light)}
+.controls{display:flex;gap:10px;pointer-events:auto;align-items:center}
+.timer{
+  display:flex;align-items:center;gap:10px;
+  background:var(--earth);color:var(--cream);
+  padding:10px 18px;border-radius:14px;
+  font-weight:700;font-variant-numeric:tabular-nums;
+  font-size:22px;letter-spacing:1px;
+  box-shadow:var(--shadow-md);
+}
+.timer.warn{background:var(--harvest);color:var(--earth-deep);animation:pulse 1s infinite}
+.timer.crit{background:#C0392B;color:#fff;animation:shake .4s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.btn-icon{
+  width:42px;height:42px;border-radius:12px;border:none;
+  background:rgba(255,255,255,.85);color:var(--earth);
+  cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;box-shadow:var(--shadow-md);
+}
+.btn-icon:hover{background:var(--earth);color:var(--cream);transform:translateY(-2px)}
+body.dark .btn-icon{background:rgba(30,58,47,.7);color:var(--cream)}
+
+/* ===== Bottom progress ===== */
+.progress-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;background:rgba(15,36,25,.05);
+  z-index:50;border-top:1px solid rgba(15,36,25,.08);
+}
+body.dark .progress-bar{background:rgba(0,0,0,.3);border-top-color:rgba(245,240,232,.1)}
+.progress-step{
+  flex:1;padding:14px 8px;text-align:center;
+  font-size:12px;font-weight:600;color:var(--text-muted);
+  cursor:pointer;transition:all .25s;
+  border-right:1px solid rgba(15,36,25,.05);
+  position:relative;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.progress-step:last-child{border-right:none}
+.progress-step:hover{background:rgba(200,150,42,.1);color:var(--earth)}
+.progress-step.active{color:var(--earth);background:var(--cream-dark)}
+.progress-step.active::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--harvest);
+}
+body.dark .progress-step{color:var(--cream-dark);opacity:.6}
+body.dark .progress-step.active{background:rgba(200,150,42,.15);opacity:1}
+
+/* ===== Side arrows ===== */
+.nav-arrow{
+  position:fixed;top:50%;transform:translateY(-50%);
+  width:54px;height:54px;border-radius:50%;
+  background:var(--earth);color:var(--cream);
+  border:none;cursor:pointer;font-size:22px;
+  display:flex;align-items:center;justify-content:center;
+  z-index:80;box-shadow:var(--shadow-lg);
+  transition:all .2s;
+}
+.nav-arrow:hover{background:var(--harvest);color:var(--earth-deep);transform:translateY(-50%) scale(1.1)}
+.nav-arrow.prev{left:20px}
+.nav-arrow.next{right:20px}
+.nav-arrow:disabled{opacity:.3;cursor:not-allowed}
+
+/* ===== Slide 0: Cover ===== */
+.cover{
+  background:
+    radial-gradient(ellipse at 20% 30%,rgba(122,154,60,.25) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 70%,rgba(200,150,42,.2) 0%,transparent 50%),
+    linear-gradient(160deg,var(--earth-deep) 0%,var(--earth) 50%,var(--earth-mid) 100%);
+  color:var(--cream);
+  align-items:center;justify-content:center;text-align:center;
+  padding:0;
+}
+.cover-bg{
+  position:absolute;inset:0;
+  background-image:
+    repeating-linear-gradient(45deg,transparent 0,transparent 80px,rgba(122,154,60,.04) 80px,rgba(122,154,60,.04) 81px);
+  pointer-events:none;
+}
+.cover-emoji{position:absolute;font-size:80px;opacity:.08;pointer-events:none}
+.cover .logo-mark{
+  width:120px;height:120px;border-radius:32px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  display:flex;align-items:center;justify-content:center;
+  font-size:64px;margin:0 auto 32px;
+  box-shadow:0 20px 60px rgba(200,150,42,.4);
+  animation:float 3s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.cover h1{
+  font-size:clamp(72px,9vw,140px);font-weight:900;
+  line-height:1;letter-spacing:-3px;
+  margin-bottom:24px;
+}
+.cover h1 .accent{color:var(--harvest-light)}
+.cover .tagline{
+  font-size:clamp(20px,2vw,28px);font-weight:300;
+  color:var(--cream);opacity:.85;
+  max-width:700px;margin:0 auto 48px;
+}
+.cover .pills{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:48px}
+.pill{
+  padding:8px 18px;border-radius:999px;
+  background:rgba(245,240,232,.1);
+  border:1px solid rgba(245,240,232,.2);
+  font-size:14px;font-weight:500;
+  backdrop-filter:blur(10px);
+}
+.cover .team{
+  display:flex;gap:24px;justify-content:center;margin-bottom:40px;flex-wrap:wrap;
+}
+.team-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 14px;border-radius:12px;
+  background:rgba(245,240,232,.06);
+  font-size:14px;
+}
+.team-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--harvest);color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;
+}
+.start-btn{
+  padding:18px 48px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);font-weight:800;font-size:18px;
+  cursor:pointer;
+  box-shadow:0 12px 32px rgba(200,150,42,.4);
+  transition:all .2s;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.start-btn:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(200,150,42,.5)}
+.terrax{
+  margin-top:32px;font-size:13px;opacity:.6;
+  letter-spacing:2px;text-transform:uppercase;
+}
+
+/* ===== Generic slide layout ===== */
+.slide-eyebrow{
+  font-size:13px;font-weight:700;color:var(--harvest);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;
+}
+.slide h2{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(40px,5vw,72px);font-weight:900;
+  line-height:1.05;color:var(--earth);
+  margin-bottom:32px;letter-spacing:-2px;
+}
+body.dark .slide h2{color:var(--cream)}
+.slide h3{font-size:24px;font-weight:700;color:var(--earth);margin-bottom:12px}
+body.dark .slide h3{color:var(--cream)}
+
+/* ===== Slide 1 problema ===== */
+.problem-hero{
+  display:flex;align-items:center;gap:48px;margin-bottom:40px;
+}
+.big-number{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(120px,14vw,200px);
+  font-weight:900;line-height:1;
+  background:linear-gradient(135deg,var(--harvest),var(--soil));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  letter-spacing:-6px;
+}
+.big-number-label{font-size:18px;color:var(--text-muted);max-width:280px;line-height:1.4}
+.problem-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:16px}
+.p-card{
+  background:var(--white);
+  padding:28px;border-radius:20px;
+  box-shadow:var(--shadow-md);
+  border-left:4px solid var(--harvest);
+  opacity:0;transform:translateY(20px);
+  transition:all .5s ease;
+}
+.slide.active .p-card{opacity:1;transform:translateY(0)}
+.slide.active .p-card:nth-child(1){transition-delay:.2s}
+.slide.active .p-card:nth-child(2){transition-delay:.4s}
+.slide.active .p-card:nth-child(3){transition-delay:.6s}
+.p-card .icon{font-size:42px;margin-bottom:14px}
+.p-card h3{margin-bottom:8px;font-size:22px}
+.p-card p{color:var(--text-muted);line-height:1.5;font-size:15px}
+body.dark .p-card{background:rgba(30,58,47,.5);color:var(--cream)}
+
+/* ===== Slide solucion ===== */
+.solution-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center}
+.exchange-types{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.ex-card{
+  background:var(--white);padding:24px;border-radius:18px;
+  box-shadow:var(--shadow-md);cursor:pointer;
+  transition:all .3s;border:2px solid transparent;
+}
+.ex-card:hover{transform:translateY(-4px);border-color:var(--harvest);box-shadow:var(--shadow-lg)}
+.ex-card .ex-icon{
+  width:56px;height:56px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:14px;
+}
+.ex-1 .ex-icon{background:#FFE4C4;color:var(--harvest)}
+.ex-2 .ex-icon{background:#D4EDDA;color:var(--earth-mid)}
+.ex-3 .ex-icon{background:#FFF3CD;color:var(--soil)}
+.ex-4 .ex-icon{background:#E1F5FE;color:#0288D1}
+.ex-card h4{font-size:17px;font-weight:700;margin-bottom:6px;color:var(--earth)}
+.ex-card p{font-size:13px;color:var(--text-muted);line-height:1.4}
+body.dark .ex-card{background:rgba(30,58,47,.5)}
+body.dark .ex-card h4{color:var(--cream)}
+
+/* phone mockup */
+.phone{
+  width:300px;height:600px;
+  background:#0F2419;
+  border-radius:42px;padding:14px;
+  box-shadow:0 30px 80px rgba(15,36,25,.4),inset 0 0 0 2px rgba(245,240,232,.1);
+  position:relative;margin:0 auto;
+}
+.phone::before{
+  content:'';position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  width:100px;height:24px;background:#000;border-radius:12px;z-index:10;
+}
+.phone-screen{
+  width:100%;height:100%;background:var(--cream);
+  border-radius:32px;overflow:hidden;
+  display:flex;flex-direction:column;
+  position:relative;
+}
+
+/* ===== Slide oportunidad ===== */
+.funnel{display:flex;flex-direction:column;gap:14px;max-width:600px;margin:20px auto}
+.funnel-item{
+  padding:24px 32px;border-radius:14px;color:var(--white);
+  font-weight:700;display:flex;justify-content:space-between;align-items:center;
+  transform:scaleX(0);transform-origin:left;
+  transition:transform .8s cubic-bezier(.2,.8,.2,1);
+}
+.slide.active .funnel-item:nth-child(1){transition-delay:.2s;transform:scaleX(1)}
+.slide.active .funnel-item:nth-child(2){transition-delay:.5s;transform:scaleX(1)}
+.slide.active .funnel-item:nth-child(3){transition-delay:.8s;transform:scaleX(1)}
+.funnel-1{background:linear-gradient(135deg,var(--earth),var(--earth-mid));width:100%}
+.funnel-2{background:linear-gradient(135deg,var(--earth-mid),var(--field));width:75%;align-self:center}
+.funnel-3{background:linear-gradient(135deg,var(--field),var(--harvest));width:50%;align-self:center}
+.funnel-label{font-size:14px;letter-spacing:1.5px;text-transform:uppercase;opacity:.85}
+.funnel-value{font-size:24px}
+
+/* ===== Slide propuesta valor ===== */
+.value-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+.value-card{
+  background:linear-gradient(135deg,var(--white),var(--cream-dark));
+  padding:32px;border-radius:20px;box-shadow:var(--shadow-md);
+  border-top:4px solid var(--harvest);
+}
+.value-card .v-icon{font-size:36px;margin-bottom:16px}
+.value-card h3{font-size:22px;margin-bottom:8px}
+.value-card p{color:var(--text-muted);line-height:1.5}
+body.dark .value-card{background:rgba(30,58,47,.5);color:var(--cream)}
+
+/* ===== Slide 4P ===== */
+.fourp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:16px}
+.p-block{
+  background:var(--white);padding:24px;border-radius:16px;
+  box-shadow:var(--shadow-md);
+}
+.p-block h3{
+  font-size:14px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--harvest);margin-bottom:14px;
+}
+.p-block ul{list-style:none}
+.p-block li{padding:6px 0;color:var(--text);font-size:15px;line-height:1.5}
+.p-block li::before{content:'▸ ';color:var(--harvest);font-weight:700}
+.plans{display:flex;gap:14px;margin-top:10px}
+.plan{
+  flex:1;padding:14px;border-radius:10px;
+  background:var(--cream-dark);font-size:13px;
+}
+.plan strong{display:block;color:var(--earth);font-size:15px;margin-bottom:4px}
+.plan .price{color:var(--harvest);font-weight:700;font-size:18px;margin-top:4px}
+body.dark .p-block{background:rgba(30,58,47,.5);color:var(--cream)}
+body.dark .plan{background:rgba(0,0,0,.2);color:var(--cream)}
+
+/* ===== Slide finanzas ===== */
+.fin-tabs{display:flex;gap:8px;margin-bottom:20px}
+.fin-tab{
+  padding:10px 22px;border-radius:10px;border:2px solid var(--earth);
+  background:transparent;color:var(--earth);font-weight:700;
+  cursor:pointer;font-size:14px;text-transform:uppercase;letter-spacing:1px;
+  transition:all .2s;
+}
+.fin-tab.active{background:var(--earth);color:var(--cream)}
+body.dark .fin-tab{border-color:var(--cream);color:var(--cream)}
+body.dark .fin-tab.active{background:var(--harvest);color:var(--earth-deep);border-color:var(--harvest)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi{
+  background:var(--white);padding:20px;border-radius:14px;
+  box-shadow:var(--shadow-md);text-align:center;
+}
+.kpi-val{
+  font-family:'Playfair Display',serif;font-weight:900;
+  font-size:32px;color:var(--earth);line-height:1;margin-bottom:6px;
+}
+.kpi-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
+body.dark .kpi{background:rgba(30,58,47,.5)}
+body.dark .kpi-val{color:var(--harvest-light)}
+.chart-wrap{
+  background:var(--white);padding:24px;border-radius:18px;
+  box-shadow:var(--shadow-md);
+  display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:center;
+}
+body.dark .chart-wrap{background:rgba(30,58,47,.5)}
+#chart{width:100%;height:240px}
+.fin-summary{font-size:14px;line-height:1.7}
+.fin-summary strong{color:var(--harvest)}
+
+/* ===== Slide demo ===== */
+.demo-stage{
+  display:grid;grid-template-columns:340px 1fr;gap:60px;
+  align-items:center;height:100%;
+}
+.demo-info h2{margin-bottom:16px}
+.demo-info p{font-size:18px;color:var(--text-muted);line-height:1.6;margin-bottom:24px}
+body.dark .demo-info p{color:var(--cream-dark)}
+.demo-screens-nav{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.demo-nav-btn{
+  padding:8px 14px;border-radius:8px;border:2px solid var(--earth);
+  background:transparent;color:var(--earth);font-weight:600;
+  cursor:pointer;font-size:13px;
+}
+.demo-nav-btn.active{background:var(--earth);color:var(--cream)}
+body.dark .demo-nav-btn{border-color:var(--cream);color:var(--cream)}
+body.dark .demo-nav-btn.active{background:var(--harvest);border-color:var(--harvest);color:var(--earth-deep)}
+.feature-callouts{display:flex;flex-direction:column;gap:14px}
+.callout{
+  padding:14px 18px;border-radius:12px;
+  background:rgba(200,150,42,.1);border-left:3px solid var(--harvest);
+  font-size:14px;
+}
+.callout strong{color:var(--harvest);display:block;margin-bottom:2px;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+
+/* phone interactive content */
+.phone-screen .ph-screen{display:none;flex-direction:column;height:100%;animation:slideInRight .4s ease}
+.phone-screen .ph-screen.active{display:flex}
+@keyframes slideInRight{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+.ph-header{
+  background:var(--earth);color:var(--cream);
+  padding:38px 16px 14px;display:flex;justify-content:space-between;align-items:center;
+}
+.ph-header .logo{font-weight:800;font-size:18px}
+.ph-header .avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--harvest);color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;
+}
+.ph-body{flex:1;overflow-y:auto;padding:14px;background:var(--cream)}
+.ph-body::-webkit-scrollbar{width:0}
+.ph-greeting{
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
+  padding:16px;border-radius:14px;margin-bottom:14px;
+}
+.ph-greeting strong{display:block;font-size:15px;margin-bottom:4px}
+.ph-greeting span{font-size:12px;opacity:.8}
+.ph-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+.ph-action{
+  background:var(--white);padding:12px 8px;border-radius:10px;
+  text-align:center;font-size:11px;font-weight:600;color:var(--earth);
+  box-shadow:0 2px 6px rgba(15,36,25,.06);cursor:pointer;
+}
+.ph-action .em{font-size:20px;display:block;margin-bottom:4px}
+.ph-section-title{font-size:13px;font-weight:700;color:var(--earth);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.ph-tabs{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto}
+.ph-tab{
+  padding:5px 10px;border-radius:6px;background:var(--cream-dark);
+  font-size:11px;font-weight:600;color:var(--earth);white-space:nowrap;cursor:pointer;
+}
+.ph-tab.on{background:var(--earth);color:var(--cream)}
+.ph-post{
+  background:var(--white);padding:10px 12px;border-radius:10px;margin-bottom:8px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 1px 4px rgba(15,36,25,.05);cursor:pointer;
+}
+.ph-post-title{font-size:12px;font-weight:600;color:var(--earth);margin-bottom:3px}
+.ph-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;letter-spacing:.5px}
+.tag-OFERTA{background:#FFE4C4;color:#8B4513}
+.tag-PRESTAMO{background:#FFF3CD;color:#856404}
+.tag-TRUEQUE{background:#D4EDDA;color:#155724}
+.tag-SOLICITUD{background:#E1F5FE;color:#01579B}
+.ph-loc{font-size:10px;color:var(--text-muted);margin-top:2px}
+.ph-status{font-size:9px;color:var(--field);font-weight:700}
+
+.ph-nav{
+  display:flex;background:var(--white);border-top:1px solid var(--cream-dark);
+  padding:8px 0;
+}
+.ph-nav-item{
+  flex:1;text-align:center;font-size:9px;color:var(--text-muted);font-weight:600;
+}
+.ph-nav-item.on{color:var(--harvest)}
+.ph-nav-item .em{font-size:18px;display:block;margin-bottom:2px}
+
+/* detail screen */
+.ph-detail-img{
+  height:140px;background:linear-gradient(135deg,var(--field),var(--earth-mid));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:60px;margin-bottom:14px;
+}
+.ph-detail-title{font-size:18px;font-weight:800;color:var(--earth);margin-bottom:6px}
+.ph-detail-desc{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:14px}
+.ph-detail-meta{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.ph-meta-item{
+  background:var(--white);padding:6px 10px;border-radius:8px;
+  font-size:11px;color:var(--earth);font-weight:600;
+}
+.ph-cta{
+  background:var(--harvest);color:var(--earth-deep);
+  padding:12px;border-radius:10px;text-align:center;
+  font-weight:700;font-size:13px;margin-bottom:8px;cursor:pointer;
+}
+.ph-cta-2{
+  background:var(--white);color:var(--earth);
+  padding:10px;border-radius:10px;text-align:center;
+  font-weight:600;font-size:12px;border:1.5px solid var(--earth);
+}
+.ph-chat{
+  background:var(--white);border-radius:10px;padding:10px;margin-top:10px;
+}
+.ph-msg{
+  padding:8px 10px;border-radius:10px;font-size:11px;margin-bottom:6px;max-width:80%;
+}
+.ph-msg.them{background:var(--cream-dark);color:var(--text)}
+.ph-msg.me{background:var(--earth);color:var(--cream);margin-left:auto}
+
+/* plans screen */
+.ph-plan-card{
+  background:var(--white);border-radius:14px;padding:16px;margin-bottom:12px;
+  border:2px solid transparent;
+}
+.ph-plan-card.featured{border-color:var(--harvest);background:linear-gradient(135deg,var(--white),#FFF8E7)}
+.ph-plan-name{font-size:14px;font-weight:800;color:var(--earth);margin-bottom:4px}
+.ph-plan-price{font-size:22px;font-weight:900;color:var(--harvest);margin-bottom:10px}
+.ph-plan-price small{font-size:11px;color:var(--text-muted);font-weight:500}
+.ph-plan-feat{font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px}
+.ph-plan-feat::before{content:'✓';color:var(--field);font-weight:700}
+
+/* ===== Slide cierre ===== */
+.close-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;height:100%}
+.close-bullets{list-style:none}
+.close-bullets li{
+  padding:18px 0;border-bottom:1px solid rgba(15,36,25,.1);
+  font-size:18px;display:flex;gap:14px;
+}
+.close-bullets li::before{
+  content:counter(item,decimal-leading-zero);counter-increment:item;
+  font-family:'Playfair Display',serif;font-weight:900;font-size:28px;
+  color:var(--harvest);min-width:50px;
+}
+.close-bullets{counter-reset:item}
+body.dark .close-bullets li{border-color:rgba(245,240,232,.15)}
+.qr-wrap{
+  background:var(--white);padding:32px;border-radius:24px;
+  box-shadow:var(--shadow-lg);text-align:center;
+}
+.qr{
+  width:200px;height:200px;margin:0 auto 20px;
+  background:repeating-conic-gradient(var(--earth-deep) 0% 25%,var(--white) 0% 50%) 50%/8px 8px;
+  border-radius:12px;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.qr::after{
+  content:'';position:absolute;inset:30%;background:var(--harvest);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+}
+.qr-url{font-weight:700;color:var(--earth);font-size:18px;margin-bottom:8px}
+.qr-sub{color:var(--text-muted);font-size:13px}
+
+/* hidden helper */
+.kbd-help{
+  position:fixed;bottom:50px;left:24px;
+  font-size:11px;color:var(--text-muted);
+  background:rgba(255,255,255,.7);padding:8px 12px;
+  border-radius:8px;backdrop-filter:blur(10px);
+  z-index:90;display:none;
+}
+.kbd-help.show{display:block}
+.kbd-help kbd{
+  background:var(--earth);color:var(--cream);
+  padding:2px 6px;border-radius:4px;font-size:10px;
+  font-family:monospace;
+}
+body.dark .kbd-help{background:rgba(0,0,0,.5);color:var(--cream)}
+
+@media (max-width:900px){
+  .slide{padding:80px 24px 80px}
+  .demo-stage{grid-template-columns:1fr;gap:30px}
+  .problem-cards{grid-template-columns:1fr}
+  .solution-grid{grid-template-columns:1fr}
+  .close-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-dot"></div>
+    AgroPulse · TerraX
+  </div>
+  <div class="controls">
+    <span class="brand" id="section-name">01 · Inicio</span>
+    <div class="timer" id="timer">7:00</div>
+    <button class="btn-icon" id="btn-play" title="Play/Pausa">▶</button>
+    <button class="btn-icon" id="btn-reset" title="Reiniciar">↻</button>
+    <button class="btn-icon" id="btn-theme" title="Tema">◐</button>
+    <button class="btn-icon" id="btn-help" title="Ayuda">?</button>
+  </div>
+</div>
+
+<div class="kbd-help" id="kbd-help">
+  <kbd>←</kbd> <kbd>→</kbd> navegar &nbsp; <kbd>Espacio</kbd> play/pausa &nbsp; <kbd>R</kbd> reset &nbsp; <kbd>F</kbd> fullscreen &nbsp; <kbd>T</kbd> tema
+</div>
+
+<button class="nav-arrow prev" id="prev">‹</button>
+<button class="nav-arrow next" id="next">›</button>
+
+<div id="stage">
+
+  <!-- ===== SLIDE 0: COVER ===== -->
+  <section class="slide cover active" data-section="Inicio">
+    <div class="cover-bg"></div>
+    <div class="cover-emoji" style="top:10%;left:8%">🌱</div>
+    <div class="cover-emoji" style="top:20%;right:12%">🚜</div>
+    <div class="cover-emoji" style="bottom:15%;left:15%">🌾</div>
+    <div class="cover-emoji" style="bottom:20%;right:8%">🌿</div>
+    <div style="position:relative;z-index:2;text-align:center">
+      <div class="logo-mark">🌱</div>
+      <h1>Agro<span class="accent">Pulse</span></h1>
+      <p class="tagline serif">El banco de intercambios del campo colombiano</p>
+      <div class="pills">
+        <span class="pill">🤝 Cooperación rural</span>
+        <span class="pill">📍 Trazabilidad geográfica</span>
+        <span class="pill">⭐ Reputación digital</span>
+        <span class="pill">🇨🇴 Hecho en Colombia</span>
+      </div>
+      <div class="team">
+        <div class="team-item"><div class="team-avatar">DO</div>Daniel Ortiz</div>
+        <div class="team-item"><div class="team-avatar">CB</div>Camila Beltrán</div>
+        <div class="team-item"><div class="team-avatar">JR</div>Juan Rincón</div>
+        <div class="team-item"><div class="team-avatar">DG</div>Daniel Galvis</div>
+      </div>
+      <button class="start-btn" id="start-btn">Iniciar presentación · 7:00</button>
+      <div class="terrax">Equipo TerraX · Pontificia Universidad Javeriana</div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 1: PROBLEMA ===== -->
+  <section class="slide" data-section="Problema">
+    <div class="slide-eyebrow">01 · El problema</div>
+    <div class="problem-hero">
+      <div>
+        <div class="big-number" data-count="4.8">0</div>
+        <div class="big-number-label"><strong>millones</strong> de personas en el sector rural colombiano. Empleo rural creció 2,1% en 2025.</div>
+      </div>
+      <div style="flex:1">
+        <h2 style="font-size:48px">El campo coopera<br>sin herramientas.</h2>
+        <p style="font-size:18px;color:var(--text-muted);line-height:1.6">
+          Información dispersa en WhatsApp y voz a voz. Recursos subutilizados.
+          Acuerdos sin trazabilidad. Pérdida de tiempo y dinero todos los días.
+        </p>
+      </div>
+    </div>
+    <div class="problem-cards">
+      <div class="p-card">
+        <div class="icon">🤝</div>
+        <h3>Cooperación</h3>
+        <p>Difícil alinear intereses entre vecinos rurales. No existe una mesa común.</p>
+      </div>
+      <div class="p-card">
+        <div class="icon">📡</div>
+        <h3>Comunicación</h3>
+        <p>Información dispersa e informal. Lo que pasa en una vereda no llega a la siguiente.</p>
+      </div>
+      <div class="p-card">
+        <div class="icon">📋</div>
+        <h3>Colaboración</h3>
+        <p>Intercambios sin sistematizar ni trazabilidad. La palabra es el único contrato.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 2: SOLUCION ===== -->
+  <section class="slide" data-section="Solución">
+    <div class="slide-eyebrow">02 · La solución</div>
+    <h2>Marketplace rural<br>para 4 tipos de intercambio.</h2>
+    <div class="solution-grid">
+      <div class="exchange-types">
+        <div class="ex-card ex-1">
+          <div class="ex-icon">💰</div>
+          <h4>Compra / Venta</h4>
+          <p>Transacción monetaria directa.</p>
+        </div>
+        <div class="ex-card ex-2">
+          <div class="ex-icon">🔄</div>
+          <h4>Trueque</h4>
+          <p>Insumos o tiempo por servicios.</p>
+        </div>
+        <div class="ex-card ex-3">
+          <div class="ex-icon">🚜</div>
+          <h4>Préstamo / Alquiler</h4>
+          <p>Maquinaria y herramientas por tiempo.</p>
+        </div>
+        <div class="ex-card ex-4">
+          <div class="ex-icon">⭐</div>
+          <h4>Crédito social</h4>
+          <p>Reputación para acceder a recursos a crédito.</p>
+        </div>
+      </div>
+      <div class="phone" id="phone-mini">
+        <div class="phone-screen">
+          <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
+          <div class="ph-body" style="padding:10px">
+            <div class="ph-greeting"><strong>Juan David</strong><span>¿Qué quieres publicar hoy?</span></div>
+            <div class="ph-actions">
+              <div class="ph-action"><span class="em">📦</span>Publicar oferta</div>
+              <div class="ph-action"><span class="em">🙋</span>Pedir recursos</div>
+              <div class="ph-action"><span class="em">🔧</span>Prestar equipo</div>
+              <div class="ph-action"><span class="em">🔄</span>Trueque</div>
+            </div>
+            <div class="ph-section-title">De la comunidad</div>
+            <div class="ph-post">
+              <div><div class="ph-post-title">Motobomba buen estado</div><div class="ph-loc">Villa Patricia, Fusagasugá</div></div>
+              <span class="ph-tag tag-OFERTA">OFERTA</span>
+            </div>
+            <div class="ph-post">
+              <div><div class="ph-post-title">Tractor Tavol</div><div class="ph-loc">Mariscal Sucre</div></div>
+              <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
+            </div>
+          </div>
+          <div class="ph-nav">
+            <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
+            <div class="ph-nav-item"><span class="em">🔍</span>Buscar</div>
+            <div class="ph-nav-item"><span class="em">➕</span>Publicar</div>
+            <div class="ph-nav-item"><span class="em">📋</span>Acuerdos</div>
+            <div class="ph-nav-item"><span class="em">👤</span>Perfil</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="position:absolute;bottom:80px;left:80px;color:var(--text-muted);font-size:14px">
+      🟢 En producción <strong style="color:var(--earth)">→ agropulse.company</strong>
+    </p>
+  </section>
+
+  <!-- ===== SLIDE 3: OPORTUNIDAD ===== -->
+  <section class="slide" data-section="Oportunidad">
+    <div class="slide-eyebrow">03 · Oportunidad y cliente</div>
+    <h2>4,8M personas<br>en el sector rural.</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:20px">
+      <div class="funnel">
+        <div class="funnel-item funnel-1">
+          <span class="funnel-label">TAM · Total</span>
+          <span class="funnel-value">4,8M</span>
+        </div>
+        <div class="funnel-item funnel-2">
+          <span class="funnel-label">SAM · Agro directo</span>
+          <span class="funnel-value">3,4M</span>
+        </div>
+        <div class="funnel-item funnel-3">
+          <span class="funnel-label">SOM · Año 3</span>
+          <span class="funnel-value">3,8%</span>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-bottom:14px">Cliente primario</h3>
+        <p style="color:var(--text-muted);line-height:1.6;margin-bottom:20px">
+          Pequeños y medianos agricultores, asociaciones, cooperativas.
+          Café, cacao, frutas, hortalizas, ganadería.
+        </p>
+        <h3 style="margin-bottom:14px">Cliente secundario</h3>
+        <p style="color:var(--text-muted);line-height:1.6">
+          Agroemprendedores, proveedores locales de insumos, técnicos agrícolas
+          independientes, jóvenes rurales con enfoque digital.
+        </p>
+        <div style="margin-top:24px;padding:16px 20px;background:rgba(200,150,42,.12);border-left:3px solid var(--harvest);border-radius:8px;font-size:14px">
+          <strong style="color:var(--harvest)">Zonas piloto:</strong>
+          Cundinamarca · Boyacá · Tolima · Eje Cafetero
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 4: PROPUESTA VALOR ===== -->
+  <section class="slide" data-section="Valor">
+    <div class="slide-eyebrow">04 · Propuesta de valor</div>
+    <h2>El primer banco<br>de intercambios rurales.</h2>
+    <div class="value-grid" style="margin-top:32px">
+      <div class="value-card">
+        <div class="v-icon">🤝</div>
+        <h3>Cooperación sin dinero físico</h3>
+        <p>Conecta productores para intercambiar sin necesidad de capital líquido.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">🌍</div>
+        <h3>Acceso equitativo a recursos</h3>
+        <p>Reduce la brecha de acceso a maquinaria, insumos y conocimiento.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">📊</div>
+        <h3>Reputación trazable</h3>
+        <p>Historial verificable que abre puertas a crédito y nuevos negocios.</p>
+      </div>
+      <div class="value-card">
+        <div class="v-icon">📱</div>
+        <h3>Mobile-first, conectividad limitada</h3>
+        <p>Diseñado para funcionar donde la señal es débil y el dispositivo es básico.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 5: 4P ===== -->
+  <section class="slide" data-section="4P">
+    <div class="slide-eyebrow">05 · Mercadeo · 4P</div>
+    <h2>Modelo Freemium<br>+ comisiones.</h2>
+    <div class="fourp-grid">
+      <div class="p-block">
+        <h3>Producto</h3>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:10px">SaaS · App móvil + web</p>
+        <div class="plans">
+          <div class="plan">
+            <strong>Básico</strong>
+            10 publicaciones, mapa, chat con fotos
+            <div class="price">$12.900<small style="font-size:11px;color:var(--text-muted)">/mes</small></div>
+          </div>
+          <div class="plan" style="background:linear-gradient(135deg,var(--harvest),var(--harvest-light));color:var(--earth-deep)">
+            <strong style="color:var(--earth-deep)">Pro</strong>
+            Ilimitado, sin ads, alertas inteligentes, exportar acuerdos
+            <div class="price" style="color:var(--earth-deep)">$21.900<small style="color:var(--earth)">/mes</small></div>
+          </div>
+        </div>
+      </div>
+      <div class="p-block">
+        <h3>Precio</h3>
+        <ul>
+          <li>Freemium con conversión a pago</li>
+          <li>ARPU año 3: $3.247 COP/activo·mes</li>
+          <li>Comisión sobre transacciones marketplace</li>
+          <li>Conversión objetivo: 18%</li>
+        </ul>
+      </div>
+      <div class="p-block">
+        <h3>Plaza</h3>
+        <ul>
+          <li>Colombia rural</li>
+          <li>Inicio: Cundinamarca, Boyacá, Tolima</li>
+          <li>Eje Cafetero</li>
+          <li>Web + app móvil descargable</li>
+        </ul>
+      </div>
+      <div class="p-block">
+        <h3>Promoción</h3>
+        <ul>
+          <li>Alianzas con asociaciones campesinas</li>
+          <li>MinTIC y universidades</li>
+          <li>Boca a boca comunitario</li>
+          <li>Ferias y eventos agro</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 6: FINANZAS ===== -->
+  <section class="slide" data-section="Finanzas">
+    <div class="slide-eyebrow">06 · Indicadores financieros</div>
+    <h2>Punto de equilibrio<br>mes 17 · TIR &gt; 80%</h2>
+    <div class="fin-tabs">
+      <button class="fin-tab" data-scenario="cons">Conservador</button>
+      <button class="fin-tab active" data-scenario="base">Base</button>
+      <button class="fin-tab" data-scenario="agr">Agresivo</button>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val" data-kpi="users">0</div><div class="kpi-label">Usuarios mes 36</div></div>
+      <div class="kpi"><div class="kpi-val" data-kpi="mrr">0</div><div class="kpi-label">MRR mes 36 (M COP)</div></div>
+      <div class="kpi"><div class="kpi-val" data-kpi="arr">0</div><div class="kpi-label">ARR (MM COP)</div></div>
+      <div class="kpi"><div class="kpi-val" data-kpi="margin">0</div><div class="kpi-label">Margen op. %</div></div>
+    </div>
+    <div class="chart-wrap">
+      <svg id="chart" viewBox="0 0 600 240" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="grad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#C8962A" stop-opacity=".5"/>
+            <stop offset="100%" stop-color="#C8962A" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g id="grid">
+          <line x1="0" y1="60" x2="600" y2="60" stroke="rgba(0,0,0,.05)"/>
+          <line x1="0" y1="120" x2="600" y2="120" stroke="rgba(0,0,0,.05)"/>
+          <line x1="0" y1="180" x2="600" y2="180" stroke="rgba(0,0,0,.05)"/>
+        </g>
+        <path id="chart-area" d="" fill="url(#grad)"/>
+        <path id="chart-line" d="" fill="none" stroke="#C8962A" stroke-width="3"/>
+      </svg>
+      <div class="fin-summary">
+        <p style="margin-bottom:10px"><strong id="fin-pe">Mes 17</strong> · punto de equilibrio</p>
+        <p style="margin-bottom:10px"><strong id="fin-van">~$400M COP</strong> · VAN a 3 años</p>
+        <p style="margin-bottom:10px"><strong id="fin-conv">18%</strong> · conversión a pago</p>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:14px">
+          Capital semilla: Innpulsa · MinTIC · fondos universitarios · ángeles
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 7: DEMO ===== -->
+  <section class="slide" data-section="Demo">
+    <div class="slide-eyebrow">07 · Demo del prototipo</div>
+    <div class="demo-stage">
+      <div class="phone" id="phone-demo">
+        <div class="phone-screen" id="demo-screen">
+
+          <div class="ph-screen active" data-scr="home">
+            <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
+            <div class="ph-body">
+              <div class="ph-greeting"><strong>Juan David</strong><span>¿Qué quieres publicar hoy?</span></div>
+              <div class="ph-actions">
+                <div class="ph-action"><span class="em">📦</span>Publicar oferta</div>
+                <div class="ph-action"><span class="em">🙋</span>Pedir recursos</div>
+                <div class="ph-action"><span class="em">🔧</span>Prestar equipo</div>
+                <div class="ph-action"><span class="em">🔄</span>Trueque</div>
+              </div>
+              <div class="ph-section-title">Mis publicaciones</div>
+              <div class="ph-tabs">
+                <span class="ph-tab on">Todas</span>
+                <span class="ph-tab">Oferta</span>
+                <span class="ph-tab">Solicitud</span>
+                <span class="ph-tab">Préstamo</span>
+                <span class="ph-tab">Trueque</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Vendo semillas para frutas</div><div class="ph-status">Disponible</div></div>
+                <span class="ph-tag tag-OFERTA">OFERTA</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Presto Llave inglesa</div><div class="ph-status">Disponible</div></div>
+                <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Cambio fruta por semillas</div><div class="ph-status">Disponible</div></div>
+                <span class="ph-tag tag-TRUEQUE">TRUEQUE</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Tractor Tavol</div><div class="ph-status">Disponible</div></div>
+                <span class="ph-tag tag-OFERTA">OFERTA</span>
+              </div>
+              <div class="ph-section-title" style="margin-top:14px">De la comunidad</div>
+              <div class="ph-post" onclick="goScreen('detail')" style="cursor:pointer">
+                <div><div class="ph-post-title">Motobomba buen estado</div><div class="ph-loc">Villa Patricia, Fusagasugá</div></div>
+                <span class="ph-tag tag-OFERTA">OFERTA</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Planta eléctrica gasolina</div><div class="ph-loc">Avenida Carrera 5</div></div>
+                <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Necesito almacenamiento</div><div class="ph-loc">Calle 9 Sur, La Balsa, Chía</div></div>
+                <span class="ph-tag tag-SOLICITUD">SOLICITUD</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Bultos de abono</div><div class="ph-loc">Avenida Carrera 7, Marisca</div></div>
+                <span class="ph-tag tag-OFERTA">OFERTA</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Cambio tractor por camión</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div>
+                <span class="ph-tag tag-TRUEQUE">TRUEQUE</span>
+              </div>
+              <div class="ph-post">
+                <div><div class="ph-post-title">Necesito un tractor</div><div class="ph-loc">Carrera 6, Mariscal Sucre</div></div>
+                <span class="ph-tag tag-SOLICITUD">SOLICITUD</span>
+              </div>
+            </div>
+            <div class="ph-nav">
+              <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
+              <div class="ph-nav-item"><span class="em">🔍</span>Buscar</div>
+              <div class="ph-nav-item"><span class="em">➕</span>Publicar</div>
+              <div class="ph-nav-item"><span class="em">📋</span>Acuerdos</div>
+              <div class="ph-nav-item"><span class="em">👤</span>Perfil</div>
+            </div>
+          </div>
+
+          <div class="ph-screen" data-scr="detail">
+            <div class="ph-header" style="cursor:pointer" onclick="goScreen('home')">
+              <span class="logo">‹ Detalle</span><div class="avatar">JR</div>
+            </div>
+            <div class="ph-body">
+              <div class="ph-detail-img">⚙️</div>
+              <span class="ph-tag tag-OFERTA">OFERTA</span>
+              <div class="ph-detail-title" style="margin-top:8px">Motobomba buen estado</div>
+              <div class="ph-detail-desc">
+                Motobomba para riego en buen estado. Uso ocasional.
+                Perfecta para parcelas medianas. Negociable.
+              </div>
+              <div class="ph-detail-meta">
+                <div class="ph-meta-item">📍 Fusagasugá</div>
+                <div class="ph-meta-item">⭐ 4.8</div>
+                <div class="ph-meta-item">👤 María L.</div>
+              </div>
+              <div class="ph-cta" onclick="alert('Acuerdo propuesto ✓')">Proponer acuerdo</div>
+              <div class="ph-cta-2" onclick="goScreen('plans')">Ver suscripciones</div>
+              <div class="ph-chat">
+                <div class="ph-msg them">Hola, ¿está disponible?</div>
+                <div class="ph-msg me">Sí, ¿cuándo la necesitas?</div>
+                <div class="ph-msg them">📷 Foto · 📍 Ubicación</div>
+              </div>
+            </div>
+            <div class="ph-nav">
+              <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
+              <div class="ph-nav-item"><span class="em">🔍</span>Buscar</div>
+              <div class="ph-nav-item"><span class="em">➕</span>Publicar</div>
+              <div class="ph-nav-item"><span class="em">📋</span>Acuerdos</div>
+              <div class="ph-nav-item"><span class="em">👤</span>Perfil</div>
+            </div>
+          </div>
+
+          <div class="ph-screen" data-scr="plans">
+            <div class="ph-header" style="cursor:pointer" onclick="goScreen('detail')">
+              <span class="logo">‹ Planes</span><div class="avatar">JR</div>
+            </div>
+            <div class="ph-body">
+              <div class="ph-section-title">Elige tu plan</div>
+              <div class="ph-plan-card">
+                <div class="ph-plan-name">Básico</div>
+                <div class="ph-plan-price">$12.900 <small>/mes</small></div>
+                <div class="ph-plan-feat">Hasta 10 publicaciones</div>
+                <div class="ph-plan-feat">Mapa de comunidad</div>
+                <div class="ph-plan-feat">Chat con fotos</div>
+              </div>
+              <div class="ph-plan-card featured">
+                <div class="ph-plan-name">Pro · Recomendado</div>
+                <div class="ph-plan-price">$21.900 <small>/mes</small></div>
+                <div class="ph-plan-feat">Publicaciones ilimitadas</div>
+                <div class="ph-plan-feat">Sin anuncios</div>
+                <div class="ph-plan-feat">Alertas inteligentes de match</div>
+                <div class="ph-plan-feat">Exportar acuerdos</div>
+                <div class="ph-plan-feat">Soporte prioritario</div>
+              </div>
+              <div class="ph-cta">Suscribirme a Pro</div>
+            </div>
+            <div class="ph-nav">
+              <div class="ph-nav-item"><span class="em">🏠</span>Inicio</div>
+              <div class="ph-nav-item"><span class="em">🔍</span>Buscar</div>
+              <div class="ph-nav-item"><span class="em">➕</span>Publicar</div>
+              <div class="ph-nav-item"><span class="em">📋</span>Acuerdos</div>
+              <div class="ph-nav-item on"><span class="em">👤</span>Perfil</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="demo-info">
+        <div class="slide-eyebrow">Prototipo en vivo</div>
+        <h2 style="font-size:42px">El producto<br>en tus manos.</h2>
+        <p>Navega entre pantallas reales. Mismo flujo que en producción en agropulse.company.</p>
+        <div class="demo-screens-nav">
+          <button class="demo-nav-btn active" onclick="goScreen('home')">1 · Feed</button>
+          <button class="demo-nav-btn" onclick="goScreen('detail')">2 · Detalle + chat</button>
+          <button class="demo-nav-btn" onclick="goScreen('plans')">3 · Suscripciones</button>
+        </div>
+        <div class="feature-callouts">
+          <div class="callout"><strong>Geolocalización</strong>Cada publicación con su ubicación exacta.</div>
+          <div class="callout"><strong>Match con foto y chat</strong>Negociación dentro de la app, sin salir a WhatsApp.</div>
+          <div class="callout"><strong>Freemium claro</strong>Conversión natural cuando se pasa de 10 publicaciones.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SLIDE 8: CIERRE ===== -->
+  <section class="slide" data-section="Cierre">
+    <div class="slide-eyebrow">08 · Cierre</div>
+    <div class="close-grid">
+      <div>
+        <h2>¿Preguntas?</h2>
+        <ol class="close-bullets">
+          <li><div><strong>Producto en producción.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">No es un mockup. Es agropulse.company.</div></div></li>
+          <li><div><strong>Mercado de 4,8M.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">3,8% de penetración objetivo año 3.</div></div></li>
+          <li><div><strong>Equilibrio mes 17.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px">TIR &gt; 80% · ARR proyectado $2.172M COP.</div></div></li>
+        </ol>
+        <div style="margin-top:32px;padding:20px;background:rgba(200,150,42,.12);border-radius:12px;font-size:14px">
+          <strong style="color:var(--harvest);letter-spacing:1px;text-transform:uppercase;font-size:12px">Equipo TerraX</strong>
+          <p style="margin-top:8px">Daniel Ortiz · Camila Beltrán · Juan Rincón · Daniel Galvis</p>
+          <p style="margin-top:4px;color:var(--text-muted)">Ingeniería de Sistemas · Pontificia Universidad Javeriana</p>
+        </div>
+      </div>
+      <div class="qr-wrap">
+        <div class="qr"></div>
+        <div class="qr-url">agropulse.company</div>
+        <div class="qr-sub">Pruébalo ahora desde tu teléfono</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="progress-bar" id="progress"></div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const sectionNames = slides.map(s => s.dataset.section);
+let current = 0;
+let totalSec = 7*60;
+let remain = totalSec;
+let running = false;
+let tick = null;
+
+const $timer = document.getElementById('timer');
+const $section = document.getElementById('section-name');
+const $play = document.getElementById('btn-play');
+const $reset = document.getElementById('btn-reset');
+const $theme = document.getElementById('btn-theme');
+const $help = document.getElementById('btn-help');
+const $kbd = document.getElementById('kbd-help');
+const $prev = document.getElementById('prev');
+const $next = document.getElementById('next');
+const $progress = document.getElementById('progress');
+const $start = document.getElementById('start-btn');
+
+// build progress bar
+sectionNames.forEach((n,i)=>{
+  const el=document.createElement('div');
+  el.className='progress-step';
+  el.textContent=`${String(i+1).padStart(2,'0')} · ${n}`;
+  el.onclick=()=>go(i);
+  $progress.appendChild(el);
+});
+const progressSteps = Array.from($progress.children);
+
+function fmt(s){
+  const m=Math.floor(s/60), r=s%60;
+  return `${m}:${String(r).padStart(2,'0')}`;
+}
+function updateTimer(){
+  $timer.textContent = fmt(Math.max(0,remain));
+  $timer.classList.toggle('warn', remain<=60 && remain>30);
+  $timer.classList.toggle('crit', remain<=30 && remain>0);
+  if(remain<=0){ pause(); $timer.textContent='0:00'; }
+}
+function play(){
+  if(running) return;
+  running=true;
+  $play.textContent='⏸';
+  tick=setInterval(()=>{ remain--; updateTimer(); }, 1000);
+}
+function pause(){
+  running=false;
+  $play.textContent='▶';
+  if(tick){clearInterval(tick); tick=null;}
+}
+function reset(){
+  pause(); remain=totalSec; updateTimer();
+}
+function go(i){
+  if(i<0||i>=slides.length) return;
+  slides[current].classList.remove('active');
+  slides[current].classList.add('prev');
+  current=i;
+  slides.forEach((s,j)=>{
+    s.classList.toggle('active', j===i);
+    if(j!==i && j<i) s.classList.add('prev');
+    else if(j>i) s.classList.remove('prev');
+  });
+  $section.textContent = `${String(i+1).padStart(2,'0')} · ${sectionNames[i]}`;
+  progressSteps.forEach((p,j)=>p.classList.toggle('active', j===i));
+  $prev.disabled = i===0;
+  $next.disabled = i===slides.length-1;
+  if(i===1) animateBigNumber();
+  if(i===6) renderChart('base'), animateKPIs('base');
+}
+function nextSlide(){ go(Math.min(current+1, slides.length-1)); }
+function prevSlide(){ go(Math.max(current-1, 0)); }
+
+$play.onclick = ()=> running?pause():play();
+$reset.onclick = reset;
+$theme.onclick = ()=> document.body.classList.toggle('dark');
+$help.onclick = ()=> $kbd.classList.toggle('show');
+$prev.onclick = prevSlide;
+$next.onclick = nextSlide;
+$start.onclick = ()=>{ go(1); play(); };
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown') nextSlide();
+  else if(e.key==='ArrowLeft'||e.key==='PageUp') prevSlide();
+  else if(e.key===' '){ e.preventDefault(); running?pause():play(); }
+  else if(e.key==='r'||e.key==='R') reset();
+  else if(e.key==='t'||e.key==='T') document.body.classList.toggle('dark');
+  else if(e.key==='f'||e.key==='F'){
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+  else if(e.key==='?') $kbd.classList.toggle('show');
+});
+
+// big number animation
+function animateBigNumber(){
+  const el=document.querySelector('.big-number');
+  if(!el || el.dataset.done) return;
+  el.dataset.done='1';
+  const target=parseFloat(el.dataset.count);
+  const dur=1400, t0=performance.now();
+  function step(t){
+    const p=Math.min(1,(t-t0)/dur);
+    const eased=1-Math.pow(1-p,3);
+    el.textContent=(target*eased).toFixed(1)+'M';
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// KPI animation
+const scenarios = {
+  cons: {users:32500, mrr:90, arr:1080, margin:62, pe:'Mes 22', van:'$220M', conv:'12%',
+    line:[2,5,9,14,20,27,35,44,54,65,77,90,103,117,131,146,162,179,196,214,232,251,270,290,310,331,353,375,397,420,443,467,491,515,540,565]},
+  base: {users:65323, mrr:181, arr:2173, margin:73, pe:'Mes 17', van:'$400M', conv:'18%',
+    line:[3,7,13,21,31,43,57,73,91,111,133,157,183,211,241,273,307,343,381,421,463,507,553,601,651,703,757,813,871,931,993,1057,1123,1191,1261,1333]},
+  agr: {users:120000, mrr:340, arr:4080, margin:81, pe:'Mes 13', van:'$780M', conv:'24%',
+    line:[5,12,22,35,52,73,98,127,160,197,238,283,332,385,442,503,568,637,710,787,868,953,1042,1135,1232,1333,1438,1547,1660,1777,1898,2023,2152,2285,2422,2563]},
+};
+
+function animateKPIs(s){
+  const data = scenarios[s];
+  const map = {users:data.users, mrr:data.mrr, arr:data.arr, margin:data.margin};
+  document.querySelectorAll('[data-kpi]').forEach(el=>{
+    const k=el.dataset.kpi, target=map[k];
+    const dur=1200, t0=performance.now();
+    function step(t){
+      const p=Math.min(1,(t-t0)/dur);
+      const eased=1-Math.pow(1-p,3);
+      const v=target*eased;
+      let txt;
+      if(k==='users') txt=Math.round(v).toLocaleString('es-CO');
+      else if(k==='margin') txt=v.toFixed(1)+'%';
+      else txt='$'+v.toFixed(0);
+      el.textContent=txt;
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+  document.getElementById('fin-pe').textContent = data.pe;
+  document.getElementById('fin-van').textContent = '~'+data.van+' COP';
+  document.getElementById('fin-conv').textContent = data.conv;
+}
+
+function renderChart(s){
+  const data = scenarios[s].line;
+  const max = Math.max(...data);
+  const W=600, H=240, pad=10;
+  const pts = data.map((v,i)=>{
+    const x = (i/(data.length-1))*(W-pad*2)+pad;
+    const y = H - (v/max)*(H-pad*2) - pad;
+    return [x,y];
+  });
+  const linePath = pts.map((p,i)=> (i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+  const areaPath = linePath+` L${pts[pts.length-1][0]} ${H} L${pts[0][0]} ${H} Z`;
+  const $line = document.getElementById('chart-line');
+  const $area = document.getElementById('chart-area');
+  $line.setAttribute('d', linePath);
+  $area.setAttribute('d', areaPath);
+  // animate
+  const len = $line.getTotalLength();
+  $line.style.strokeDasharray = len;
+  $line.style.strokeDashoffset = len;
+  $line.getBoundingClientRect();
+  $line.style.transition='stroke-dashoffset 1.4s ease';
+  $line.style.strokeDashoffset = 0;
+}
+
+document.querySelectorAll('.fin-tab').forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll('.fin-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const s=t.dataset.scenario;
+    renderChart(s);
+    animateKPIs(s);
+  };
+});
+
+// demo screen nav
+function goScreen(name){
+  document.querySelectorAll('#demo-screen .ph-screen').forEach(s=>{
+    s.classList.toggle('active', s.dataset.scr===name);
+  });
+  document.querySelectorAll('.demo-nav-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent.includes(
+      name==='home'?'Feed':name==='detail'?'Detalle':'Suscripciones'
+    ));
+  });
+}
+window.goScreen = goScreen;
+
+// init
+updateTimer();
+$prev.disabled = true;
+
+</script>
+</body>
+</html>
