@@ -46,12 +46,13 @@ body.dark{background:var(--earth-deep);color:var(--cream)}
 .slide{
   position:absolute;inset:0;
   display:flex;flex-direction:column;
-  padding:54px 72px 88px;
+  padding:96px 72px 92px;
   opacity:0;pointer-events:none;
   transform:translateX(40px);
   transition:opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1);
   overflow-y:auto;
 }
+.slide.cover{padding:0}
 .slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
 .slide.prev{transform:translateX(-40px)}
 .slide::-webkit-scrollbar{width:6px}
@@ -250,10 +251,28 @@ body.dark .progress-step.active{background:rgba(184,132,31,.2);opacity:1;color:v
   font-size:.7rem;color:rgba(245,240,232,.6);
   text-transform:uppercase;letter-spacing:1px;font-weight:600;
 }
+.cover-team{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  margin-top:28px;
+  animation:landingIn .7s ease both .6s;
+}
+.cover-team-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 13px;border-radius:999px;
+  background:rgba(245,240,232,.08);
+  font-size:.78rem;font-weight:600;color:rgba(245,240,232,.88);
+  border:1px solid rgba(245,240,232,.13);
+}
+.cover-team-avatar{
+  width:24px;height:24px;border-radius:50%;
+  background:var(--harvest);color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:10px;
+}
 .terrax{
-  margin-top:28px;font-size:.7rem;color:rgba(245,240,232,.55);
+  margin-top:18px;font-size:.7rem;color:rgba(245,240,232,.55);
   letter-spacing:3px;text-transform:uppercase;
-  animation:landingIn .7s ease both .65s;
+  animation:landingIn .7s ease both .7s;
 }
 
 /* ===== Generic slide ===== */
@@ -720,6 +739,50 @@ body.dark .callout{background:rgba(184,132,31,.15);color:var(--cream)}
   margin-top:14px;transition:all .2s;
 }
 .tour-launch:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.live-launch{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:14px 22px;border-radius:12px;
+  background:transparent;color:var(--earth-deep);
+  border:2px solid var(--earth-deep);font-weight:800;font-size:14px;
+  cursor:pointer;font-family:inherit;letter-spacing:1px;
+  text-transform:uppercase;margin-top:14px;margin-left:10px;transition:all .2s;
+}
+.live-launch:hover{background:var(--earth-deep);color:var(--cream)}
+body.dark .live-launch{border-color:var(--cream);color:var(--cream)}
+body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
+
+/* ===== Web visualizer ===== */
+.live-overlay{
+  position:fixed;inset:0;z-index:300;display:none;
+  background:rgba(10,26,18,.92);backdrop-filter:blur(8px);
+  flex-direction:column;align-items:center;justify-content:center;padding:30px;
+}
+.live-overlay.active{display:flex}
+.live-bar{
+  width:100%;max-width:1100px;display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:14px;color:var(--cream);
+}
+.live-bar-url{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(245,240,232,.1);padding:10px 18px;border-radius:999px;
+  font-size:14px;font-weight:600;color:var(--cream);
+  border:1px solid rgba(245,240,232,.15);
+}
+.live-bar-url .live-dot{width:9px;height:9px;border-radius:50%;background:#2E8B3E;box-shadow:0 0 10px #2E8B3E;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.live-close{
+  background:var(--harvest);color:var(--earth-deep);
+  border:none;padding:10px 22px;border-radius:10px;
+  font-weight:800;font-size:13px;cursor:pointer;font-family:inherit;
+  text-transform:uppercase;letter-spacing:1px;
+}
+.live-frame{
+  width:100%;max-width:1100px;height:78vh;
+  background:var(--white);border-radius:18px;overflow:hidden;
+  box-shadow:0 30px 100px rgba(0,0,0,.5);
+  border:1px solid rgba(245,240,232,.1);
+}
+.live-frame iframe{width:100%;height:100%;border:none}
 
 @media (max-width:760px){
   .tour-tooltip{position:static;transform:none;width:100%;margin-top:20px}
@@ -796,32 +859,96 @@ body.dark .callout{background:rgba(184,132,31,.15);color:var(--cream)}
 .ph-plan-feat::before{content:'✓';color:var(--field);font-weight:900}
 
 /* ===== Cierre ===== */
-.close-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
+.close-slide{
+  background:linear-gradient(160deg,#1a2710 0%,var(--earth) 50%,#1e2d14 100%);
+  color:var(--cream);padding:96px 72px 92px;
+}
+.close-slide .slide-eyebrow{color:var(--harvest-light)}
+.close-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:60px;align-items:center;height:100%}
+.close-headline{
+  font-family:'Playfair Display',serif;
+  font-size:clamp(48px,5.6vw,84px);font-weight:900;
+  line-height:1;letter-spacing:-2px;color:var(--cream);
+  margin-bottom:36px;
+}
+.close-headline .accent{
+  background:linear-gradient(90deg,var(--harvest-light),#f5c842,var(--harvest-light));
+  background-size:200% auto;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:shimmer 3s linear infinite;
+}
 .close-bullets{list-style:none;counter-reset:item}
 .close-bullets li{
-  padding:18px 0;border-bottom:1px solid rgba(10,26,18,.1);
-  font-size:17px;display:flex;gap:14px;color:var(--text);font-weight:600;
+  padding:18px 0;border-bottom:1px solid rgba(245,240,232,.12);
+  font-size:17px;display:flex;gap:18px;color:var(--cream);font-weight:600;
+  align-items:flex-start;
 }
 .close-bullets li::before{
   content:counter(item,decimal-leading-zero);counter-increment:item;
-  font-family:'Playfair Display',serif;font-weight:900;font-size:28px;
-  color:var(--harvest);min-width:50px;
+  font-family:'Playfair Display',serif;font-weight:900;font-size:32px;
+  color:var(--harvest-light);min-width:54px;line-height:1;
 }
-body.dark .close-bullets li{border-color:rgba(245,240,232,.15);color:var(--cream)}
+.close-bullets li strong{color:var(--white);font-weight:800;font-size:20px;display:block;margin-bottom:4px}
+.close-bullets li .sub{color:rgba(245,240,232,.7);font-size:14px;font-weight:500;line-height:1.5}
+.close-team-card{
+  margin-top:32px;padding:22px 24px;
+  background:rgba(245,240,232,.07);
+  border:1px solid rgba(245,240,232,.15);
+  border-radius:14px;backdrop-filter:blur(8px);
+}
+.close-team-card .label{
+  color:var(--harvest-light);font-size:11px;font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;
+}
+.close-team-card .members{margin-top:10px;color:var(--cream);font-weight:700;font-size:15px}
+.close-team-card .uni-line{margin-top:4px;color:rgba(245,240,232,.65);font-size:13px;font-weight:500}
+
 .qr-wrap{
-  background:var(--white);padding:32px;border-radius:24px;
-  box-shadow:var(--shadow-lg);text-align:center;
+  background:var(--cream);padding:36px 32px;border-radius:24px;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);text-align:center;
+  position:relative;
+}
+.qr-wrap::before{
+  content:'';position:absolute;inset:-4px;border-radius:28px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  z-index:-1;opacity:.6;filter:blur(20px);
+}
+.qr-badge{
+  display:inline-block;padding:5px 14px;border-radius:999px;
+  background:var(--earth-deep);color:var(--harvest-light);
+  font-size:10px;font-weight:800;letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:18px;
 }
 .qr-img{
-  width:240px;height:240px;margin:0 auto 20px;
-  border-radius:12px;display:block;
-  box-shadow:0 4px 20px rgba(10,26,18,.15);
+  width:240px;height:240px;margin:0 auto 18px;
+  border-radius:16px;display:block;
+  box-shadow:0 8px 30px rgba(10,26,18,.18);
+  background:var(--white);padding:8px;
 }
-.qr-url{font-weight:900;color:var(--earth-deep);font-size:18px;margin-bottom:8px}
-.qr-sub{color:var(--text-muted);font-size:13px;font-weight:500}
-body.dark .qr-wrap{background:rgba(45,90,39,.5)}
-body.dark .qr-url{color:var(--white)}
-body.dark .qr-sub{color:var(--cream-dark)}
+.qr-url{
+  font-weight:900;color:var(--earth-deep);
+  font-family:'Playfair Display',serif;
+  font-size:24px;margin-bottom:6px;
+}
+.qr-sub{color:var(--text-muted);font-size:13px;font-weight:600;letter-spacing:.3px}
+.qr-cta{
+  margin-top:20px;display:inline-flex;align-items:center;gap:8px;
+  padding:11px 20px;border-radius:12px;
+  background:var(--earth-deep);color:var(--harvest-light);
+  font-weight:800;font-size:13px;letter-spacing:1px;
+  text-transform:uppercase;text-decoration:none;
+  transition:all .2s;
+}
+.qr-cta:hover{background:var(--harvest);color:var(--earth-deep)}
+
+.thanks-mark{
+  position:absolute;bottom:110px;right:80px;
+  font-family:'Playfair Display',serif;
+  font-size:120px;font-weight:900;color:rgba(245,240,232,.04);
+  letter-spacing:-4px;pointer-events:none;
+  line-height:1;
+}
 
 @media (max-width:980px){
   .slide{padding:80px 24px 80px}
@@ -879,7 +1006,7 @@ body.dark .qr-sub{color:var(--cream-dark)}
         </div>
         <div class="cover-stat-divider"></div>
         <div class="cover-stat">
-          <div class="cover-stat-value">15</div>
+          <div class="cover-stat-value">14</div>
           <div class="cover-stat-label">Slides · Pitch</div>
         </div>
         <div class="cover-stat-divider"></div>
@@ -887,6 +1014,12 @@ body.dark .qr-sub{color:var(--cream-dark)}
           <div class="cover-stat-value">∞</div>
           <div class="cover-stat-label">Posibilidades</div>
         </div>
+      </div>
+      <div class="cover-team">
+        <div class="cover-team-item"><div class="cover-team-avatar">DO</div>Daniel Ortiz</div>
+        <div class="cover-team-item"><div class="cover-team-avatar">CB</div>Camila Beltrán</div>
+        <div class="cover-team-item"><div class="cover-team-avatar">JR</div>Juan Rincón</div>
+        <div class="cover-team-item"><div class="cover-team-avatar">DG</div>Daniel Galvis</div>
       </div>
       <div class="terrax">Equipo TerraX · Pontificia Universidad Javeriana</div>
     </div>
@@ -1428,42 +1561,9 @@ body.dark .qr-sub{color:var(--cream-dark)}
     </div>
   </section>
 
-  <!-- 13 EQUIPO -->
-  <section class="slide" data-section="Equipo">
-    <div class="slide-eyebrow">13 · Equipo</div>
-    <h2>TerraX —<br>cuatro ingenieros, una visión.</h2>
-    <p class="lead" style="max-width:760px">Equipo multidisciplinar de Ingeniería de Sistemas de la Pontificia Universidad Javeriana. Diseño, backend, frontend y producto bajo un mismo techo.</p>
-    <div class="team-grid">
-      <div class="team-card">
-        <div class="photo">DO</div>
-        <h3>Daniel Ortiz</h3>
-        <div class="role-team">Producto · UX</div>
-        <div class="uni">Ing. Sistemas · PUJ</div>
-      </div>
-      <div class="team-card">
-        <div class="photo">CB</div>
-        <h3>Camila Beltrán</h3>
-        <div class="role-team">Frontend · Diseño</div>
-        <div class="uni">Ing. Sistemas · PUJ</div>
-      </div>
-      <div class="team-card">
-        <div class="photo">JR</div>
-        <h3>Juan Rincón</h3>
-        <div class="role-team">Backend · Datos</div>
-        <div class="uni">Ing. Sistemas · PUJ</div>
-      </div>
-      <div class="team-card">
-        <div class="photo">DG</div>
-        <h3>Daniel Galvis</h3>
-        <div class="role-team">Operaciones · Negocio</div>
-        <div class="uni">Ing. Sistemas · PUJ</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 14 DEMO -->
+  <!-- 13 DEMO -->
   <section class="slide" data-section="Demo">
-    <div class="slide-eyebrow">14 · Demo del prototipo</div>
+    <div class="slide-eyebrow">13 · Demo del prototipo</div>
     <div class="demo-stage">
       <div class="phone" id="phone-demo">
         <div class="phone-screen" id="demo-screen">
@@ -1590,36 +1690,51 @@ body.dark .qr-sub{color:var(--cream-dark)}
           <div class="callout"><strong>Match con foto y chat</strong>Negociación dentro de la app, sin salir a WhatsApp.</div>
           <div class="callout"><strong>Freemium claro</strong>Conversión natural cuando se pasan las 10 publicaciones.</div>
         </div>
-        <button class="tour-launch" id="tour-launch">▶ Iniciar tour guiado</button>
+        <button class="tour-launch" id="tour-launch">▶ Tour guiado</button>
+        <button class="live-launch" id="live-launch">🌐 Ver web en vivo</button>
       </div>
     </div>
   </section>
 
-  <!-- 15 CIERRE -->
-  <section class="slide" data-section="Cierre">
-    <div class="slide-eyebrow">15 · Cierre</div>
+  <!-- 14 CIERRE -->
+  <section class="slide close-slide" data-section="Cierre">
+    <div class="slide-eyebrow">14 · Cierre</div>
+    <div class="thanks-mark">Gracias</div>
     <div class="close-grid">
       <div>
-        <h2>¿Preguntas?</h2>
+        <h1 class="close-headline">¿Listos para<br>cooperar con el<br><span class="accent">campo colombiano?</span></h1>
         <ol class="close-bullets">
-          <li><div><strong style="color:var(--earth-deep);font-weight:900">Producto en producción.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">No es un mockup. Es agropulse.company.</div></div></li>
-          <li><div><strong style="color:var(--earth-deep);font-weight:900">Mercado de 4,8M.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">3,8% de penetración objetivo año 3 · ~129K usuarios activos.</div></div></li>
-          <li><div><strong style="color:var(--earth-deep);font-weight:900">Equilibrio mes 17.</strong><div style="font-size:14px;color:var(--text-muted);margin-top:4px;font-weight:500">TIR &gt; 80% · ARR proyectado $2.172M COP · LTV/CAC 9,2x.</div></div></li>
+          <li><div><strong>Producto en producción.</strong><div class="sub">No es un mockup. Está corriendo hoy en agropulse.company con usuarios reales.</div></div></li>
+          <li><div><strong>Mercado de 4,8M.</strong><div class="sub">3,8% de penetración objetivo año 3 → ~129K usuarios activos pagando.</div></div></li>
+          <li><div><strong>Equilibrio mes 17.</strong><div class="sub">TIR &gt; 80% · ARR proyectado $2.172M COP · LTV/CAC 9,2x · payback 2,6 meses.</div></div></li>
         </ol>
-        <div style="margin-top:32px;padding:22px;background:rgba(184,132,31,.14);border-radius:14px;font-size:14px">
-          <strong style="color:var(--harvest);letter-spacing:1.5px;text-transform:uppercase;font-size:11px;font-weight:800">Equipo TerraX</strong>
-          <p style="margin-top:8px;color:var(--earth-deep);font-weight:700">Daniel Ortiz · Camila Beltrán · Juan Rincón · Daniel Galvis</p>
-          <p style="margin-top:4px;color:var(--text-muted);font-weight:500">Ingeniería de Sistemas · Pontificia Universidad Javeriana</p>
+        <div class="close-team-card">
+          <div class="label">Equipo TerraX</div>
+          <div class="members">Daniel Ortiz · Camila Beltrán · Juan Rincón · Daniel Galvis</div>
+          <div class="uni-line">Ingeniería de Sistemas · Pontificia Universidad Javeriana</div>
         </div>
       </div>
       <div class="qr-wrap">
+        <div class="qr-badge">⚡ En vivo</div>
         <img class="qr-img" src="/qr-agropulse.svg" alt="QR agropulse.company">
         <div class="qr-url">agropulse.company</div>
-        <div class="qr-sub">Escanea y entra desde tu teléfono</div>
+        <div class="qr-sub">Escanea y pruébalo desde tu teléfono</div>
+        <a class="qr-cta" href="https://agropulse.company" target="_blank">Abrir ahora →</a>
       </div>
     </div>
   </section>
 
+</div>
+
+<!-- ===== Web visualizer overlay ===== -->
+<div class="live-overlay" id="live-overlay">
+  <div class="live-bar">
+    <div class="live-bar-url"><div class="live-dot"></div>https://agropulse.company</div>
+    <button class="live-close" id="live-close">✕ Cerrar</button>
+  </div>
+  <div class="live-frame">
+    <iframe id="live-iframe" src="about:blank" title="AgroPulse en vivo"></iframe>
+  </div>
 </div>
 
 <!-- ===== Tour overlay ===== -->
@@ -1800,28 +1915,34 @@ window.goScreen = goScreen;
 $prev.disabled = true;
 $counter.textContent = `01 / ${String(slides.length).padStart(2,'0')}`;
 
-/* ===== TOUR GUIADO ===== */
+/* ===== TOUR GUIADO (basado en tour.js real de la app) ===== */
 const tourSteps = [
-  {scr:'home', target:'.ph-greeting', title:'Bienvenida personalizada',
-    body:'Lo primero que ve Juan David al abrir AgroPulse: su nombre y un llamado directo a publicar. Cero fricción, va al grano.'},
-  {scr:'home', target:'.ph-actions', title:'Cuatro acciones rápidas',
-    body:'Una sola pantalla, cuatro caminos: publicar oferta, pedir recursos, prestar equipo o proponer trueque. Sin menús anidados.'},
-  {scr:'home', target:'.ph-section-title', title:'Tus publicaciones primero',
-    body:'El campesino ve su propio inventario antes que el de otros. Filtros por tipo de intercambio justo abajo.'},
-  {scr:'home', target:'.ph-post[onclick]', title:'Feed de la comunidad',
-    body:'Publicaciones cercanas con tag claro de tipo (oferta, préstamo, trueque, solicitud) y ubicación. Toca para ver detalle.'},
-  {scr:'detail', target:'.ph-detail-img', title:'Detalle visual',
-    body:'Foto, descripción y datos del recurso. La trazabilidad arranca aquí: quién publica, dónde, con qué reputación.'},
-  {scr:'detail', target:'.ph-detail-meta', title:'Confianza visible',
-    body:'Ubicación, calificación y dueño en un vistazo. La estrella es el activo: 4.8 abre puertas.'},
-  {scr:'detail', target:'.ph-cta', title:'Proponer acuerdo',
-    body:'Un toque dispara la negociación. Se crea acuerdo trazable y abre chat directo con la otra parte.'},
-  {scr:'detail', target:'.ph-chat', title:'Chat con foto y ubicación',
-    body:'Toda la conversación queda dentro de la app. Sin saltar a WhatsApp. Foto + GPS para coordinar entrega.'},
-  {scr:'plans', target:'.ph-plan-card.featured', title:'Plan Pro · conversión',
-    body:'Cuando el productor pasa de 10 publicaciones, el freemium empuja al Pro. $21.900/mes desbloquea ilimitado, alertas y exportar acuerdos.'},
-  {scr:'plans', target:'.ph-cta', title:'Suscribirse en un toque',
-    body:'Pasarela integrada. El productor paga en pesos y queda activo de inmediato. Esto alimenta el MRR de $181M en mes 36.'},
+  {scr:'home', target:'.ph-greeting', title:'¡Bienvenido a AgroPulse!',
+    body:'Recorrido por las funciones principales de la app real. Estos son los mismos pasos que ve el usuario nuevo en agropulse.company.'},
+  {scr:'home', target:'.ph-actions', title:'Acciones rápidas',
+    body:'Desde aquí puedes publicar una oferta, pedir recursos, prestar equipo o proponer un trueque con un solo toque.'},
+  {scr:'home', target:'.ph-section-title', title:'Tus publicaciones',
+    body:'Aquí ves tus publicaciones recientes y accedes rápido al formulario de publicar. Si no tienes ninguna, aparece un botón directo para crear la primera.'},
+  {scr:'home', target:'.ph-tabs', title:'Filtros por tipo',
+    body:'Filtra entre Todas, Oferta, Solicitud, Préstamo y Trueque. Cada tipo de intercambio tiene su propio color e ícono.'},
+  {scr:'home', target:'.ph-post[onclick]', title:'De la comunidad',
+    body:'Publicaciones recientes de otros productores. Desliza para verlas todas y toca cualquier tarjeta para abrir el detalle: fotos, ubicación y datos del dueño.'},
+  {scr:'detail', target:'.ph-detail-img', title:'Detalle de la publicación',
+    body:'Foto, descripción completa y tipo de intercambio. La pantalla que abre cualquier card del feed.'},
+  {scr:'detail', target:'.ph-detail-meta', title:'Datos del dueño y reputación',
+    body:'Ubicación exacta, calificación pública con estrellas y nombre del dueño. La reputación se construye con cada acuerdo cerrado.'},
+  {scr:'detail', target:'.ph-cta', title:'Cómo concretar un acuerdo',
+    body:'Toca "Proponer acuerdo" y se crea automáticamente un acuerdo trazable + se abre chat con la otra parte para coordinar precio, cantidad, fecha y lugar.'},
+  {scr:'detail', target:'.ph-chat', title:'Chat dentro del acuerdo',
+    body:'Mensajes privados entre las dos partes. Soporta fotos del recurso o entrega, y compartir ubicación GPS exacta del encuentro.'},
+  {scr:'detail', target:'.ph-cta', title:'Marcar como completado',
+    body:'Solo el dueño de la publicación puede cerrar el acuerdo. Al completar, pasa a estado Completado y se habilita la calificación para ambas partes.'},
+  {scr:'detail', target:'.ph-detail-meta', title:'Calificar a la otra parte',
+    body:'Estrellas de 1 a 5, etiquetas y reseña corta. Tu nota suma al perfil público de la otra persona y abre acceso al crédito social.'},
+  {scr:'plans', target:'.ph-plan-card.featured', title:'Plan Pro',
+    body:'Al pasar de 10 publicaciones, el plan Pro desbloquea ilimitado, alertas inteligentes de match, exportar acuerdos y soporte prioritario por $21.900/mes.'},
+  {scr:'plans', target:'.ph-nav', title:'Navegación inferior',
+    body:'Inicio · Buscar (mercado completo) · Publicar · Acuerdos (con indicador rojo cuando hay novedad) · Perfil. Cinco pestañas, cero menús anidados.'},
 ];
 
 const $tourOverlay = document.getElementById('tour-overlay');
@@ -1908,6 +2029,21 @@ document.addEventListener('keydown', e=>{
   else if(e.key==='ArrowRight'){ e.stopPropagation(); $tourNext.click(); }
   else if(e.key==='ArrowLeft'){ e.stopPropagation(); $tourPrev.click(); }
 }, true);
+
+/* ===== WEB VISUALIZER ===== */
+const $liveOverlay = document.getElementById('live-overlay');
+const $liveClose = document.getElementById('live-close');
+const $liveLaunch = document.getElementById('live-launch');
+const $liveIframe = document.getElementById('live-iframe');
+$liveLaunch.onclick = ()=>{
+  $liveIframe.src = 'https://agropulse.company';
+  $liveOverlay.classList.add('active');
+};
+$liveClose.onclick = ()=>{ $liveOverlay.classList.remove('active'); $liveIframe.src='about:blank'; };
+$liveOverlay.addEventListener('click', e=>{ if(e.target===$liveOverlay) $liveClose.click(); });
+document.addEventListener('keydown', e=>{
+  if($liveOverlay.classList.contains('active') && e.key==='Escape') $liveClose.click();
+});
 </script>
 </body>
 </html>
