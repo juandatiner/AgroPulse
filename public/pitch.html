@@ -1348,14 +1348,24 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 /* ===== Mobile: slide 4 phone + slide 14 live ===== */
 @media (max-width:760px){
   .slide.cover{padding:0}
-  /* Solution slide: phone smaller, centered top, app-like */
-  .slide[data-section="Solución"]{padding:64px 16px 80px}
-  .slide[data-section="Solución"] h2{font-size:28px;margin-bottom:10px;line-height:1.1}
-  .slide[data-section="Solución"] .lead{font-size:13px;margin-bottom:16px}
-  .solution-grid{
-    display:flex;flex-direction:column-reverse;
-    align-items:center;gap:18px;
+  /* Solution slide: phone arriba a nivel del titulo */
+  .slide[data-section="Solución"]{
+    padding:56px 14px 70px;
+    display:flex;flex-direction:column;
   }
+  .slide[data-section="Solución"] .slide-eyebrow{order:0;margin-bottom:6px;font-size:10px}
+  .slide[data-section="Solución"] h2{
+    order:1;font-size:24px;margin-bottom:14px;line-height:1.1;
+    text-align:center;
+  }
+  .slide[data-section="Solución"] .lead{display:none}
+  .slide[data-section="Solución"] .solution-grid{
+    order:2;
+    display:flex;flex-direction:column;
+    align-items:center;gap:14px;
+  }
+  .solution-grid .phone{order:0}
+  .solution-grid .exchange-types{order:1}
   .solution-grid .phone{
     width:230px;height:460px;padding:8px;border-radius:34px;
     margin-top:0;flex-shrink:0;
