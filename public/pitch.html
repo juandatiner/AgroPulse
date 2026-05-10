@@ -354,7 +354,18 @@ body.dark .stat-block .num{color:var(--harvest-light)}
 body.dark .stat-block .lab{color:var(--cream-dark)}
 
 /* ===== Solucion ===== */
-.solution-grid{display:grid;grid-template-columns:1.1fr 320px;gap:48px;align-items:center}
+.solution-grid{display:grid;grid-template-columns:1.1fr 300px;gap:48px;align-items:start}
+.slide-solution{padding-top:56px;padding-bottom:60px;display:grid;grid-template-columns:1fr 300px;column-gap:48px;align-content:start}
+.slide-solution > .slide-eyebrow{grid-column:1 / -1;grid-row:1;margin-bottom:8px}
+.slide-solution > h2{grid-column:1;grid-row:2;font-size:clamp(34px,3.6vw,52px);margin-bottom:12px;line-height:1.05}
+.slide-solution > .lead{grid-column:1;grid-row:3;margin-bottom:18px;font-size:16px}
+.slide-solution > .solution-grid{display:contents}
+.slide-solution .solution-grid .exchange-types{grid-column:1;grid-row:4;align-self:start}
+.slide-solution .solution-grid .phone{
+  grid-column:2;grid-row:1 / span 4;
+  align-self:start;justify-self:center;
+  width:280px;height:560px;margin-top:0;
+}
 .exchange-types{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
 .ex-card{
   background:var(--white);padding:24px;border-radius:18px;
