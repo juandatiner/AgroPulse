@@ -1349,25 +1349,26 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 @media (max-width:760px){
   .slide.cover{padding:0}
   /* Solution slide: phone arriba a nivel del titulo */
-  .slide[data-section="Solución"]{
-    padding:56px 14px 70px;
+  .slide-solution{
+    padding:50px 12px 64px;
     display:flex;flex-direction:column;
+    justify-content:flex-start;
   }
-  .slide[data-section="Solución"] .slide-eyebrow{order:0;margin-bottom:6px;font-size:10px}
-  .slide[data-section="Solución"] h2{
-    order:1;font-size:24px;margin-bottom:14px;line-height:1.1;
+  .slide-solution .slide-eyebrow{order:0;margin-bottom:4px;font-size:10px;letter-spacing:2px}
+  .slide-solution h2{
+    order:1;font-size:22px;margin-bottom:10px;line-height:1.1;
     text-align:center;
   }
-  .slide[data-section="Solución"] .lead{display:none}
-  .slide[data-section="Solución"] .solution-grid{
+  .slide-solution .lead{display:none}
+  .slide-solution .solution-grid{
     order:2;
     display:flex;flex-direction:column;
-    align-items:center;gap:14px;
+    align-items:center;gap:12px;margin:0;
   }
   .solution-grid .phone{order:0}
   .solution-grid .exchange-types{order:1}
   .solution-grid .phone{
-    width:230px;height:460px;padding:8px;border-radius:34px;
+    width:210px;height:420px;padding:7px;border-radius:32px;
     margin-top:0;flex-shrink:0;
   }
   .solution-grid .phone::before{width:74px;height:17px;top:11px;border-radius:10px}
@@ -1411,8 +1412,8 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   .ex-card p{font-size:11px;line-height:1.32}
 
   /* Slide 14 live stage: only iframe */
-  .slide[data-section="En vivo"]{padding:60px 10px 70px}
-  .slide[data-section="En vivo"] .slide-eyebrow{
+  .slide-live{padding:60px 10px 70px}
+  .slide-live .slide-eyebrow{
     font-size:10px;letter-spacing:2px;
     top:18px;
   }
@@ -1421,8 +1422,8 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 }
 
 /* Slide 14: clean, only iframe centered */
-.slide[data-section="En vivo"]{padding-top:70px;padding-bottom:70px}
-.slide[data-section="En vivo"] .slide-eyebrow{
+.slide-live{padding-top:70px;padding-bottom:70px}
+.slide-live .slide-eyebrow{
   position:absolute;top:24px;left:50%;transform:translateX(-50%);
   margin:0;z-index:5;
 }
@@ -1569,7 +1570,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   </section>
 
   <!-- 3 SOLUCION -->
-  <section class="slide" data-section="Solución">
+  <section class="slide slide-solution" data-section="Solución">
     <div class="slide-eyebrow">04 · La solución</div>
     <h2>Marketplace rural<br>para 4 tipos de intercambio.</h2>
     <p class="lead" style="max-width:760px;margin-bottom:20px">Toca cada tipo para ver cómo cambia la app. Cuatro maneras reales de mover recursos sin depender solo del dinero.</p>
@@ -2127,7 +2128,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   </section>
 
   <!-- 13 DEMO -->
-  <section class="slide" data-section="En vivo">
+  <section class="slide slide-live" data-section="En vivo">
     <div class="slide-eyebrow">14 · Producto en vivo</div>
     <div class="live-stage">
       <div class="live-stage-frame" id="live-stage-frame">
