@@ -1128,6 +1128,117 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 .ph-plan-feat{font-size:11px;color:var(--earth-deep);padding:3px 0;display:flex;gap:6px;font-weight:600}
 .ph-plan-feat::before{content:'✓';color:var(--field);font-weight:900}
 
+/* ===== Phone real (slide 4) — match real app ===== */
+.phone-real .phone-screen{background:var(--cream)}
+.ph-app-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:50px 16px 12px;
+  background:linear-gradient(135deg,var(--earth),var(--earth-deep));
+  color:var(--cream);
+  border-bottom:1px solid rgba(184,132,31,.18);
+  position:relative;
+}
+.ph-nav-logo{display:flex;align-items:center;gap:8px}
+.ph-sprout{
+  width:30px;height:30px;border-radius:9px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 10px rgba(184,132,31,.4);
+}
+.ph-sprout svg{width:18px;height:18px}
+.ph-brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:15px;letter-spacing:.2px}
+.ph-nav-actions{display:flex;align-items:center;gap:8px}
+.ph-nav-help{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(245,240,232,.15);
+  border:1px solid rgba(245,240,232,.25);
+  color:var(--cream);font-weight:800;font-size:14px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-family:inherit;padding:0;
+}
+.ph-nav-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;font-size:11px;
+  box-shadow:0 2px 6px rgba(184,132,31,.4);
+}
+.phone-real .ph-body{padding:14px 12px 12px;background:var(--cream)}
+.ph-hero{
+  background:linear-gradient(135deg,var(--harvest) 0%,var(--harvest-light) 100%);
+  color:var(--earth-deep);
+  padding:14px 16px;border-radius:16px;margin-bottom:12px;
+  box-shadow:0 8px 20px rgba(184,132,31,.32);
+  position:relative;overflow:hidden;
+}
+.ph-hero::after{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:100px;height:100px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.35) 0%,transparent 70%);
+}
+.ph-hero-name{font-size:13px;font-weight:900;margin-bottom:3px;letter-spacing:.2px}
+.ph-hero-q{font-size:11.5px;font-weight:600;opacity:.88}
+.ph-quick{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.ph-qa{
+  background:var(--white);border-radius:12px;
+  padding:10px 9px;display:flex;gap:8px;align-items:center;
+  box-shadow:0 2px 8px rgba(10,26,18,.05);
+  border:1px solid rgba(10,26,18,.04);
+  cursor:pointer;transition:transform .15s, box-shadow .15s;
+}
+.ph-qa:active{transform:scale(.97)}
+.ph-qa.active{
+  background:linear-gradient(135deg,#FFF8E7,var(--white));
+  border-color:var(--harvest);
+  box-shadow:0 4px 14px rgba(184,132,31,.25);
+}
+.ph-qa-icon{
+  width:30px;height:30px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;flex-shrink:0;
+}
+.ico-oferta{background:#FFE4C4}
+.ico-solicitud{background:#D6E9F8}
+.ico-prestamo{background:#FFF3CD}
+.ico-trueque{background:#D4EDDA}
+.ph-qa-tx{min-width:0}
+.ph-qa-tx h5{font-size:10.5px;font-weight:800;color:var(--earth-deep);margin:0 0 1px;line-height:1.1}
+.ph-qa-tx span{font-size:9px;color:var(--text-muted);font-weight:600;line-height:1.2;display:block}
+.ph-sec-h{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;padding:0 2px;
+}
+.ph-sec-h h6{font-size:11px;font-weight:800;color:var(--earth-deep);margin:0;text-transform:uppercase;letter-spacing:1px}
+.ph-sec-more{font-size:10px;color:var(--harvest);font-weight:700}
+.ph-tabbar{
+  display:flex;background:rgba(255,255,255,.97);
+  border-top:1px solid rgba(10,26,18,.08);
+  padding:6px 4px 10px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 -2px 10px rgba(10,26,18,.06);
+  align-items:flex-end;
+}
+.ph-tb{
+  flex:1;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:8.5px;color:var(--text-muted);font-weight:700;
+  padding:4px 0;
+}
+.ph-tb.on{color:var(--harvest)}
+.ph-tb .em{font-size:16px;line-height:1}
+.ph-tb.pub{flex:0 0 auto;padding:0 2px}
+.ph-tb .pub-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;
+  box-shadow:0 6px 16px rgba(184,132,31,.45);
+  margin-top:-12px;
+}
+
 /* ===== Cierre ===== */
 .close-slide{
   background:linear-gradient(160deg,#1a2710 0%,var(--earth) 50%,#1e2d14 100%);
@@ -1255,22 +1366,32 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   .solution-grid .phone-status-bar{height:36px;padding:11px 22px 0;font-size:11px}
   .solution-grid .phone-status-bar .status-time{font-size:12px}
   .solution-grid .phone-status-bar .status-icons svg{width:13px;height:13px}
-  .solution-grid .ph-header{padding:42px 14px 12px}
-  .solution-grid .ph-header .logo{font-size:14px}
-  .solution-grid .ph-header .logo::before{width:15px;height:15px}
-  .solution-grid .ph-header .avatar{width:28px;height:28px;font-size:11px}
-  .solution-grid .ph-body{padding:10px 9px}
-  .solution-grid .ph-greeting{padding:11px 13px;border-radius:11px;margin-bottom:9px}
-  .solution-grid .ph-greeting strong{font-size:13px}
-  .solution-grid .ph-greeting span{font-size:10.5px}
-  .solution-grid .ph-section-title{font-size:10.5px;margin-bottom:7px;letter-spacing:1px}
+  .solution-grid .ph-app-nav{padding:42px 12px 10px}
+  .solution-grid .ph-sprout{width:26px;height:26px;border-radius:8px}
+  .solution-grid .ph-sprout svg{width:15px;height:15px}
+  .solution-grid .ph-brand{font-size:13px}
+  .solution-grid .ph-nav-help{width:24px;height:24px;font-size:12px}
+  .solution-grid .ph-nav-avatar{width:26px;height:26px;font-size:10px}
+  .phone-real .ph-body,.solution-grid .ph-body{padding:11px 10px 10px}
+  .solution-grid .ph-hero{padding:11px 13px;border-radius:13px;margin-bottom:9px}
+  .solution-grid .ph-hero-name{font-size:11.5px}
+  .solution-grid .ph-hero-q{font-size:10px}
+  .solution-grid .ph-quick{gap:6px;margin-bottom:11px}
+  .solution-grid .ph-qa{padding:8px 7px;border-radius:10px;gap:6px}
+  .solution-grid .ph-qa-icon{width:26px;height:26px;font-size:13px;border-radius:7px}
+  .solution-grid .ph-qa-tx h5{font-size:9.5px}
+  .solution-grid .ph-qa-tx span{font-size:8px}
+  .solution-grid .ph-sec-h{margin-bottom:6px}
+  .solution-grid .ph-sec-h h6{font-size:9.5px;letter-spacing:.8px}
+  .solution-grid .ph-sec-more{font-size:9px}
   .solution-grid .ph-post{padding:8px 11px;margin-bottom:6px;border-radius:10px}
-  .solution-grid .ph-post-title{font-size:11px;margin-bottom:2px}
-  .solution-grid .ph-loc{font-size:9.5px}
+  .solution-grid .ph-post-title{font-size:10.5px;margin-bottom:2px}
+  .solution-grid .ph-loc{font-size:9px}
   .solution-grid .ph-tag{font-size:8px;padding:2px 5px}
-  .solution-grid .ph-nav{padding:6px 0 9px}
-  .solution-grid .ph-nav-item{font-size:8px}
-  .solution-grid .ph-nav-item .em{font-size:15px}
+  .solution-grid .ph-tabbar{padding:5px 3px 8px}
+  .solution-grid .ph-tb{font-size:7.5px;gap:1px}
+  .solution-grid .ph-tb .em{font-size:13px}
+  .solution-grid .ph-tb .pub-btn{width:32px;height:32px;font-size:18px;margin-top:-10px}
   .exchange-types{
     grid-template-columns:repeat(2,1fr);gap:9px;width:100%;
   }
@@ -1465,7 +1586,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
           <p>Insumos por servicios, fruta por semillas, tiempo por herramientas. Sin dinero de por medio.</p>
         </div>
       </div>
-      <div class="phone">
+      <div class="phone phone-real">
         <div class="phone-screen">
           <div class="phone-status-bar">
             <span class="status-time">9:41</span>
@@ -1475,18 +1596,45 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
               <svg viewBox="0 0 24 12"><rect x="1" y="2" width="20" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1"/><rect x="22" y="4" width="1.5" height="4" rx=".5"/><rect x="2.5" y="3.5" width="17" height="5" rx="1"/></svg>
             </span>
           </div>
-          <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
-          <div class="ph-body" id="sol-phone-body" style="padding:10px">
-            <div class="ph-greeting"><strong id="sol-greeting-title">Oferta</strong><span id="sol-greeting-sub">Publica lo que produces o lo que sobra</span></div>
-            <div class="ph-section-title" id="sol-section-title">Ofertas cerca de ti</div>
+          <div class="ph-app-nav">
+            <div class="ph-nav-logo">
+              <span class="ph-sprout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/>
+                  <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/>
+                  <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
+                </svg>
+              </span>
+              <span class="ph-brand">AgroPulse</span>
+            </div>
+            <div class="ph-nav-actions">
+              <button class="ph-nav-help" title="Tour">?</button>
+              <div class="ph-nav-avatar">JR</div>
+            </div>
+          </div>
+          <div class="ph-body" id="sol-phone-body">
+            <div class="ph-hero">
+              <div class="ph-hero-name">Hola, Juan David 👋</div>
+              <div class="ph-hero-q" id="sol-greeting-sub">Publica lo que produces o lo que sobra</div>
+            </div>
+            <div class="ph-quick" id="sol-quick">
+              <div class="ph-qa" data-qa="OFERTA"><div class="ph-qa-icon ico-oferta">📦</div><div class="ph-qa-tx"><h5>Publicar oferta</h5><span>Tengo para ofrecer</span></div></div>
+              <div class="ph-qa" data-qa="SOLICITUD"><div class="ph-qa-icon ico-solicitud">🙋</div><div class="ph-qa-tx"><h5>Pedir recursos</h5><span>Necesito algo</span></div></div>
+              <div class="ph-qa" data-qa="PRESTAMO"><div class="ph-qa-icon ico-prestamo">🔑</div><div class="ph-qa-tx"><h5>Prestar equipo</h5><span>Tengo herramienta</span></div></div>
+              <div class="ph-qa" data-qa="TRUEQUE"><div class="ph-qa-icon ico-trueque">🔄</div><div class="ph-qa-tx"><h5>Trueque</h5><span>Intercambiar</span></div></div>
+            </div>
+            <div class="ph-sec-h">
+              <h6 id="sol-section-title">Ofertas cerca de ti</h6>
+              <span class="ph-sec-more">Ver todo ›</span>
+            </div>
             <div id="sol-posts"></div>
           </div>
-          <div class="ph-nav">
-            <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
-            <div class="ph-nav-item"><span class="em">🔍</span>Buscar</div>
-            <div class="ph-nav-item"><span class="em">➕</span>Publicar</div>
-            <div class="ph-nav-item"><span class="em">📋</span>Acuerdos</div>
-            <div class="ph-nav-item"><span class="em">👤</span>Perfil</div>
+          <div class="ph-tabbar">
+            <div class="ph-tb on"><span class="em">🏠</span><span class="lab">Inicio</span></div>
+            <div class="ph-tb"><span class="em">🛒</span><span class="lab">Mercado</span></div>
+            <div class="ph-tb pub"><span class="pub-btn">+</span></div>
+            <div class="ph-tb"><span class="em">📋</span><span class="lab">Acuerdos</span></div>
+            <div class="ph-tb"><span class="em">👤</span><span class="lab">Perfil</span></div>
           </div>
         </div>
       </div>
@@ -2339,8 +2487,33 @@ async function loadLiveDemo(){
   $iframe.addEventListener('load', ()=>{
     if ($loading) $loading.style.opacity = '0';
     setTimeout(()=>{ if ($loading) $loading.style.display = 'none'; }, 350);
+    autoStartTour($iframe);
   }, {once:true});
   $iframe.src = '/';
+}
+
+function autoStartTour($iframe){
+  let attempts = 0;
+  const maxAttempts = 30;
+  const tick = () => {
+    attempts++;
+    try {
+      const win = $iframe.contentWindow;
+      const doc = $iframe.contentDocument || (win && win.document);
+      if (!doc) { if (attempts < maxAttempts) setTimeout(tick, 500); return; }
+      // Prefer calling Tour.start() directly if available
+      if (win && win.Tour && typeof win.Tour.start === 'function') {
+        try { win.Tour.start(); return; } catch {}
+      }
+      const btn = doc.getElementById('nav-tour-btn');
+      if (btn && btn.offsetParent !== null) {
+        btn.click();
+        return;
+      }
+    } catch {}
+    if (attempts < maxAttempts) setTimeout(tick, 500);
+  };
+  setTimeout(tick, 1200);
 }
 
 /* ===== Cómo funciona: pasos interactivos ===== */
@@ -2421,9 +2594,12 @@ function setSolType(t){
   document.querySelectorAll('.ex-card').forEach(c=>{
     c.classList.toggle('active', c.dataset.sol===t);
   });
+  document.querySelectorAll('.ph-qa').forEach(c=>{
+    c.classList.toggle('active', c.dataset.qa===t);
+  });
   const d = solData[t];
-  document.getElementById('sol-greeting-title').textContent = d.title;
-  document.getElementById('sol-greeting-sub').textContent = d.sub;
+  const $sub = document.getElementById('sol-greeting-sub');
+  if($sub) $sub.textContent = d.sub;
   document.getElementById('sol-section-title').textContent = d.section;
   const $posts = document.getElementById('sol-posts');
   $posts.innerHTML = d.posts.map(p=>`
@@ -2433,6 +2609,9 @@ function setSolType(t){
     </div>
   `).join('');
 }
+document.querySelectorAll('.ph-qa').forEach(el=>{
+  el.addEventListener('click', ()=> setSolType(el.dataset.qa));
+});
 window.setSolType = setSolType;
 setSolType('OFERTA');
 
