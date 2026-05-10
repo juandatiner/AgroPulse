@@ -1170,6 +1170,59 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   .chart-wrap{grid-template-columns:1fr}
   .diff-row{grid-template-columns:1fr 1fr}
 }
+
+/* ===== Mobile: slide 4 phone + slide 14 live ===== */
+@media (max-width:760px){
+  .slide.cover{padding:0}
+  /* Solution slide: phone smaller, centered, app-like */
+  .solution-grid{
+    display:flex;flex-direction:column-reverse;
+    align-items:center;gap:20px;
+  }
+  .solution-grid .phone{
+    width:248px;height:500px;padding:10px;border-radius:36px;
+    margin-top:0;
+  }
+  .solution-grid .phone::before{width:80px;height:18px;top:14px}
+  .solution-grid .phone-screen{border-radius:28px}
+  .solution-grid .ph-header{padding:30px 14px 12px}
+  .solution-grid .ph-header .logo{font-size:15px}
+  .solution-grid .ph-header .avatar{width:30px;height:30px;font-size:11px}
+  .solution-grid .ph-greeting{padding:13px;border-radius:12px;margin-bottom:10px}
+  .solution-grid .ph-greeting strong{font-size:14px}
+  .solution-grid .ph-greeting span{font-size:11px}
+  .solution-grid .ph-section-title{font-size:11px;margin-bottom:8px}
+  .solution-grid .ph-post{padding:9px 11px;margin-bottom:6px;border-radius:9px}
+  .solution-grid .ph-post-title{font-size:11.5px}
+  .solution-grid .ph-loc{font-size:9.5px}
+  .exchange-types{grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+  .ex-card{padding:14px}
+  .ex-card .ex-icon{width:40px;height:40px;font-size:20px;border-radius:10px;margin-bottom:8px}
+  .ex-card h4{font-size:14px;margin-bottom:4px}
+  .ex-card p{font-size:11.5px;line-height:1.35}
+  .slide[data-section="Solución"] h2{font-size:32px;margin-bottom:14px}
+  .slide[data-section="Solución"] .lead{font-size:14px;margin-bottom:14px}
+
+  /* Slide 14 live stage: only iframe + tour btn */
+  .live-stage{height:calc(100vh - 180px);min-height:auto;gap:0}
+  .live-stage-bar,.live-stage-foot,.live-stage-creds .live-creds-pill{display:none}
+  .live-stage-creds{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);z-index:60}
+  .live-stage-frame{border-radius:14px;height:100%}
+  .slide[data-section="En vivo"]{padding:70px 12px 70px}
+  .slide[data-section="En vivo"] .slide-eyebrow{display:none}
+}
+
+/* Slide 14 desktop: also clean — only frame + tour btn */
+.slide[data-section="En vivo"]{padding-top:70px;padding-bottom:70px}
+.slide[data-section="En vivo"] .slide-eyebrow{
+  position:absolute;top:24px;left:50%;transform:translateX(-50%);
+  margin:0;z-index:5;
+}
+.live-stage-bar{justify-content:flex-end}
+.live-stage-url{display:none}
+.live-stage-creds .live-creds-pill{display:none}
+.live-stage-foot{display:none}
+.live-stage{height:calc(100vh - 140px);gap:14px}
 </style>
 </head>
 <body>
