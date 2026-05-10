@@ -95,14 +95,22 @@ body.dark .brand{background:rgba(30,58,47,.85);color:var(--cream)}
 }
 body.dark .progress-bar{background:rgba(0,0,0,.4);border-top-color:rgba(245,240,232,.1)}
 .progress-step{
-  flex:1;min-width:90px;padding:12px 6px;text-align:center;
-  font-size:10.5px;font-weight:700;color:var(--text-muted);
+  flex:1 1 0;min-width:0;padding:10px 6px;text-align:center;
+  font-size:9.5px;font-weight:700;color:var(--text-muted);
   cursor:pointer;transition:all .25s;
   border-right:1px solid rgba(10,26,18,.06);
   position:relative;
-  text-transform:uppercase;letter-spacing:.5px;
-  white-space:nowrap;
+  text-transform:uppercase;letter-spacing:.2px;
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  min-height:44px;line-height:1.15;
+  overflow:hidden;
 }
+.progress-step .ps-num{font-weight:900;color:var(--harvest);font-size:11px;flex-shrink:0}
+.progress-step .ps-name{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:100%;
+}
+body.dark .progress-step .ps-num{color:var(--harvest-light)}
 .progress-step:last-child{border-right:none}
 .progress-step:hover{background:rgba(184,132,31,.12);color:var(--earth)}
 .progress-step.active{color:var(--earth);background:var(--cream-dark);font-weight:800}
@@ -354,6 +362,13 @@ body.dark .stat-block .lab{color:var(--cream-dark)}
   transition:all .3s;border:2px solid transparent;
 }
 .ex-card:hover{transform:translateY(-4px);border-color:var(--harvest);box-shadow:var(--shadow-lg)}
+.ex-card.active{
+  border-color:var(--harvest);
+  background:linear-gradient(135deg,#FFF8E7,var(--white));
+  transform:translateY(-4px);
+  box-shadow:0 14px 36px rgba(184,132,31,.28);
+}
+body.dark .ex-card.active{background:linear-gradient(135deg,rgba(184,132,31,.25),rgba(45,90,39,.4))}
 .ex-card .ex-icon{
   width:54px;height:54px;border-radius:14px;
   display:flex;align-items:center;justify-content:center;
@@ -395,7 +410,20 @@ body.dark .ex-card p{color:var(--cream-dark)}
   height:3px;background:linear-gradient(90deg,var(--field),var(--harvest));
   z-index:0;
 }
-.tl-step{position:relative;text-align:center;padding:0 10px;z-index:1}
+.tl-step{
+  position:relative;text-align:center;padding:8px 10px 14px;z-index:1;
+  cursor:pointer;border-radius:14px;
+  transition:all .25s ease;
+}
+.tl-step:hover{background:rgba(184,132,31,.06)}
+.tl-step:hover .tl-num{transform:scale(1.08);background:var(--harvest);color:var(--white)}
+.tl-step.active{background:linear-gradient(180deg,rgba(184,132,31,.14),transparent)}
+.tl-step.active .tl-num{
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);transform:scale(1.15);
+  box-shadow:0 10px 24px rgba(184,132,31,.45);
+  border-color:var(--harvest-light);
+}
 .tl-num{
   width:60px;height:60px;border-radius:50%;
   background:var(--white);border:3px solid var(--harvest);
@@ -403,12 +431,38 @@ body.dark .ex-card p{color:var(--cream-dark)}
   font-family:'Playfair Display',serif;font-weight:900;font-size:24px;
   color:var(--earth-deep);margin:0 auto 16px;
   box-shadow:var(--shadow-md);
+  transition:all .25s ease;
 }
 .tl-step h4{font-size:15px;font-weight:800;color:var(--earth-deep);margin-bottom:6px}
 .tl-step p{font-size:12.5px;color:var(--text-muted);line-height:1.45;font-weight:500}
 body.dark .tl-num{background:var(--earth);color:var(--white)}
 body.dark .tl-step h4{color:var(--white)}
 body.dark .tl-step p{color:var(--cream-dark)}
+.tl-detail{
+  margin-top:32px;padding:30px 36px;border-radius:20px;
+  background:linear-gradient(135deg,var(--earth-deep),var(--earth));
+  color:var(--cream);box-shadow:var(--shadow-lg);
+  display:grid;grid-template-columns:90px 1fr auto;gap:28px;align-items:center;
+  min-height:140px;
+}
+.tl-detail .icon{font-size:62px;text-align:center}
+.tl-detail .num-label{
+  font-family:'Playfair Display',serif;font-weight:900;
+  font-size:13px;letter-spacing:3px;text-transform:uppercase;
+  color:var(--harvest-light);margin-bottom:6px;
+}
+.tl-detail h3{
+  color:var(--white);font-family:'Playfair Display',serif;
+  font-size:30px;margin-bottom:8px;font-weight:900;
+}
+.tl-detail p{color:rgba(245,240,232,.85);font-size:15px;line-height:1.55;font-weight:500;max-width:560px}
+.tl-detail .badge{
+  background:rgba(184,132,31,.25);color:var(--harvest-light);
+  padding:8px 14px;border-radius:999px;font-size:12px;font-weight:800;
+  letter-spacing:1.5px;text-transform:uppercase;
+  border:1px solid rgba(184,132,31,.4);white-space:nowrap;
+}
+body.dark .tl-detail{background:linear-gradient(135deg,#000,var(--earth-deep))}
 
 /* ===== Diferenciadores ===== */
 .diff-table{
@@ -436,27 +490,81 @@ body.dark .diff-cell.feat{background:rgba(0,0,0,.25);color:var(--white)}
 /* ===== Personas ===== */
 .personas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:20px}
 .persona{
-  background:var(--white);border-radius:20px;
-  padding:28px;box-shadow:var(--shadow-md);
-  border-top:5px solid var(--harvest);
+  background:linear-gradient(180deg,var(--white) 0%, var(--cream) 100%);
+  border-radius:24px;
+  padding:32px 28px 28px;box-shadow:var(--shadow-md);
+  position:relative;overflow:hidden;
+  border:1px solid rgba(184,132,31,.15);
+  transition:transform .35s ease, box-shadow .35s ease;
+}
+.persona:hover{transform:translateY(-8px);box-shadow:var(--shadow-lg)}
+.persona::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:180px;height:180px;border-radius:50%;
+  background:radial-gradient(circle,rgba(184,132,31,.18) 0%,transparent 70%);
+  pointer-events:none;
+}
+.persona::after{
+  content:'';position:absolute;bottom:-40px;left:-40px;
+  width:140px;height:140px;border-radius:50%;
+  background:radial-gradient(circle,rgba(122,154,60,.14) 0%,transparent 70%);
+  pointer-events:none;
 }
 .persona .avatar-big{
-  width:80px;height:80px;border-radius:50%;
+  width:96px;height:96px;border-radius:50%;
   background:linear-gradient(135deg,var(--earth-mid),var(--field));
   color:var(--white);display:flex;align-items:center;justify-content:center;
-  font-size:36px;margin-bottom:18px;
+  font-size:44px;margin-bottom:18px;
+  box-shadow:0 12px 30px rgba(45,90,39,.35);
+  border:4px solid var(--white);
+  position:relative;z-index:1;
 }
-.persona h3{font-size:20px;margin-bottom:4px}
-.persona .role{font-size:13px;color:var(--harvest);font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
-.persona ul{list-style:none;padding:0}
+.persona-2 .avatar-big{background:linear-gradient(135deg,var(--harvest),var(--harvest-light));color:var(--earth-deep);box-shadow:0 12px 30px rgba(184,132,31,.4)}
+.persona-3 .avatar-big{background:linear-gradient(135deg,var(--earth),#3D5A2E);box-shadow:0 12px 30px rgba(30,58,47,.4)}
+.persona h3{font-size:22px;margin-bottom:4px;position:relative;z-index:1}
+.persona .role{
+  font-size:11px;color:var(--harvest);font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;margin-bottom:14px;
+  display:inline-block;padding:5px 12px;border-radius:999px;
+  background:rgba(184,132,31,.14);
+  position:relative;z-index:1;
+}
+.persona .quote{
+  font-family:'Playfair Display',serif;font-style:italic;
+  color:var(--earth-deep);font-size:15px;line-height:1.5;
+  margin-bottom:16px;padding-left:14px;
+  border-left:3px solid var(--harvest);font-weight:600;
+  position:relative;z-index:1;
+}
+.persona ul{list-style:none;padding:0;position:relative;z-index:1}
 .persona li{
-  font-size:13.5px;color:var(--text);padding:5px 0;
-  display:flex;gap:8px;font-weight:500;
+  font-size:13.5px;color:var(--text);padding:6px 0;
+  display:flex;gap:10px;font-weight:500;align-items:flex-start;
 }
-.persona li::before{content:'•';color:var(--harvest);font-weight:900}
-body.dark .persona{background:rgba(45,90,39,.4);border-top-color:var(--harvest-light)}
+.persona li::before{
+  content:'✓';color:var(--field);font-weight:900;
+  background:rgba(122,154,60,.18);
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;flex-shrink:0;margin-top:2px;
+}
+.persona-stats{
+  display:flex;gap:8px;margin-top:18px;
+  padding-top:16px;border-top:1px dashed rgba(184,132,31,.3);
+  position:relative;z-index:1;
+}
+.persona-stat{
+  flex:1;text-align:center;padding:6px;
+  background:rgba(255,255,255,.6);border-radius:8px;
+}
+.persona-stat .v{font-family:'Playfair Display',serif;font-weight:900;color:var(--harvest);font-size:18px;line-height:1}
+.persona-stat .l{font-size:9px;color:var(--text-muted);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+body.dark .persona{background:linear-gradient(180deg,rgba(45,90,39,.5),rgba(45,90,39,.3));border-color:rgba(184,132,31,.25)}
 body.dark .persona h3{color:var(--white)}
 body.dark .persona li{color:var(--cream)}
+body.dark .persona .quote{color:var(--cream)}
+body.dark .persona-stat{background:rgba(0,0,0,.25)}
+body.dark .persona-stat .v{color:var(--harvest-light)}
 
 /* ===== Oportunidad ===== */
 .op-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:8px;align-items:start}
@@ -518,13 +626,45 @@ body.dark .value-card p{color:var(--cream)}
 .p-block ul{list-style:none}
 .p-block li{padding:6px 0;color:var(--text);font-size:14.5px;line-height:1.5;font-weight:500}
 .p-block li::before{content:'▸ ';color:var(--harvest);font-weight:900}
-.plans{display:flex;gap:14px;margin-top:10px}
+.plans{display:flex;gap:12px;margin-top:14px}
 .plan{
-  flex:1;padding:16px;border-radius:12px;
-  background:var(--cream-dark);font-size:13px;font-weight:600;color:var(--text)
+  flex:1;padding:16px 14px;border-radius:14px;
+  background:var(--white);font-size:12.5px;font-weight:600;color:var(--text);
+  border:2px solid var(--cream-dark);
+  position:relative;display:flex;flex-direction:column;
+  transition:transform .25s, box-shadow .25s;
 }
-.plan strong{display:block;color:var(--earth-deep);font-size:15px;margin-bottom:6px;font-weight:800}
-.plan .price{color:var(--harvest);font-weight:900;font-size:20px;margin-top:6px}
+.plan:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.plan-name{
+  display:block;color:var(--earth-deep);font-size:14px;
+  margin-bottom:4px;font-weight:800;
+}
+.plan-price{
+  font-family:'Playfair Display',serif;
+  color:var(--harvest);font-weight:900;font-size:22px;
+  line-height:1;margin-bottom:10px;
+}
+.plan-price small{font-size:11px;color:var(--text-muted);font-weight:600;font-family:inherit}
+.plan-feat{
+  font-size:11.5px;color:var(--earth-deep);
+  padding:3px 0;display:flex;gap:6px;align-items:flex-start;
+  font-weight:600;line-height:1.35;
+}
+.plan-feat::before{content:'✓';color:var(--field);font-weight:900;flex-shrink:0}
+.plan.free{background:var(--cream)}
+.plan.featured{
+  border-color:var(--harvest);
+  background:linear-gradient(135deg,#FFF8E7,var(--white));
+  box-shadow:0 12px 30px rgba(184,132,31,.22);
+}
+.plan.featured .plan-name{color:var(--earth-deep)}
+.plan-badge{
+  position:absolute;top:-10px;right:12px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);font-size:9px;font-weight:900;
+  padding:4px 9px;border-radius:999px;letter-spacing:1.2px;
+  text-transform:uppercase;box-shadow:0 4px 10px rgba(184,132,31,.4);
+}
 body.dark .p-block{background:rgba(45,90,39,.4)}
 body.dark .p-block li{color:var(--cream)}
 body.dark .plan{background:rgba(0,0,0,.3);color:var(--cream)}
@@ -636,6 +776,73 @@ body.dark .road-quarter li{color:var(--cream)}
 body.dark .team-card{background:rgba(45,90,39,.4)}
 body.dark .team-card h3{color:var(--white)}
 body.dark .team-card .uni{color:var(--cream-dark)}
+
+/* ===== Live stage (full-screen iframe) ===== */
+.live-stage{
+  display:flex;flex-direction:column;gap:14px;
+  height:calc(100vh - 220px);min-height:500px;
+}
+.live-stage-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:14px;flex-wrap:wrap;
+}
+.live-stage-url{
+  display:flex;align-items:center;gap:10px;
+  background:var(--earth-deep);color:var(--cream);
+  padding:10px 18px;border-radius:999px;
+  font-size:13px;font-weight:600;
+  border:1px solid rgba(245,240,232,.15);
+}
+.live-stage-url .live-dot{
+  width:9px;height:9px;border-radius:50%;
+  background:#2E8B3E;box-shadow:0 0 10px #2E8B3E;
+  animation:pulse 2s infinite;
+}
+.live-stage-creds{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.live-creds-pill{
+  display:flex;align-items:center;gap:10px;
+  background:linear-gradient(135deg,var(--harvest),var(--harvest-light));
+  color:var(--earth-deep);
+  padding:10px 18px;border-radius:14px;
+  box-shadow:0 8px 20px rgba(184,132,31,.3);
+  font-weight:700;font-size:13px;
+}
+.live-creds-pill code{
+  background:rgba(10,26,18,.18);
+  padding:4px 10px;border-radius:8px;
+  font-family:'SF Mono',Menlo,monospace;
+  font-size:12.5px;font-weight:700;
+  color:var(--earth-deep);
+}
+.live-creds-label{
+  font-size:10px;font-weight:900;letter-spacing:1.5px;
+  text-transform:uppercase;opacity:.85;
+}
+.live-creds-divider{opacity:.5;font-weight:900}
+.live-stage-frame{
+  flex:1;min-height:0;
+  background:var(--white);border-radius:18px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(10,26,18,.3);
+  border:1px solid rgba(10,26,18,.1);
+}
+.live-stage-frame iframe{width:100%;height:100%;border:none;display:block}
+.live-stage-foot{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;
+}
+.live-stage-foot-item{
+  background:var(--white);padding:12px 16px;border-radius:12px;
+  font-size:12.5px;color:var(--text);font-weight:500;line-height:1.45;
+  border-left:3px solid var(--harvest);
+  box-shadow:var(--shadow-sm);
+}
+.live-stage-foot-item strong{color:var(--earth-deep);font-weight:800;display:block;margin-bottom:2px}
+body.dark .live-stage-foot-item{background:rgba(45,90,39,.5);color:var(--cream)}
+body.dark .live-stage-foot-item strong{color:var(--white)}
+@media (max-width:980px){
+  .live-stage-foot{grid-template-columns:1fr}
+  .live-stage{height:auto}
+  .live-stage-frame{height:60vh}
+}
 
 /* ===== Demo ===== */
 .demo-stage{
@@ -943,11 +1150,15 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 .qr-cta:hover{background:var(--harvest);color:var(--earth-deep)}
 
 .thanks-mark{
-  position:absolute;bottom:110px;right:80px;
+  position:absolute;bottom:90px;right:70px;
   font-family:'Playfair Display',serif;
-  font-size:120px;font-weight:900;color:rgba(245,240,232,.04);
-  letter-spacing:-4px;pointer-events:none;
+  font-size:140px;font-weight:900;
+  background:linear-gradient(135deg,rgba(232,184,75,.45),rgba(184,132,31,.18));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  letter-spacing:-3px;pointer-events:none;
   line-height:1;
+  text-shadow:0 4px 30px rgba(232,184,75,.15);
 }
 
 @media (max-width:980px){
@@ -968,7 +1179,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
     <div class="brand-dot"></div>
     AgroPulse · TerraX
   </div>
-  <div class="slide-counter" id="counter">01 / 14</div>
+  <div class="slide-counter" id="counter">01 / 15</div>
 </div>
 
 <button class="nav-arrow prev" id="prev">‹</button>
@@ -1027,7 +1238,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 1 PROBLEMA -->
   <section class="slide" data-section="Problema">
-    <div class="slide-eyebrow">01 · El problema</div>
+    <div class="slide-eyebrow">02 · El problema</div>
     <div class="problem-hero">
       <div>
         <div class="big-number" data-count="4.8">0</div>
@@ -1062,7 +1273,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 2 CONTEXTO MERCADO -->
   <section class="slide" data-section="Contexto">
-    <div class="slide-eyebrow">02 · El contexto</div>
+    <div class="slide-eyebrow">03 · El contexto</div>
     <h2>El campo es grande,<br>pero está fragmentado.</h2>
     <p class="lead" style="max-width:800px">
       Colombia tiene un sector rural masivo y subatendido digitalmente.
@@ -1102,51 +1313,39 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 3 SOLUCION -->
   <section class="slide" data-section="Solución">
-    <div class="slide-eyebrow">03 · La solución</div>
+    <div class="slide-eyebrow">04 · La solución</div>
     <h2>Marketplace rural<br>para 4 tipos de intercambio.</h2>
+    <p class="lead" style="max-width:760px;margin-bottom:20px">Toca cada tipo para ver cómo cambia la app. Cuatro maneras reales de mover recursos sin depender solo del dinero.</p>
     <div class="solution-grid">
       <div class="exchange-types">
-        <div class="ex-card ex-1">
-          <div class="ex-icon">💰</div>
-          <h4>Compra / Venta</h4>
-          <p>Transacción monetaria directa entre productores, con foto, ubicación y reputación.</p>
+        <div class="ex-card ex-1 active" data-sol="OFERTA" onclick="setSolType('OFERTA')">
+          <div class="ex-icon">📦</div>
+          <h4>Oferta</h4>
+          <p>Vende lo que produces o lo que ya no necesitas. Foto, ubicación y reputación incluidas.</p>
         </div>
-        <div class="ex-card ex-2">
+        <div class="ex-card ex-4" data-sol="SOLICITUD" onclick="setSolType('SOLICITUD')">
+          <div class="ex-icon">🙋</div>
+          <h4>Solicitud</h4>
+          <p>Pide lo que necesitas. Otros productores cercanos responden con lo que tienen disponible.</p>
+        </div>
+        <div class="ex-card ex-3" data-sol="PRESTAMO" onclick="setSolType('PRESTAMO')">
+          <div class="ex-icon">🚜</div>
+          <h4>Préstamo</h4>
+          <p>Maquinaria y herramientas por horas o días. Aprovecha lo que está parado en otra finca.</p>
+        </div>
+        <div class="ex-card ex-2" data-sol="TRUEQUE" onclick="setSolType('TRUEQUE')">
           <div class="ex-icon">🔄</div>
           <h4>Trueque</h4>
           <p>Insumos por servicios, fruta por semillas, tiempo por herramientas. Sin dinero de por medio.</p>
-        </div>
-        <div class="ex-card ex-3">
-          <div class="ex-icon">🚜</div>
-          <h4>Préstamo / Alquiler</h4>
-          <p>Maquinaria y herramientas por horas o días. Aprovecha lo que está parado en otra finca.</p>
-        </div>
-        <div class="ex-card ex-4">
-          <div class="ex-icon">⭐</div>
-          <h4>Crédito social</h4>
-          <p>Sistema de puntos por reputación. Acceso a recursos a crédito sin papeles ni avales.</p>
         </div>
       </div>
       <div class="phone">
         <div class="phone-screen">
           <div class="ph-header"><span class="logo">AgroPulse</span><div class="avatar">JR</div></div>
-          <div class="ph-body" style="padding:10px">
-            <div class="ph-greeting"><strong>Juan David</strong><span>¿Qué quieres publicar hoy?</span></div>
-            <div class="ph-actions">
-              <div class="ph-action"><span class="em">📦</span>Publicar oferta</div>
-              <div class="ph-action"><span class="em">🙋</span>Pedir recursos</div>
-              <div class="ph-action"><span class="em">🔧</span>Prestar equipo</div>
-              <div class="ph-action"><span class="em">🔄</span>Trueque</div>
-            </div>
-            <div class="ph-section-title">De la comunidad</div>
-            <div class="ph-post">
-              <div><div class="ph-post-title">Motobomba buen estado</div><div class="ph-loc">Villa Patricia, Fusagasugá</div></div>
-              <span class="ph-tag tag-OFERTA">OFERTA</span>
-            </div>
-            <div class="ph-post">
-              <div><div class="ph-post-title">Tractor Tavol</div><div class="ph-loc">Mariscal Sucre</div></div>
-              <span class="ph-tag tag-PRESTAMO">PRÉSTAMO</span>
-            </div>
+          <div class="ph-body" id="sol-phone-body" style="padding:10px">
+            <div class="ph-greeting"><strong id="sol-greeting-title">Oferta</strong><span id="sol-greeting-sub">Publica lo que produces o lo que sobra</span></div>
+            <div class="ph-section-title" id="sol-section-title">Ofertas cerca de ti</div>
+            <div id="sol-posts"></div>
           </div>
           <div class="ph-nav">
             <div class="ph-nav-item on"><span class="em">🏠</span>Inicio</div>
@@ -1162,34 +1361,44 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 4 COMO FUNCIONA -->
   <section class="slide" data-section="Cómo funciona">
-    <div class="slide-eyebrow">04 · Cómo funciona</div>
+    <div class="slide-eyebrow">05 · Cómo funciona</div>
     <h2>De publicar a cerrar acuerdo<br>en cinco pasos.</h2>
-    <div class="timeline">
-      <div class="tl-step">
+    <p class="lead" style="max-width:760px;margin-bottom:8px">Toca cada paso para ver el detalle real del flujo en producción.</p>
+    <div class="timeline" id="howit-timeline">
+      <div class="tl-step active" data-step="0" onclick="setHowStep(0)">
         <div class="tl-num">1</div>
         <h4>Publicar</h4>
-        <p>Foto, descripción, tipo de intercambio y ubicación con un solo formulario.</p>
+        <p>Foto, descripción, tipo y ubicación.</p>
       </div>
-      <div class="tl-step">
+      <div class="tl-step" data-step="1" onclick="setHowStep(1)">
         <div class="tl-num">2</div>
         <h4>Descubrir</h4>
-        <p>Mapa y feed por categoría. Filtros por cercanía, tipo y reputación.</p>
+        <p>Mapa y feed con filtros.</p>
       </div>
-      <div class="tl-step">
+      <div class="tl-step" data-step="2" onclick="setHowStep(2)">
         <div class="tl-num">3</div>
         <h4>Negociar</h4>
-        <p>Chat directo con fotos, ubicación GPS y propuestas de acuerdo.</p>
+        <p>Chat con fotos y GPS.</p>
       </div>
-      <div class="tl-step">
+      <div class="tl-step" data-step="3" onclick="setHowStep(3)">
         <div class="tl-num">4</div>
         <h4>Acordar</h4>
-        <p>Confirmación dentro de la app. Términos guardados como historial.</p>
+        <p>Confirmación y trazabilidad.</p>
       </div>
-      <div class="tl-step">
+      <div class="tl-step" data-step="4" onclick="setHowStep(4)">
         <div class="tl-num">5</div>
         <h4>Calificar</h4>
-        <p>Cada acuerdo suma reputación. La reputación abre crédito social.</p>
+        <p>Reputación que abre crédito.</p>
       </div>
+    </div>
+    <div class="tl-detail" id="tl-detail">
+      <div class="icon" id="tl-detail-icon">📝</div>
+      <div>
+        <div class="num-label" id="tl-detail-num">Paso 01 de 05</div>
+        <h3 id="tl-detail-title">Publicar en menos de 2 minutos</h3>
+        <p id="tl-detail-body">Un único formulario te pide foto, descripción, tipo de intercambio (oferta, solicitud, préstamo o trueque) y ubicación. Subes desde el celular sin escribir mucho.</p>
+      </div>
+      <div class="badge" id="tl-detail-badge">Mobile-first</div>
     </div>
     <div style="margin-top:36px;background:var(--white);padding:24px;border-radius:18px;box-shadow:var(--shadow-md);display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
       <div>
@@ -1209,7 +1418,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 5 DIFERENCIADORES -->
   <section class="slide" data-section="Diferencia">
-    <div class="slide-eyebrow">05 · Diferenciadores</div>
+    <div class="slide-eyebrow">06 · Diferenciadores</div>
     <h2>Por qué no es<br>otro Marketplace o WhatsApp.</h2>
     <p class="lead" style="max-width:760px">El campo ya usa Facebook Marketplace, grupos de WhatsApp y voz a voz. AgroPulse gana porque es la única opción que combina todo en un flujo diseñado para el agro.</p>
     <div class="diff-table">
@@ -1260,41 +1469,59 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 6 PERSONAS / CLIENTE -->
   <section class="slide" data-section="Cliente">
-    <div class="slide-eyebrow">06 · Quién usa AgroPulse</div>
+    <div class="slide-eyebrow">07 · Quién usa AgroPulse</div>
     <h2>Tres perfiles<br>que ya nos esperan.</h2>
     <div class="personas-grid">
-      <div class="persona">
+      <div class="persona persona-1">
         <div class="avatar-big">👨‍🌾</div>
         <h3>Don Carlos</h3>
         <div class="role">Productor pequeño</div>
+        <p class="quote">"Tengo lo que necesita mi vecino, solo que no nos enterábamos."</p>
         <ul>
-          <li>Café o frutales en finca de 2-5 ha</li>
-          <li>No puede comprar tractor propio</li>
-          <li>Vende en mercado local</li>
-          <li>Quiere prestar/alquilar herramientas</li>
+          <li>Café y frutales en finca de 2-5 ha</li>
+          <li>Comprar tractor propio es inviable</li>
+          <li>Vende en mercado local los sábados</li>
+          <li>Quiere prestar y alquilar herramientas</li>
         </ul>
+        <div class="persona-stats">
+          <div class="persona-stat"><div class="v">52</div><div class="l">Edad</div></div>
+          <div class="persona-stat"><div class="v">3 ha</div><div class="l">Finca</div></div>
+          <div class="persona-stat"><div class="v">Andina</div><div class="l">Región</div></div>
+        </div>
       </div>
-      <div class="persona">
+      <div class="persona persona-2">
         <div class="avatar-big">👩‍🌾</div>
-        <h3>Marta y la Asociación</h3>
+        <h3>Marta</h3>
         <div class="role">Líder de cooperativa</div>
+        <p class="quote">"Coordino 30 familias en un grupo de WhatsApp. Es un caos."</p>
         <ul>
           <li>Coordina 30+ familias campesinas</li>
-          <li>Necesita organizar pedidos colectivos</li>
-          <li>Maneja insumos compartidos</li>
-          <li>Quiere visibilidad del inventario común</li>
+          <li>Organiza pedidos colectivos de insumos</li>
+          <li>Maneja inventario compartido</li>
+          <li>Necesita visibilidad del inventario común</li>
         </ul>
+        <div class="persona-stats">
+          <div class="persona-stat"><div class="v">38</div><div class="l">Edad</div></div>
+          <div class="persona-stat"><div class="v">30+</div><div class="l">Familias</div></div>
+          <div class="persona-stat"><div class="v">Boyacá</div><div class="l">Región</div></div>
+        </div>
       </div>
-      <div class="persona">
+      <div class="persona persona-3">
         <div class="avatar-big">🧑‍💻</div>
         <h3>Esteban</h3>
         <div class="role">Joven rural digital</div>
+        <p class="quote">"Yo soy el que maneja el celular de toda mi familia."</p>
         <ul>
-          <li>22 años, hijo de productor</li>
-          <li>Maneja la tecnología de la familia</li>
-          <li>Quiere modernizar la finca</li>
+          <li>22 años, hijo de productor cafetero</li>
+          <li>Maneja la tecnología familiar</li>
+          <li>Quiere modernizar la finca de su papá</li>
           <li>Puente entre lo digital y lo rural</li>
         </ul>
+        <div class="persona-stats">
+          <div class="persona-stat"><div class="v">22</div><div class="l">Edad</div></div>
+          <div class="persona-stat"><div class="v">Tec.</div><div class="l">Estudio</div></div>
+          <div class="persona-stat"><div class="v">Quindío</div><div class="l">Región</div></div>
+        </div>
       </div>
     </div>
     <div style="margin-top:24px;padding:20px 24px;background:rgba(184,132,31,.12);border-left:4px solid var(--harvest);border-radius:12px">
@@ -1305,7 +1532,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 7 OPORTUNIDAD -->
   <section class="slide" data-section="Oportunidad">
-    <div class="slide-eyebrow">07 · Oportunidad de mercado</div>
+    <div class="slide-eyebrow">08 · Oportunidad de mercado</div>
     <h2>Mercado masivo,<br>captura realista.</h2>
     <div class="op-grid">
       <div>
@@ -1329,28 +1556,46 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
         </p>
       </div>
       <div class="zones-card">
-        <h3>Zonas piloto</h3>
-        <p style="color:var(--text-muted);font-size:14px;margin-bottom:14px;font-weight:500">Departamentos seleccionados por densidad campesina, conectividad y asociatividad.</p>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <span style="background:#2E8B3E;color:#fff;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase">🇨🇴 Nacional</span>
+          <h3 style="margin:0">Cobertura Colombia</h3>
+        </div>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:14px;font-weight:500">AgroPulse ya está disponible en todo el país. Cualquier productor con conexión puede publicar y descubrir intercambios cerca.</p>
+        <h3 style="font-size:15px;margin-top:14px;margin-bottom:10px">Departamentos con presencia activa</h3>
         <div class="zone-list">
           <div class="zone-tag">📍 Cundinamarca</div>
           <div class="zone-tag">📍 Boyacá</div>
           <div class="zone-tag">📍 Tolima</div>
-          <div class="zone-tag">📍 Eje Cafetero</div>
-        </div>
-        <h3 style="margin-top:24px;font-size:18px">Expansión año 2</h3>
-        <div class="zone-list">
           <div class="zone-tag">📍 Antioquia</div>
           <div class="zone-tag">📍 Santander</div>
           <div class="zone-tag">📍 Huila</div>
           <div class="zone-tag">📍 Nariño</div>
+          <div class="zone-tag">📍 Cauca</div>
+          <div class="zone-tag">📍 Quindío</div>
+          <div class="zone-tag">📍 Risaralda</div>
+          <div class="zone-tag">📍 Caldas</div>
+          <div class="zone-tag">📍 Valle del Cauca</div>
+          <div class="zone-tag">📍 Meta</div>
+          <div class="zone-tag">📍 Casanare</div>
+          <div class="zone-tag">📍 Córdoba</div>
+          <div class="zone-tag">📍 Magdalena</div>
+          <div class="zone-tag">📍 Cesar</div>
+          <div class="zone-tag">📍 Sucre</div>
+          <div class="zone-tag">📍 Bolívar</div>
+          <div class="zone-tag">📍 Atlántico</div>
+          <div class="zone-tag">📍 Norte de Santander</div>
+          <div class="zone-tag">📍 Guajira</div>
+          <div class="zone-tag">📍 Caquetá</div>
+          <div class="zone-tag">📍 Putumayo</div>
         </div>
+        <p style="margin-top:14px;font-size:12px;color:var(--text-muted);font-weight:500">+ ciudades como Bogotá, Medellín, Cali, Bucaramanga, Tunja, Manizales, Pereira, Armenia, Ibagué, Neiva, Pasto, Popayán, Villavicencio, Yopal, Montería, Valledupar, Sincelejo, Cartagena, Barranquilla, Santa Marta, Cúcuta, Riohacha, Florencia, Mocoa.</p>
       </div>
     </div>
   </section>
 
   <!-- 8 VALOR -->
   <section class="slide" data-section="Valor">
-    <div class="slide-eyebrow">08 · Propuesta de valor</div>
+    <div class="slide-eyebrow">09 · Propuesta de valor</div>
     <h2>El primer banco<br>de intercambios rurales.</h2>
     <div class="value-grid" style="margin-top:24px">
       <div class="value-card">
@@ -1378,22 +1623,37 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 9 4P -->
   <section class="slide" data-section="4P">
-    <div class="slide-eyebrow">09 · Mercadeo · 4P</div>
+    <div class="slide-eyebrow">10 · Mercadeo · 4P</div>
     <h2>Modelo Freemium<br>+ comisiones marketplace.</h2>
     <div class="fourp-grid">
       <div class="p-block">
         <h3>Producto</h3>
         <p style="color:var(--text-muted);font-size:14px;margin-bottom:10px;font-weight:600">SaaS · App móvil + web</p>
         <div class="plans">
-          <div class="plan">
-            <strong>Básico</strong>
-            10 publicaciones, mapa, chat con fotos
-            <div class="price">$12.900<small style="font-size:11px;color:var(--text-muted)">/mes</small></div>
+          <div class="plan free">
+            <span class="plan-name">Gratis</span>
+            <div class="plan-price">$0<small>/mes</small></div>
+            <div class="plan-feat">3 publicaciones</div>
+            <div class="plan-feat">Mapa de comunidad</div>
+            <div class="plan-feat">Anuncios discretos</div>
           </div>
-          <div class="plan" style="background:linear-gradient(135deg,var(--harvest),var(--harvest-light));color:var(--earth-deep)">
-            <strong style="color:var(--earth-deep)">Pro</strong>
-            Ilimitado, sin ads, alertas de match, exportar acuerdos, soporte prioritario
-            <div class="price" style="color:var(--earth-deep)">$21.900<small style="color:var(--earth-deep);opacity:.7">/mes</small></div>
+          <div class="plan">
+            <span class="plan-name">Básico</span>
+            <div class="plan-price">$12.900<small>/mes</small></div>
+            <div class="plan-feat">10 publicaciones</div>
+            <div class="plan-feat">Chat con fotos</div>
+            <div class="plan-feat">Filtros avanzados</div>
+            <div class="plan-feat">Anuncios discretos</div>
+          </div>
+          <div class="plan featured">
+            <span class="plan-badge">Recomendado</span>
+            <span class="plan-name">Pro</span>
+            <div class="plan-price">$21.900<small>/mes</small></div>
+            <div class="plan-feat">Publicaciones ilimitadas</div>
+            <div class="plan-feat">Sin anuncios</div>
+            <div class="plan-feat">Alertas de match</div>
+            <div class="plan-feat">Exportar acuerdos</div>
+            <div class="plan-feat">Soporte prioritario</div>
           </div>
         </div>
       </div>
@@ -1402,7 +1662,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
         <ul>
           <li>Freemium con conversión a pago</li>
           <li>ARPU año 3: $3.247 COP/activo·mes</li>
-          <li>Comisión sobre transacciones de marketplace</li>
+          <li>Publicidad no invasiva en planes Gratis y Básico</li>
           <li>Conversión objetivo: 18% activos a pago</li>
           <li>Trial Pro de 14 días para nuevos usuarios</li>
         </ul>
@@ -1432,12 +1692,12 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 10 MODELO INGRESOS -->
   <section class="slide" data-section="Ingresos">
-    <div class="slide-eyebrow">10 · Modelo de ingresos</div>
+    <div class="slide-eyebrow">11 · Modelo de ingresos</div>
     <h2>Dos fuentes,<br>una sola plataforma.</h2>
     <div class="revenue-grid">
       <div class="rev-card">
         <h3>Suscripciones <span class="badge">Recurrente</span></h3>
-        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Ingresos mensuales recurrentes (MRR) por planes Básico y Pro.</p>
+        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Ingresos mensuales recurrentes (MRR) por planes Básico y Pro. No cobramos comisión sobre los intercambios.</p>
         <div class="rev-bar-wrap">
           <div class="rev-bar-label"><span>Plan Básico ($12.900)</span><span>72%</span></div>
           <div class="rev-bar"><div class="rev-bar-fill" style="width:72%"></div></div>
@@ -1449,14 +1709,27 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
         <div class="rev-formula">MRR mes 36 = $181M COP · ARR = $2.172M COP</div>
       </div>
       <div class="rev-card">
-        <h3>Comisiones <span class="badge" style="background:var(--field)">Variable</span></h3>
-        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Tarifa por cada transacción cerrada en el marketplace de pagos.</p>
-        <div style="background:var(--cream);padding:18px;border-radius:12px;margin-bottom:14px">
-          <div style="font-size:12px;color:var(--text-muted);font-weight:700;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase">Tarifa estándar</div>
-          <div style="font-size:36px;font-family:'Playfair Display',serif;font-weight:900;color:var(--harvest)">3,5%</div>
-          <div style="font-size:12px;color:var(--text-muted);font-weight:600;margin-top:4px">por transacción cerrada</div>
+        <h3>Publicidad no invasiva <span class="badge" style="background:var(--field)">Gratis y Básico</span></h3>
+        <p style="color:var(--text-muted);font-size:14px;font-weight:500;margin-bottom:14px">Anuncios discretos y relevantes para el agro: insumos, asistencia técnica, créditos rurales. Solo en planes Gratis y Básico — Pro queda totalmente limpio.</p>
+        <div style="background:var(--cream);padding:16px;border-radius:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:12px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">eCPM promedio</div>
+            <div style="font-size:30px;font-family:'Playfair Display',serif;font-weight:900;color:var(--harvest)">$3.200</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-top:2px">COP por mil impresiones</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:12px;color:var(--text-muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Slots por sesión</div>
+            <div style="font-size:30px;font-family:'Playfair Display',serif;font-weight:900;color:var(--earth-deep)">2</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;margin-top:2px">máx., siempre nativos</div>
+          </div>
         </div>
-        <div class="rev-formula">≈ $31M COP/mes en mes 36 (escenario base)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:700;background:rgba(122,154,60,.18);color:var(--earth-deep);padding:5px 10px;border-radius:999px">Sin pop-ups</span>
+          <span style="font-size:11px;font-weight:700;background:rgba(122,154,60,.18);color:var(--earth-deep);padding:5px 10px;border-radius:999px">Sin video forzado</span>
+          <span style="font-size:11px;font-weight:700;background:rgba(122,154,60,.18);color:var(--earth-deep);padding:5px 10px;border-radius:999px">Solo agro relevante</span>
+          <span style="font-size:11px;font-weight:700;background:rgba(122,154,60,.18);color:var(--earth-deep);padding:5px 10px;border-radius:999px">Pro queda libre</span>
+        </div>
+        <div class="rev-formula">≈ $24M COP/mes en mes 36 (escenario base)</div>
       </div>
     </div>
     <div style="margin-top:24px;background:var(--white);padding:24px;border-radius:18px;box-shadow:var(--shadow-md)">
@@ -1472,7 +1745,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 11 FINANZAS -->
   <section class="slide" data-section="Finanzas">
-    <div class="slide-eyebrow">11 · Indicadores financieros</div>
+    <div class="slide-eyebrow">12 · Indicadores financieros</div>
     <h2>Equilibrio mes 17 ·<br>TIR &gt; 80% a 3 años.</h2>
     <div class="fin-tabs">
       <button class="fin-tab" data-scenario="cons">Conservador</button>
@@ -1514,7 +1787,7 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
   <!-- 12 ROADMAP -->
   <section class="slide" data-section="Roadmap">
-    <div class="slide-eyebrow">12 · Roadmap</div>
+    <div class="slide-eyebrow">13 · Roadmap</div>
     <h2>De producto en producción<br>a infraestructura rural.</h2>
     <div class="road-grid">
       <div class="road-quarter now">
@@ -1532,9 +1805,9 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
         <span class="road-tag next-tag">Q3 2026</span>
         <h3>Crecimiento</h3>
         <ul>
-          <li>Onboarding masivo en zonas piloto</li>
-          <li>Pasarela de pagos integrada</li>
-          <li>Sistema de comisiones marketplace</li>
+          <li>Onboarding masivo a nivel nacional</li>
+          <li>Pasarela de pagos integrada para suscripciones</li>
+          <li>Plataforma de anuncios nativos para agro</li>
           <li>Notificaciones push</li>
         </ul>
       </div>
@@ -1562,9 +1835,31 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
   </section>
 
   <!-- 13 DEMO -->
-  <section class="slide" data-section="Demo">
-    <div class="slide-eyebrow">13 · Demo del prototipo</div>
-    <div class="demo-stage">
+  <section class="slide" data-section="En vivo">
+    <div class="slide-eyebrow">14 · Producto en vivo</div>
+    <div class="live-stage">
+      <div class="live-stage-bar">
+        <div class="live-stage-url"><div class="live-dot"></div>https://agropulse.company</div>
+        <div class="live-stage-creds">
+          <div class="live-creds-pill">
+            <span class="live-creds-label">Cuenta demo</span>
+            <code>cosmodavid2009@gmail.com</code>
+            <span class="live-creds-divider">·</span>
+            <code>Agro2004*</code>
+          </div>
+          <button class="tour-launch" id="tour-launch" style="margin:0;padding:12px 20px;font-size:13px">▶ Tour guiado</button>
+        </div>
+      </div>
+      <div class="live-stage-frame">
+        <iframe id="live-stage-iframe" src="https://agropulse.company" title="AgroPulse en vivo" loading="lazy"></iframe>
+      </div>
+      <div class="live-stage-foot">
+        <div class="live-stage-foot-item"><strong>Producción real.</strong> No es un mockup, es la app corriendo hoy.</div>
+        <div class="live-stage-foot-item"><strong>Usuarios reales.</strong> Productores publicando ofertas, solicitudes, préstamos y trueques.</div>
+        <div class="live-stage-foot-item"><strong>4 tipos de intercambio.</strong> Geolocalización, chat, reputación y suscripciones activas.</div>
+      </div>
+    </div>
+    <div id="demo-hidden-source" style="display:none" aria-hidden="true">
       <div class="phone" id="phone-demo">
         <div class="phone-screen" id="demo-screen">
 
@@ -1676,29 +1971,12 @@ body.dark .live-launch:hover{background:var(--cream);color:var(--earth-deep)}
 
         </div>
       </div>
-      <div class="demo-info">
-        <div class="slide-eyebrow">Prototipo en vivo</div>
-        <h2 style="font-size:42px">El producto<br>en tus manos.</h2>
-        <p class="lead">Navega entre pantallas reales. Mismo flujo que en producción en agropulse.company.</p>
-        <div class="demo-screens-nav">
-          <button class="demo-nav-btn active" onclick="goScreen('home')">1 · Feed</button>
-          <button class="demo-nav-btn" onclick="goScreen('detail')">2 · Detalle + chat</button>
-          <button class="demo-nav-btn" onclick="goScreen('plans')">3 · Suscripciones</button>
-        </div>
-        <div class="feature-callouts">
-          <div class="callout"><strong>Geolocalización</strong>Cada publicación con su ubicación exacta sobre mapa.</div>
-          <div class="callout"><strong>Match con foto y chat</strong>Negociación dentro de la app, sin salir a WhatsApp.</div>
-          <div class="callout"><strong>Freemium claro</strong>Conversión natural cuando se pasan las 10 publicaciones.</div>
-        </div>
-        <button class="tour-launch" id="tour-launch">▶ Tour guiado</button>
-        <button class="live-launch" id="live-launch">🌐 Ver web en vivo</button>
-      </div>
     </div>
   </section>
 
   <!-- 14 CIERRE -->
   <section class="slide close-slide" data-section="Cierre">
-    <div class="slide-eyebrow">14 · Cierre</div>
+    <div class="slide-eyebrow">15 · Cierre</div>
     <div class="thanks-mark">Gracias</div>
     <div class="close-grid">
       <div>
@@ -1776,7 +2054,8 @@ const $start = document.getElementById('start-btn');
 sectionNames.forEach((n,i)=>{
   const el=document.createElement('div');
   el.className='progress-step';
-  el.textContent=`${String(i+1).padStart(2,'0')} · ${n}`;
+  el.title = `${String(i+1).padStart(2,'0')} · ${n}`;
+  el.innerHTML = `<span class="ps-num">${String(i+1).padStart(2,'0')}</span><span class="ps-name">${n}</span>`;
   el.onclick=()=>go(i);
   $progress.appendChild(el);
 });
@@ -1899,6 +2178,99 @@ document.querySelectorAll('.fin-tab').forEach(t=>{
     animateKPIs(s);
   };
 });
+
+/* ===== Cómo funciona: pasos interactivos ===== */
+const howSteps = [
+  {icon:'📝', num:'Paso 01 de 05', title:'Publicar en menos de 2 minutos',
+   body:'Un único formulario te pide foto, descripción, tipo de intercambio (oferta, solicitud, préstamo o trueque) y ubicación. Subes desde el celular sin escribir mucho.',
+   badge:'Mobile-first'},
+  {icon:'🗺️', num:'Paso 02 de 05', title:'Descubre lo que hay cerca',
+   body:'Mapa interactivo + feed por categoría. Filtras por cercanía, tipo y reputación. Lo que está a 2 km aparece primero.',
+   badge:'Geolocalizado'},
+  {icon:'💬', num:'Paso 03 de 05', title:'Negocia dentro de la app',
+   body:'Chat directo con la otra parte. Envías fotos del recurso, compartes ubicación GPS y propones términos sin saltar a WhatsApp.',
+   badge:'Chat + GPS'},
+  {icon:'🤝', num:'Paso 04 de 05', title:'Cierra acuerdo trazable',
+   body:'Confirmación dentro de la app. Términos, fecha y lugar quedan guardados. Cada acuerdo es un registro consultable después.',
+   badge:'Historial'},
+  {icon:'⭐', num:'Paso 05 de 05', title:'Califica y construye reputación',
+   body:'Estrellas de 1 a 5, etiquetas y reseña. Tu nota se suma al perfil público de la otra parte. La reputación abre acceso a crédito social.',
+   badge:'Crédito social'},
+];
+function setHowStep(i){
+  document.querySelectorAll('#howit-timeline .tl-step').forEach((s,j)=>{
+    s.classList.toggle('active', j===i);
+  });
+  const d = howSteps[i];
+  document.getElementById('tl-detail-icon').textContent = d.icon;
+  document.getElementById('tl-detail-num').textContent = d.num;
+  document.getElementById('tl-detail-title').textContent = d.title;
+  document.getElementById('tl-detail-body').textContent = d.body;
+  document.getElementById('tl-detail-badge').textContent = d.badge;
+}
+window.setHowStep = setHowStep;
+
+/* ===== Solución: switch tipo intercambio ===== */
+const solData = {
+  OFERTA: {
+    title:'Oferta',
+    sub:'Publica lo que produces o lo que sobra',
+    section:'Ofertas cerca de ti',
+    posts:[
+      {t:'Motobomba buen estado', l:'Villa Patricia, Fusagasugá'},
+      {t:'Bultos de abono orgánico', l:'Avenida Carrera 7'},
+      {t:'Semillas para frutales', l:'Mariscal Sucre'},
+    ],
+  },
+  SOLICITUD: {
+    title:'Solicitud',
+    sub:'Pide lo que necesitas, otros responden',
+    section:'Solicitudes activas',
+    posts:[
+      {t:'Necesito almacenamiento', l:'Calle 9 Sur, La Balsa, Chía'},
+      {t:'Busco 2 jornaleros', l:'Vereda San Antonio, Tolima'},
+      {t:'Necesito un tractor por 2 días', l:'Carrera 6, Mariscal Sucre'},
+    ],
+  },
+  PRESTAMO: {
+    title:'Préstamo',
+    sub:'Aprovecha lo que está parado en otra finca',
+    section:'Equipos disponibles',
+    posts:[
+      {t:'Tractor Tavol', l:'Mariscal Sucre'},
+      {t:'Planta eléctrica gasolina', l:'Avenida Carrera 5'},
+      {t:'Llave inglesa industrial', l:'San Gil, Santander'},
+    ],
+  },
+  TRUEQUE: {
+    title:'Trueque',
+    sub:'Intercambia sin dinero de por medio',
+    section:'Trueques abiertos',
+    posts:[
+      {t:'Cambio fruta por semillas', l:'Líbano, Tolima'},
+      {t:'Cambio tractor por camión', l:'Carrera 6, Mariscal Sucre'},
+      {t:'Cambio jornal por insumos', l:'Vélez, Santander'},
+    ],
+  },
+};
+function setSolType(t){
+  document.querySelectorAll('.ex-card').forEach(c=>{
+    c.classList.toggle('active', c.dataset.sol===t);
+  });
+  const d = solData[t];
+  document.getElementById('sol-greeting-title').textContent = d.title;
+  document.getElementById('sol-greeting-sub').textContent = d.sub;
+  document.getElementById('sol-section-title').textContent = d.section;
+  const $posts = document.getElementById('sol-posts');
+  $posts.innerHTML = d.posts.map(p=>`
+    <div class="ph-post">
+      <div><div class="ph-post-title">${p.t}</div><div class="ph-loc">${p.l}</div></div>
+      <span class="ph-tag tag-${t}">${t}</span>
+    </div>
+  `).join('');
+}
+window.setSolType = setSolType;
+setSolType('OFERTA');
 
 function goScreen(name){
   document.querySelectorAll('#demo-screen .ph-screen').forEach(s=>{
@@ -2035,12 +2407,14 @@ const $liveOverlay = document.getElementById('live-overlay');
 const $liveClose = document.getElementById('live-close');
 const $liveLaunch = document.getElementById('live-launch');
 const $liveIframe = document.getElementById('live-iframe');
-$liveLaunch.onclick = ()=>{
-  $liveIframe.src = 'https://agropulse.company';
-  $liveOverlay.classList.add('active');
-};
-$liveClose.onclick = ()=>{ $liveOverlay.classList.remove('active'); $liveIframe.src='about:blank'; };
-$liveOverlay.addEventListener('click', e=>{ if(e.target===$liveOverlay) $liveClose.click(); });
+if($liveLaunch){
+  $liveLaunch.onclick = ()=>{
+    $liveIframe.src = 'https://agropulse.company';
+    $liveOverlay.classList.add('active');
+  };
+}
+if($liveClose) $liveClose.onclick = ()=>{ $liveOverlay.classList.remove('active'); $liveIframe.src='about:blank'; };
+if($liveOverlay) $liveOverlay.addEventListener('click', e=>{ if(e.target===$liveOverlay) $liveClose.click(); });
 document.addEventListener('keydown', e=>{
   if($liveOverlay.classList.contains('active') && e.key==='Escape') $liveClose.click();
 });
